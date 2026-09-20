@@ -1,0 +1,31 @@
+# Archivos de Sistema Operativo
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.log
+
+# IDE / Editors
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/settings.json
+
+# Archivos de entorno y claves locales
+.env
+.env.local
+.env.production
+
+# Dependencias (si se agrega npm en el futuro)
+node_modules/
+
+# Outputs de Build (si se agrega bundler en el futuro)
+dist/
+.cache/
+
+# IDE Agent / Antigravity artifacts
+.artifacts/
+
+# Archivos de sistema Windows
+ehthumbs.db
+$RECYCLE.BIN/
