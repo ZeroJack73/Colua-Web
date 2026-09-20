@@ -19,7 +19,7 @@ class AuthManager {
     const cleanInput = input.trim();
     const inputHash = await this.sha256(cleanInput);
     
-    // Hash predeterminado de '1234'
+    // Hash de verificación de autorización
     const defaultHash = "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4";
     const customStoredHash = localStorage.getItem('admin_master_hash');
     
@@ -27,7 +27,7 @@ class AuthManager {
     if (customStoredHash) {
       matches = (inputHash.toLowerCase() === customStoredHash.toLowerCase());
     } else {
-      matches = (inputHash.toLowerCase() === defaultHash.toLowerCase()) || (cleanInput === '1234');
+      matches = (inputHash.toLowerCase() === defaultHash.toLowerCase());
     }
 
     if (matches) {

@@ -3,18 +3,41 @@
 Thumbs.db
 Desktop.ini
 *.log
+*.tmp
+*.bak
+*.backup
+*.swp
 
 # IDE / Editors
 .idea/
 *.iml
 *.iws
 *.ipr
-.vscode/settings.json
+.vscode/*
+!.vscode/extensions.json
 
 # Archivos de entorno y claves locales
-.env
-.env.local
-.env.production
+.env*
+!.env.example
+
+# Credenciales y configuraciones locales privadas de la aplicación
+web/js/config.local.js
+config.local.js
+
+# Certificados y llaves criptográficas privadas
+*.pem
+*.key
+*.pfx
+*.p12
+*.keystore
+*.jks
+
+# Credenciales de Google Cloud, Firebase y servicios backend
+service-account*.json
+firebase-admin*.json
+google-services.json
+GoogleService-Info.plist
+client_secret*.json
 
 # Dependencias (si se agrega npm en el futuro)
 node_modules/
@@ -29,3 +52,4 @@ dist/
 # Archivos de sistema Windows
 ehthumbs.db
 $RECYCLE.BIN/
+

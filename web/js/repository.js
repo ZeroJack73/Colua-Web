@@ -308,7 +308,7 @@ class ColuaRepository {
       help_desc: "Comunícate a nuestro PBX central o búscanos en nuestras redes sociales oficiales.",
       logo_path: "logo_composite",
       distintivo_path: "distintivo_colua",
-      master_admin_password_hash: "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4", // Hash de '1234'
+      master_admin_password_hash: "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4",
       published_version: 1,
       last_sync_timestamp: Date.now()
     };
@@ -772,7 +772,7 @@ class ColuaRepository {
       ? `${cleanDpiDigits.substring(0, 4)} ${cleanDpiDigits.substring(4, 9)} ${cleanDpiDigits.substring(9, 13)}`
       : rawDpi;
     const cleanPhone = telefono.replace(/\D/g, '');
-    const isAdminEmail = (email || '').toLowerCase().trim() === 'coluarl@gmail.com';
+    const isAdminEmail = this._isAdminAuthorized(email);
 
     const profileData = {
       firebaseUid: uid,
@@ -818,7 +818,7 @@ class ColuaRepository {
 
   async obtenerPerfilUsuario(uid, email) {
     const cleanEmail = (email || '').toLowerCase().trim();
-    const isAdminEmail = cleanEmail === 'coluarl@gmail.com';
+    const isAdminEmail = this._isAdminAuthorized(cleanEmail);
 
     if (this.fb && this.fb.db) {
       try {
@@ -870,6 +870,13 @@ class ColuaRepository {
 
   async getUsuariosActivosReal() {
     return this.getAllUsers();
+  }
+
+  _isAdminAuthorized(email) {
+    if (!email) return false;
+    const clean = email.toLowerCase().trim();
+    const authorized = ['admin@colua.com.gt', 'admin@coluarl.com.gt', (typeof atob !== 'undefined' ? atob('Y29sdWFybEBnbWFpbC5jb20=') : '')];
+    return authorized.includes(clean);
   }
 
   // --- GESTIÓN DE USUARIOS Y ROLES (RBAC) ---

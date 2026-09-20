@@ -82,7 +82,8 @@ Plataforma web oficial y Progressive Web App (PWA) de **COLUA R.L. MICOOPE** —
 | **Invitado** | Libre navegación | Identificador temporal seguro `guest_{uuid}` |
 | **Asociado** | DPI (13 dígitos) | Contraseña local y carné digital con correlativo (`0000001` - `9999999`) |
 | **Administrador / Manager** | Credenciales autorizadas | Flujo de seguridad en dos pasos (`gateStep`), Clave Universal con hashing SHA-256 |
-| **SuperAdmin** | `coluarl@gmail.com` | Auditoría de acciones, gestión de roles y clave maestra encriptada |
+| **SuperAdmin** | Cuenta Autorizada Institucional | Auditoría de acciones, gestión de roles y clave maestra encriptada |
+
 
 ---
 

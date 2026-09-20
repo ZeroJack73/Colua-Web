@@ -1,5 +1,8 @@
 # simple-server.ps1 - Servidor HTTP estático nativo en PowerShell
-param([int]$Port = 8080, [string]$Folder = "c:\Trabajo\colua web digital\web")
+param([int]$Port = 8080, [string]$Folder = "")
+if ([string]::IsNullOrWhiteSpace($Folder)) {
+    $Folder = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+}
 
 $listener = New-Object System.Net.HttpListener
 $prefix = "http://localhost:$Port/"

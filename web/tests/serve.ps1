@@ -1,7 +1,7 @@
 # web/tests/serve.ps1 - Servidor HTTP local embebido en PowerShell
 param([int]$Port = 8080)
 
-$root = "c:\Trabajo\colua web digital\web"
+$root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $listener = New-Object System.Net.HttpListener
 $listener.Prefixes.Add("http://localhost:$Port/")
 $listener.Start()

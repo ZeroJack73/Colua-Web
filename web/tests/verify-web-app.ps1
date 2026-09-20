@@ -1,5 +1,5 @@
 # web/tests/verify-web-app.ps1 - Verificacion Automatizada en PowerShell
-$webDir = "c:\Trabajo\colua web digital\web"
+$webDir = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $totalTests = 0
 $passedTests = 0
 
