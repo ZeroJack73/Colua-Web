@@ -264,7 +264,7 @@ const App = {
         }
     },
 
-    closeModal(fromHistory = false) {
+    closeModal(fromHistory = false, isNavigating = false) {
         if (this.modalEl) {
             this.modalEl.style.display = 'none';
             document.body.style.overflow = '';
@@ -272,7 +272,7 @@ const App = {
 
         if (this._isModalOpen) {
             this._isModalOpen = false;
-            if (!fromHistory && this._historyPushedForModal) {
+            if (!fromHistory && !isNavigating && this._historyPushedForModal) {
                 this._historyPushedForModal = false;
                 if (history.state && history.state.coluaModal) {
                     history.back();

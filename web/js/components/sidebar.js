@@ -131,7 +131,7 @@ class SidebarComponent {
     }
   }
 
-  close(fromHistory = false) {
+  close(fromHistory = false, isNavigating = false) {
     this.isOpen = false;
     const overlay = document.getElementById('drawer-overlay');
     const drawer = document.getElementById('sidebar-drawer');
@@ -139,7 +139,7 @@ class SidebarComponent {
       overlay.classList.remove('open');
       drawer.classList.remove('open');
     }
-    if (!fromHistory && this._historyPushed) {
+    if (!fromHistory && !isNavigating && this._historyPushed) {
       this._historyPushed = false;
       if (history.state && history.state.coluaSidebar) {
         history.back();
@@ -162,14 +162,14 @@ class SidebarComponent {
 
     if (btnInstall) {
       btnInstall.onclick = () => {
-        this.close();
+        this.close(false, true);
         window.app?.promptInstallApp();
       };
     }
 
     if (profileHeader) {
       profileHeader.onclick = () => {
-        this.close();
+        this.close(false, true);
         window.coluaRouter?.navigate('perfil');
       };
     }
@@ -178,21 +178,21 @@ class SidebarComponent {
     document.querySelectorAll('.drawer-menu-item[data-route]').forEach((el) => {
       el.onclick = () => {
         const route = el.getAttribute('data-route');
-        this.close();
+        this.close(false, true);
         window.coluaRouter?.navigate(route);
       };
     });
 
     if (btnLogin) {
       btnLogin.onclick = () => {
-        this.close();
+        this.close(false, true);
         window.app?.showLoginModal();
       };
     }
 
     if (btnLogout) {
       btnLogout.onclick = () => {
-        this.close();
+        this.close(false, true);
         if (window.Swal) {
           Swal.fire({
             title: '¿Cerrar Sesión?',
