@@ -27,9 +27,19 @@ class SidebarComponent {
         </div>
 
         <div class="drawer-body">
+          <div class="drawer-menu-item" data-route="sec_home">
+            <img src="assets/distintivo_colua.png" alt="" style="padding: 2px;" />
+            <span>Inicio</span>
+          </div>
+
           <div class="drawer-menu-item" data-route="perfil">
             <img src="assets/perfil.png" alt="" onerror="this.src='assets/ic_person.png'" />
             <span>Mi Perfil</span>
+          </div>
+
+          <div class="drawer-menu-item" data-route="sec_ahorros">
+            <img src="assets/ahorros.png" alt="" />
+            <span>Cuentas de Ahorro</span>
           </div>
 
           <div class="drawer-menu-item" data-route="sec_creditos">
@@ -39,22 +49,42 @@ class SidebarComponent {
 
           <div class="drawer-menu-item" data-route="sec_seguros">
             <img src="assets/seguro.png" alt="" />
-            <span>Seguros</span>
+            <span>Seguros Columna</span>
           </div>
 
           <div class="drawer-menu-item" data-route="sec_remesas">
             <img src="assets/remesa.png" alt="" />
-            <span>Remesas</span>
+            <span>Remesas Familiares</span>
           </div>
 
-          <div class="drawer-menu-item" data-route="sec_ahorros">
-            <img src="assets/ahorros.png" alt="" />
-            <span>Ahorros</span>
+          <div class="drawer-menu-item" data-route="sec_servicios">
+            <img src="assets/servicios_digitales.png" alt="" />
+            <span>Servicios</span>
+          </div>
+
+          <div class="drawer-menu-item" data-route="sec_beneficios">
+            <img src="assets/beneficios.png" alt="" />
+            <span>Beneficios</span>
           </div>
 
           <div class="drawer-menu-item" data-route="sec_sostenibilidad">
             <img src="assets/sostenibilidad_cooperativa.png" alt="" />
             <span>Sostenibilidad Cooperativa</span>
+          </div>
+
+          <div class="drawer-menu-item" data-route="sec_agencias">
+            <img src="assets/ubicacion.png" alt="" />
+            <span>Red de Agencias</span>
+          </div>
+
+          <div class="drawer-menu-item" data-route="sec_noticias">
+            <img src="assets/noticias_colua.png" alt="" />
+            <span>Noticias y Eventos</span>
+          </div>
+
+          <div class="drawer-menu-item" data-route="sec_nosotros">
+            <img src="assets/distintivo_colua.png" alt="" style="padding: 2px;" />
+            <span>Sobre Nosotros</span>
           </div>
 
           <div class="drawer-menu-item" data-route="admin" style="font-weight: 700; color: var(--colua-navy);">
