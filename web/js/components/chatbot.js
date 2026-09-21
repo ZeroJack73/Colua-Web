@@ -125,7 +125,7 @@ class ChatbotComponent {
         }
     }
 
-    toggleChat(open = null) {
+    toggleChat(open = null, fromHistory = false) {
         this.isOpen = open !== null ? open : !this.isOpen;
         const windowEl = document.getElementById('chatbot-window');
         if (windowEl) {
@@ -134,6 +134,10 @@ class ChatbotComponent {
                 // Trigger reflow for CSS transition
                 windowEl.offsetHeight;
                 windowEl.classList.add('open');
+                if (!this._historyPushed) {
+                    this._historyPushed = true;
+                    history.pushState({ coluaChatbot: true }, '');
+                }
                 // Precargar datos si el usuario ya inició sesión
                 const user = window.authService?.getCurrentUser();
                 if (user) {
@@ -149,6 +153,14 @@ class ChatbotComponent {
                 setTimeout(() => {
                     if (!this.isOpen) windowEl.style.display = 'none';
                 }, 220);
+                if (!fromHistory && this._historyPushed) {
+                    this._historyPushed = false;
+                    if (history.state && history.state.coluaChatbot) {
+                        history.back();
+                    }
+                } else {
+                    this._historyPushed = false;
+                }
             }
         }
     }

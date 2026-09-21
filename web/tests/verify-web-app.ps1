@@ -145,6 +145,27 @@ Assert-Check ($noticiasJsContent -match 'isUserRegistered\(\)') "Validacion isUs
 Assert-Check ($noticiasJsContent -match 'showGuestLikePrompt\(\)') "Invitacion a registrarse llamada en toggleLike para invitados"
 Assert-Check ($noticiasJsContent -match 'modal-btn-like') "Boton de interaccion con Likes integrado en modal completo de noticias"
 
+# 9. Validar Cierre con Boton Atras / Gestos Moviles y WebAPK PWA Nativo
+Write-Host "`n9. Validando navegacion por gestos/boton atras y optimizacion WebAPK PWA:" -ForegroundColor Yellow
+$sidebarJsContent = Get-Content (Join-Path $webDir "js\components\sidebar.js") -Raw
+$chatbotJsContent = Get-Content (Join-Path $webDir "js\components\chatbot.js") -Raw
+$swJsContent = Get-Content (Join-Path $webDir "sw.js") -Raw
+$rootIndexContent = Get-Content (Join-Path $PSScriptRoot "..\..\index.html") -Raw
+$maskable192Path = Join-Path $webDir "assets\distintivo_colua_maskable_192.png"
+
+Assert-Check (Test-Path $maskable192Path) "Icono maskable 192x192 generado y presente en assets"
+Assert-Check ($manifestContent -match 'distintivo_colua_maskable_192\.png') "Icono maskable 192x192 registrado en manifest.json"
+Assert-Check (-not ($manifestContent -match '297x290')) "Icono no cuadrado 297x290 excluido de manifest para no romper el WebAPK minting server"
+Assert-Check ($swJsContent -match 'distintivo_colua_maskable_192\.png') "Icono maskable 192x192 cacheado en sw.js"
+Assert-Check ($swJsContent -match 'colua-web-digital-v4\.4\.0') "Version de cache actualizada a v4.4.0 en sw.js"
+Assert-Check (-not ($rootIndexContent -match '<link rel="manifest"')) "Redireccionador raiz sin manifest incongruente de scope"
+Assert-Check ($appJsContent -match '_setupHistoryNavigation') "Metodo _setupHistoryNavigation implementado en app.js"
+Assert-Check ($appJsContent -match "window\.addEventListener\('popstate'") "Manejador popstate para boton atras / gestos implementado en app.js"
+Assert-Check ($appJsContent -match "closeModal\(true\)") "closeModal soporta cierre desde historial popstate sin bucles"
+Assert-Check ($noticiasJsContent -match 'closeLightboxFromHistory') "Lightbox de noticias soporta cierre independiente con boton atras"
+Assert-Check ($sidebarJsContent -match 'coluaSidebar') "Drawer lateral sincronizado con historial del navegador"
+Assert-Check ($chatbotJsContent -match 'coluaChatbot') "Mesa de ayuda sincronizada con historial del navegador"
+
 Write-Host "`n====================================================" -ForegroundColor Cyan
 $pct = [Math]::Round(($passedTests / $totalTests) * 100)
 Write-Host "RESULTADOS: $passedTests de $totalTests pruebas pasadas ($pct por ciento)" -ForegroundColor Cyan

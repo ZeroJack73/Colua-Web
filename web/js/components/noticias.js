@@ -845,11 +845,25 @@ class NoticiasComponent {
             });
         };
 
-        const closeLightbox = () => {
+        let historyPushed = true;
+        history.pushState({ coluaLightbox: true }, '');
+
+        const closeLightbox = (fromHistory = false) => {
             lightboxEl.style.opacity = '0';
             document.removeEventListener('keydown', keyHandler);
             setTimeout(() => lightboxEl.remove(), 180);
+            if (!fromHistory && historyPushed) {
+                historyPushed = false;
+                if (history.state && history.state.coluaLightbox) {
+                    history.back();
+                }
+            } else {
+                historyPushed = false;
+            }
         };
+
+        this.closeLightbox = closeLightbox;
+        this.closeLightboxFromHistory = () => closeLightbox(true);
 
         lightboxEl.addEventListener('click', (e) => {
             if (e.target === lightboxEl || e.target.id === 'lightbox-container-inner') {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'colua-web-digital-v4.3.0';
+const CACHE_NAME = 'colua-web-digital-v4.4.0';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -12,6 +12,7 @@ const STATIC_ASSETS = [
   './assets/distintivo_colua_256.png',
   './assets/distintivo_colua_512.png',
   './assets/distintivo_colua_maskable.png',
+  './assets/distintivo_colua_maskable_192.png',
   './assets/logo_colua.png',
   './assets/logo_composite.png',
   './assets/pbx.png',

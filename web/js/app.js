@@ -127,7 +127,11 @@ const App = {
         `;
     },
 
-    // ── Containers ─────────────────────────────────
+    // ── Containers & Historial ─────────────────────
+    _isModalOpen: false,
+    _historyPushedForModal: false,
+    _historyNavInitialized: false,
+
     _setupContainers() {
         if (!document.getElementById('colua-global-modal')) {
             const m = document.createElement('div');
@@ -136,7 +140,9 @@ const App = {
             m.style.display = 'none';
             m.innerHTML = '<div class="modal-card"><button class="modal-close-btn" onclick="app.closeModal()">✕</button><div id="modal-inner-content"></div></div>';
             document.body.appendChild(m);
-            m.addEventListener('click', e => { if (e.target === m) this.closeModal(); });
+            m.addEventListener('click', e => { 
+                if (e.target === m) this.closeModal(); 
+            });
             this.modalEl = m;
         } else {
             this.modalEl = document.getElementById('colua-global-modal');
@@ -151,6 +157,80 @@ const App = {
         } else {
             this.toastContainer = document.getElementById('colua-toast-container');
         }
+
+        this._setupHistoryNavigation();
+    },
+
+    _setupHistoryNavigation() {
+        if (this._historyNavInitialized) return;
+        this._historyNavInitialized = true;
+
+        // Escuchar cuando el usuario pulsa 'Atrás' en el teléfono (barra de navegación, botón físico o gestos de deslizar en iPhone/Android)
+        window.addEventListener('popstate', (e) => {
+            // 1. Si el visor Lightbox de imágenes de noticias está abierto, cerrarlo prioritariamente
+            const lightbox = document.getElementById('colua-news-lightbox');
+            if (lightbox) {
+                if (window.noticiasComponent && typeof window.noticiasComponent.closeLightboxFromHistory === 'function') {
+                    window.noticiasComponent.closeLightboxFromHistory();
+                } else {
+                    lightbox.style.opacity = '0';
+                    setTimeout(() => lightbox.remove(), 180);
+                }
+                return;
+            }
+
+            // 2. Si el modal global (noticias, avisos, login, registro, perfiles, etc.) está abierto, cerrarlo
+            if (this._isModalOpen) {
+                this.closeModal(true);
+                return;
+            }
+
+            // 3. Si el menú lateral móvil (sidebar drawer) está abierto, cerrarlo
+            if (window.sidebarComponent && window.sidebarComponent.isOpen) {
+                window.sidebarComponent.close(true);
+                return;
+            }
+
+            // 4. Si la mesa de ayuda / chatbot está abierto, cerrarlo
+            if (window.chatbotComponent && window.chatbotComponent.isOpen) {
+                window.chatbotComponent.toggleChat(false, true);
+                return;
+            }
+
+            // 5. Si hay una alerta SweetAlert2 abierta, cerrarla
+            if (window.Swal && typeof Swal.isVisible === 'function' && Swal.isVisible()) {
+                Swal.close();
+                return;
+            }
+        });
+
+        // Soporte tecla Escape en computadoras y laptops
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const lightbox = document.getElementById('colua-news-lightbox');
+                if (lightbox) {
+                    if (window.noticiasComponent && typeof window.noticiasComponent.closeLightbox === 'function') {
+                        window.noticiasComponent.closeLightbox();
+                    } else {
+                        lightbox.style.opacity = '0';
+                        setTimeout(() => lightbox.remove(), 180);
+                    }
+                    return;
+                }
+                if (this._isModalOpen) {
+                    this.closeModal();
+                    return;
+                }
+                if (window.sidebarComponent && window.sidebarComponent.isOpen) {
+                    window.sidebarComponent.close();
+                    return;
+                }
+                if (window.chatbotComponent && window.chatbotComponent.isOpen) {
+                    window.chatbotComponent.toggleChat(false);
+                    return;
+                }
+            }
+        });
     },
 
     // ── Modal ──────────────────────────────────────
@@ -175,12 +255,31 @@ const App = {
 
         this.modalEl.style.display = 'flex';
         document.body.style.overflow = 'hidden';
+
+        // Integración con el historial del navegador para móviles (barra de navegación y gestos)
+        if (!this._isModalOpen) {
+            this._isModalOpen = true;
+            this._historyPushedForModal = true;
+            history.pushState({ coluaModal: true, timestamp: Date.now() }, '');
+        }
     },
 
-    closeModal() {
+    closeModal(fromHistory = false) {
         if (this.modalEl) {
             this.modalEl.style.display = 'none';
             document.body.style.overflow = '';
+        }
+
+        if (this._isModalOpen) {
+            this._isModalOpen = false;
+            if (!fromHistory && this._historyPushedForModal) {
+                this._historyPushedForModal = false;
+                if (history.state && history.state.coluaModal) {
+                    history.back();
+                }
+            } else {
+                this._historyPushedForModal = false;
+            }
         }
     },
 
@@ -587,39 +686,56 @@ const App = {
         this.showModal(`
             <div style="text-align:center;margin-bottom:16px;">
                 <div style="width:60px;height:60px;border-radius:14px;background:#f8fafc;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;margin:0 auto 12px auto;box-shadow:0 4px 12px rgba(0,0,0,0.05);">
-                    <img src="assets/distintivo_colua.png" alt="COLUA" style="width:42px;height:42px;object-fit:contain;" />
+                    <img src="assets/distintivo_colua_192.png" alt="COLUA" style="width:42px;height:42px;object-fit:contain;" />
                 </div>
-                <h3 style="font-size:1.25rem;font-weight:700;color:var(--colua-navy);margin-bottom:4px;">Instalar COLUA Web Digital</h3>
+                <h3 style="font-size:1.25rem;font-weight:700;color:var(--colua-navy);margin-bottom:4px;">Instalar COLUA R.L. en tu Teléfono</h3>
                 <p style="font-size:0.85rem;color:var(--colua-gray-600);line-height:1.4;">
-                    Vuelve a tener la app disponible en tu computadora o celular con un solo clic.
+                    Instala la app nativa completa (WebAPK) sin mini-íconos de navegador ni widgets.
                 </p>
             </div>
 
             <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:18px;text-align:left;">
-                <div style="margin-bottom:14px;">
-                    <strong style="display:flex;align-items:center;gap:6px;color:var(--colua-navy);font-size:0.9rem;margin-bottom:4px;">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
-                        Si la desinstalaste en tu Computadora (Chrome / Edge):
+                <div style="margin-bottom:14px;padding:10px 12px;background:#fef2f2;border-radius:10px;border-left:4px solid #ef4444;">
+                    <strong style="display:flex;align-items:center;gap:6px;color:#991b1b;font-size:0.88rem;margin-bottom:4px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        ¿Aparece como widget o con un mini-ícono de Chrome?
                     </strong>
-                    <p style="font-size:0.82rem;color:#475569;margin:0;line-height:1.45;">
-                        Los navegadores no vuelven a mostrar el banner automáticamente tras desinstalarla. Para reinstalarla fácilmente:
-                        <br>1. Dirígete a la <strong>barra de direcciones (arriba a la derecha)</strong> y haz clic en el ícono de <strong>Instalar aplicación</strong> (ícono de monitor o ⊕).
-                        <br>2. O haz clic en el menú del navegador <strong>(tres puntos ⋮)</strong> &gt; <strong>"Instalar COLUA Web Digital..."</strong>.
+                    <p style="font-size:0.82rem;color:#7f1d1d;margin:0;line-height:1.45;">
+                        Eso sucede cuando Android agrega un simple marcador. Para que se instale como <strong>aplicación real en tu teléfono</strong>:
+                        <br>1. <strong>Elimina el widget actual</strong> de tu pantalla de inicio manteniéndolo presionado y eligiendo "Quitar" o "Eliminar".
+                        <br>2. En el menú de Chrome (<strong>⋮</strong>), presiona <strong>"Instalar aplicación"</strong> (o toca el botón verde de abajo <strong>"Instalar Ahora"</strong>).
+                        <br>3. ¡Aparecerá en tu lista de aplicaciones del teléfono como una app auténtica!
                     </p>
                 </div>
-                <div>
+
+                <div style="margin-bottom:14px;">
                     <strong style="display:flex;align-items:center;gap:6px;color:var(--colua-navy);font-size:0.9rem;margin-bottom:4px;">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
-                        En Teléfono Móvil:
+                        En Android (Chrome / Brave / Edge):
                     </strong>
                     <p style="font-size:0.82rem;color:#475569;margin:0;line-height:1.45;">
-                        Toca el menú del navegador (<strong>⋮</strong> o Compartir) y selecciona <strong>"Instalar aplicación"</strong> (o <strong>"Instalar COLUA R.L."</strong>) para instalarla como app completa en tu teléfono.
+                        Toca el menú del navegador (<strong>⋮</strong>) y selecciona <strong>"Instalar aplicación"</strong> o <strong>"Instalar COLUA R.L."</strong>.
+                    </p>
+                </div>
+
+                <div>
+                    <strong style="display:flex;align-items:center;gap:6px;color:var(--colua-navy);font-size:0.9rem;margin-bottom:4px;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+                        En iPhone / iPad (Safari):
+                    </strong>
+                    <p style="font-size:0.82rem;color:#475569;margin:0;line-height:1.45;">
+                        Toca el botón <strong>Compartir</strong> (rectángulo con flecha) y selecciona <strong>"Agregar a pantalla de inicio"</strong>.
                     </p>
                 </div>
             </div>
 
             <div style="display:flex;gap:10px;justify-content:center;">
-                <button class="btn btn-primary" onclick="window.app.closeModal();" style="padding:9px 24px;font-size:0.9rem;">
+                ${this.deferredInstallPrompt ? `
+                    <button class="btn btn-primary" onclick="window.app.promptInstallApp();" style="padding:9px 22px;font-size:0.9rem;">
+                        Instalar Ahora
+                    </button>
+                ` : ''}
+                <button class="btn btn-outline" onclick="window.app.closeModal();" style="padding:9px 20px;font-size:0.9rem;">
                     Entendido
                 </button>
             </div>
@@ -627,12 +743,39 @@ const App = {
     },
 
     _registerSW() {
-        if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js').then((reg) => {
+                // Actualizar si hay nueva versión disponible
+                reg.onupdatefound = () => {
+                    const installingWorker = reg.installing;
+                    if (installingWorker) {
+                        installingWorker.onstatechange = () => {
+                            if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                console.log('[COLUA PWA] Nueva versión lista.');
+                            }
+                        };
+                    }
+                };
+            }).catch(() => {});
+        }
     },
+
     _setupInstallPrompt() {
+        if (window._coluaDeferredPrompt) {
+            this.deferredInstallPrompt = window._coluaDeferredPrompt;
+        }
+
         window.addEventListener('beforeinstallprompt', e => {
             e.preventDefault();
             this.deferredInstallPrompt = e;
+            window._coluaDeferredPrompt = e;
+            console.log('[COLUA PWA] Evento beforeinstallprompt capturado en app.js');
+        });
+
+        window.addEventListener('appinstalled', () => {
+            this.deferredInstallPrompt = null;
+            window._coluaDeferredPrompt = null;
+            this.showToast('¡COLUA Web Digital instalada exitosamente!', 'success');
         });
     }
 };
