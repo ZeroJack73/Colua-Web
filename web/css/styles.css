@@ -1604,6 +1604,7 @@ a:hover {
   overflow-y: auto;
   overflow-x: hidden;
   align-items: flex-start; /* Permite scroll natural */
+  overscroll-behavior: contain;
 }
 .modal-card {
   background: #FFFFFF;
@@ -1617,6 +1618,7 @@ a:hover {
   position: relative;
   margin: auto; /* Centrado flex seguro que no corta en zoom */
   animation: slideUp 0.25s ease;
+  overscroll-behavior: contain;
 }
 .modal-close-btn {
   position: absolute;

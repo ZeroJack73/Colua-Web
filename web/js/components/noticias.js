@@ -962,7 +962,7 @@ class NoticiasComponent {
         `;
 
         const modalContent = `
-            <div style="max-height: 82vh; overflow-y: auto; padding-right: 4px;" id="modal-body-container">
+            <div style="max-height: 82vh; overflow-y: auto; padding-right: 4px; overscroll-behavior: contain;" id="modal-body-container">
                 <div id="modal-carousel-container">
                     ${renderModalCarousel(modalSlideIndex)}
                 </div>
