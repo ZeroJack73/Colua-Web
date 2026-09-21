@@ -136,7 +136,12 @@ class Router {
 
     navigate(route) {
         const r = (route || 'inicio').replace(/^#/, '');
-        window.location.hash = '#' + r;
+        const targetHash = '#' + r;
+        if (window.location.hash === targetHash) {
+            this.handleRouting();
+        } else {
+            window.location.hash = targetHash;
+        }
     }
 }
 

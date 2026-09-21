@@ -7,6 +7,7 @@ class PerfilComponent {
 
     async render(container) {
         this.user = authService.getCurrentUser();
+        const isGuest = !this.user || this.user.role === 'invitado';
 
         container.innerHTML = `
             <div class="clean-subpage-container" style="max-width: 860px;">
@@ -15,10 +16,12 @@ class PerfilComponent {
                         <h1 class="clean-subpage-title">Mi Perfil Cooperativo</h1>
                         <p class="clean-subpage-desc">Gestión de cuenta, credenciales de asociado y carné digital COLUA R.L.</p>
                     </div>
+                    ${!isGuest ? `
                     <button id="profile-logout-btn" class="clean-btn-card-action" style="width: auto; padding: 6px 14px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                         Cerrar Sesión
                     </button>
+                    ` : ''}
                 </header>
 
                 <div class="container" style="max-width: 800px; margin: 0 auto; padding: 0;">

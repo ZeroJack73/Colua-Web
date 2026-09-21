@@ -101,10 +101,17 @@ class SidebarComponent {
             <span>Instalar App Web</span>
           </div>
 
-          <div class="drawer-menu-item logout" id="btn-sidebar-logout">
-            <img src="assets/cerrar.png" alt="" />
-            <span>${isGuest ? 'Restablecer / Salir' : 'Cerrar Sesión'}</span>
-          </div>
+          ${isGuest ? `
+            <div class="drawer-menu-item" id="btn-sidebar-login" style="color: var(--colua-navy); font-weight: 600;">
+              <img src="assets/perfil.png" alt="" onerror="this.src='assets/ic_person.png'" />
+              <span>Iniciar Sesión / Registro</span>
+            </div>
+          ` : `
+            <div class="drawer-menu-item logout" id="btn-sidebar-logout">
+              <img src="assets/cerrar.png" alt="" />
+              <span>Cerrar Sesión</span>
+            </div>
+          `}
         </div>
       </aside>
     `;
@@ -147,6 +154,7 @@ class SidebarComponent {
     const btnClose = document.getElementById('btn-close-sidebar');
     const profileHeader = document.getElementById('btn-sidebar-profile-header');
     const btnLogout = document.getElementById('btn-sidebar-logout');
+    const btnLogin = document.getElementById('btn-sidebar-login');
     const btnInstall = document.getElementById('btn-sidebar-install');
 
     if (overlay) overlay.onclick = () => this.close();
@@ -175,10 +183,38 @@ class SidebarComponent {
       };
     });
 
+    if (btnLogin) {
+      btnLogin.onclick = () => {
+        this.close();
+        window.app?.showLoginModal();
+      };
+    }
+
     if (btnLogout) {
       btnLogout.onclick = () => {
         this.close();
-        window.app?.showLogoutConfirm();
+        if (window.Swal) {
+          Swal.fire({
+            title: '¿Cerrar Sesión?',
+            text: '¿Estás seguro de que deseas salir de tu cuenta?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#173789',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Sí, cerrar sesión',
+            cancelButtonText: 'Cancelar'
+          }).then((res) => {
+            if (res.isConfirmed) {
+              window.authService?.logout();
+              window.app?.showToast('Sesión cerrada correctamente', 'info');
+              window.coluaRouter?.navigate('inicio');
+            }
+          });
+        } else {
+          window.authService?.logout();
+          window.app?.showToast('Sesión cerrada correctamente', 'info');
+          window.coluaRouter?.navigate('inicio');
+        }
       };
     }
   }
