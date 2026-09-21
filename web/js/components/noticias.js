@@ -98,9 +98,49 @@ class NoticiasComponent {
         });
     }
 
+    getArticleTimestamp(item) {
+        if (!item) return 0;
+        if (window.coluaRepository && typeof window.coluaRepository._extractItemDate === 'function') {
+            return window.coluaRepository._extractItemDate(item);
+        }
+        const val = item.publicationDate ?? item.publishedAt ?? item.date ?? item.fecha ?? item.createdAt ?? item.lastModified ?? item.updatedAt;
+        if (!val) return 0;
+        if (typeof val === 'number') return val < 1e11 ? val * 1000 : val;
+        if (typeof val === 'object') {
+            if (typeof val.toMillis === 'function') return val.toMillis();
+            if (typeof val.seconds === 'number') return val.seconds * 1000 + Math.floor((val.nanoseconds || 0) / 1e6);
+            if (typeof val._seconds === 'number') return val._seconds * 1000;
+            if (val instanceof Date) return val.getTime();
+        }
+        if (typeof val === 'string') {
+            const trimmed = val.trim();
+            if (/^\d+$/.test(trimmed)) {
+                const n = parseInt(trimmed, 10);
+                return n < 1e11 ? n * 1000 : n;
+            }
+            const p = Date.parse(trimmed);
+            if (!isNaN(p)) return p;
+        }
+        return 0;
+    }
+
+    sortArticlesDesc(list) {
+        if (!Array.isArray(list)) return [];
+        return list.sort((a, b) => {
+            const timeA = this.getArticleTimestamp(a);
+            const timeB = this.getArticleTimestamp(b);
+            if (timeB !== timeA) return timeB - timeA;
+            const crA = a.createdAt || a.lastModified || a.updatedAt || 0;
+            const crB = b.createdAt || b.lastModified || b.updatedAt || 0;
+            if (crB !== crA) return crB - crA;
+            return (b.id || '').localeCompare(a.id || '');
+        });
+    }
+
     async loadArticles() {
         try {
-            this.articles = await window.coluaRepository.getNewsArticles();
+            const raw = await window.coluaRepository.getNewsArticles();
+            this.articles = this.sortArticlesDesc(raw || []);
             this.applyFilters();
         } catch (error) {
             console.error('Error al cargar noticias:', error);
@@ -132,24 +172,25 @@ class NoticiasComponent {
 
         // Filtro temporal
         if (this.activeFilter !== 'all') {
-            const now = new Date();
+            const now = Date.now();
             result = result.filter(item => {
-                const rawDate = item.publicationDate || item.updatedAt || item.date;
-                if (!rawDate) return true;
-                const itemDate = typeof rawDate === 'number' ? new Date(rawDate) : new Date(rawDate);
-                if (isNaN(itemDate.getTime())) return true;
+                const itemTime = this.getArticleTimestamp(item);
+                if (!itemTime) return true;
+                const itemDate = new Date(itemTime);
+                const nowDate = new Date(now);
 
                 if (this.activeFilter === 'week') {
-                    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                    return itemDate >= sevenDaysAgo;
+                    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+                    return itemTime >= sevenDaysAgo;
                 } else if (this.activeFilter === 'month') {
-                    return itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear();
+                    return itemDate.getMonth() === nowDate.getMonth() && itemDate.getFullYear() === nowDate.getFullYear();
                 }
                 return true;
             });
         }
 
-        this.filteredArticles = result;
+        // Orden estricto: la publicación con fecha más reciente encabeza como novedad
+        this.filteredArticles = this.sortArticlesDesc(result);
         this.heroSlideIndex = 0;
         this.renderFeaturedAndGrid();
         this.renderPagination();
@@ -222,18 +263,18 @@ class NoticiasComponent {
     }
 
     formatDisplayDate(item) {
-        if (item.date && typeof item.date === 'string' && !item.date.includes('T')) {
+        if (item.date && typeof item.date === 'string' && !item.date.includes('T') && !/^\d+$/.test(item.date)) {
             return item.date;
         }
-        const ts = item.publicationDate || item.updatedAt || item.createdAt;
-        if (ts) {
-            const d = new Date(typeof ts === 'number' ? ts : Number(ts));
+        const ts = this.getArticleTimestamp(item);
+        if (ts > 0) {
+            const d = new Date(ts);
             if (!isNaN(d.getTime())) {
                 const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'];
                 return `${d.getDate()} ${meses[d.getMonth()]}, ${d.getFullYear()}`;
             }
         }
-        return '18 sept, 2026';
+        return 'Reciente';
     }
 
     calculateReadTime(text) {

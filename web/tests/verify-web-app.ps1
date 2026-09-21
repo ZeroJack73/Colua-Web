@@ -112,6 +112,8 @@ Write-Host "`n6. Validando seguridad, Clave Universal y RBAC:" -ForegroundColor 
 $adminJsContent = Get-Content (Join-Path $webDir "js\components\admin.js") -Raw
 $authJsContent = Get-Content (Join-Path $webDir "js\auth.js") -Raw
 $repoJsContent = Get-Content (Join-Path $webDir "js\repository.js") -Raw
+$noticiasJsContent = Get-Content (Join-Path $webDir "js\components\noticias.js") -Raw
+$manifestContent = Get-Content (Join-Path $webDir "manifest.json") -Raw
 
 Assert-Check (-not ($adminJsContent -match 'placeholder="coluarl@gmail.com"')) "Correo sensible no expuesto en placeholders de admin.js"
 Assert-Check ($adminJsContent -match 'admin-universal-input') "Input de Clave Universal Institucional presente en admin.js"
@@ -124,6 +126,15 @@ Assert-Check ($adminJsContent -match 'form-add-admin-manager') "Formulario de au
 Assert-Check ($authJsContent -match 'updateMasterPassword') "Metodo updateMasterPassword implementado en auth.js"
 Assert-Check ($authJsContent -match 'isManager') "Metodo isManager implementado en auth.js"
 Assert-Check ($repoJsContent -match 'addAdminOrManager') "Metodo addAdminOrManager implementado en repository.js"
+
+# 7. Validar Orden Cronologico de Noticias y Calidad WebAPK PWA
+Write-Host "`n7. Validando orden cronologico de noticias y soporte WebAPK PWA:" -ForegroundColor Yellow
+Assert-Check ($repoJsContent -match '_extractItemDate') "Metodo de extraccion unificada de fechas implementado en repository.js"
+Assert-Check ($repoJsContent -match 'sortNewsByDate') "Metodo sortNewsByDate para ordenar novedades implementado en repository.js"
+Assert-Check ($noticiasJsContent -match 'sortArticlesDesc') "Orden descendente garantizado en noticias.js"
+Assert-Check ($adminJsContent -match 'item-pub-date') "Selector de fecha de publicacion presente en modal de admin.js"
+Assert-Check (-not ($manifestContent -match '"id":\s*"/colua-micoope-v4"')) "Manifest ID no usa ruta absoluta de dominio para compatibilidad WebAPK"
+Assert-Check ($manifestContent -match '"id":\s*"\./index\.html"') "Manifest ID coincide con start_url relativa dentro del scope"
 
 Write-Host "`n====================================================" -ForegroundColor Cyan
 $pct = [Math]::Round(($passedTests / $totalTests) * 100)

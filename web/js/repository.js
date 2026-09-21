@@ -450,16 +450,71 @@ class ColuaRepository {
     return true;
   }
 
+  // Extrae y normaliza el timestamp de publicación de un contenido
+  _extractItemDate(item) {
+    if (!item) return 0;
+    // Prioridad absoluta: fecha de publicación explícita para que la más reciente sea la novedad
+    const val = item.publicationDate ?? item.publishedAt ?? item.date ?? item.fecha ?? item.createdAt ?? item.lastModified ?? item.updatedAt;
+    if (!val) return 0;
+    if (typeof val === 'number') {
+      return val < 1e11 ? val * 1000 : val;
+    }
+    if (typeof val === 'object') {
+      if (typeof val.toMillis === 'function') return val.toMillis();
+      if (typeof val.seconds === 'number') return val.seconds * 1000 + Math.floor((val.nanoseconds || 0) / 1e6);
+      if (typeof val._seconds === 'number') return val._seconds * 1000;
+      if (val instanceof Date) return val.getTime();
+    }
+    if (typeof val === 'string') {
+      const trimmed = val.trim();
+      if (/^\d+$/.test(trimmed)) {
+        const num = parseInt(trimmed, 10);
+        return num < 1e11 ? num * 1000 : num;
+      }
+      const parsed = Date.parse(trimmed);
+      if (!isNaN(parsed)) return parsed;
+      // Soporte para fechas en español tipo "18 sept, 2026"
+      const match = trimmed.match(/(\d{1,2})\s+([a-zA-ZáéíóúÁÉÍÓÚñÑ]+)[,\s]+(\d{4})/);
+      if (match) {
+        const day = parseInt(match[1], 10);
+        const monStr = match[2].toLowerCase().substring(0, 3);
+        const year = parseInt(match[3], 10);
+        const meses = { ene: 0, feb: 1, mar: 2, abr: 3, may: 4, jun: 5, jul: 6, ago: 7, sep: 8, oct: 9, nov: 10, dic: 11 };
+        if (monStr in meses) {
+          return new Date(year, meses[monStr], day).getTime();
+        }
+      }
+    }
+    return 0;
+  }
+
+  // Ordena noticias cronológicamente: la más reciente primero (la novedad)
+  sortNewsByDate(articles) {
+    if (!Array.isArray(articles)) return [];
+    return articles.sort((a, b) => {
+      const timeA = this._extractItemDate(a);
+      const timeB = this._extractItemDate(b);
+      if (timeB !== timeA) {
+        return timeB - timeA;
+      }
+      const createdA = a.createdAt || a.lastModified || a.updatedAt || 0;
+      const createdB = b.createdAt || b.lastModified || b.updatedAt || 0;
+      if (createdB !== createdA) return createdB - createdA;
+      return (b.id || '').localeCompare(a.id || '');
+    });
+  }
+
   // --- CONTENIDO (ITEMS Y BLOQUES) ---
   async getItemsBySection(sectionId) {
-    const cleanId = sectionId.toLowerCase();
+    const cleanId = (sectionId || '').toLowerCase();
+    const isNews = cleanId === 'sec_noticias' || cleanId === 'noticias';
     try {
       if (this.fb && this.fb.db) {
         const snap = await this._withTimeout(this.fb.collection('content_items').where('sectionId', '==', cleanId).get());
         if (!snap.empty) {
           const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-          if (cleanId === 'sec_noticias' || cleanId === 'noticias') {
-            return list.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+          if (isNews) {
+            return this.sortNewsByDate(list);
           }
           return list.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
         }
@@ -469,8 +524,8 @@ class ColuaRepository {
     }
     const db = this.getLocalDb();
     const list = (db.content_items || []).filter(i => (i.sectionId || '').toLowerCase() === cleanId);
-    if (cleanId === 'sec_noticias' || cleanId === 'noticias') {
-      return list.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    if (isNews) {
+      return this.sortNewsByDate(list);
     }
     return list.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
   }
@@ -551,11 +606,7 @@ class ColuaRepository {
         console.warn('No se pudo persistir artículos nube en localStorage:', saveErr);
       }
 
-      return cloudArticles.sort((a, b) => {
-        const timeA = a.updatedAt || a.publicationDate || a.createdAt || 0;
-        const timeB = b.updatedAt || b.publicationDate || b.createdAt || 0;
-        return timeB - timeA;
-      });
+      return this.sortNewsByDate(cloudArticles);
     }
 
     // 4. Fallback a base de datos local
@@ -566,11 +617,7 @@ class ColuaRepository {
       return sec === 'sec_noticias' || sec === 'noticias' || id.startsWith('news_');
     });
 
-    return list.sort((a, b) => {
-      const timeA = a.updatedAt || a.publicationDate || a.createdAt || 0;
-      const timeB = b.updatedAt || b.publicationDate || b.createdAt || 0;
-      return timeB - timeA;
-    });
+    return this.sortNewsByDate(list);
   }
 
   async getBlocksBySection(sectionId) {
@@ -595,10 +642,20 @@ class ColuaRepository {
   async insertItem(item) {
     if (!item.id) item.id = 'item_' + Math.random().toString(36).substring(2, 9);
     item.updatedAt = Date.now();
+    const sec = (item.sectionId || '').toLowerCase();
+    const id = (item.id || '').toLowerCase();
+    const isNews = sec === 'sec_noticias' || sec === 'noticias' || id.startsWith('news_');
+    if (isNews && !item.publicationDate && !item.date && !item.fecha) {
+      item.publicationDate = Date.now();
+    }
     const db = this.getLocalDb();
     const idx = db.content_items.findIndex(i => i.id === item.id);
-    if (idx >= 0) db.content_items[idx] = item;
-    else db.content_items.push(item);
+    if (idx >= 0) {
+      db.content_items[idx] = item;
+    } else {
+      if (isNews) db.content_items.unshift(item);
+      else db.content_items.push(item);
+    }
     this.saveLocalDb(db);
 
     if (this.fb && this.fb.db) {
@@ -1144,6 +1201,17 @@ class ColuaRepository {
       } catch (e) {}
     }
   }
+  // Aliases para compatibilidad con admin.js y otros componentes
+  async getContentItemsBySection(secId) { return this.getItemsBySection(secId); }
+  async saveContentItem(item) { return this.insertItem(item); }
+  async deleteContentItem(id) { return this.deleteItemById(id); }
+  async getSections() { return this.getAllSections(); }
+  async saveSection(sec) { return this.insertSection(sec); }
+  async getBlocksByItem(itemId) { return this.getBlocksByItemId(itemId); }
+  async getContentBlocksByItem(itemId) { return this.getBlocksByItemId(itemId); }
+  async saveBlock(block) { return this.insertBlock(block); }
+  async deleteBlock(id) { return this.deleteBlockById(id); }
 }
 
 window.coluaRepository = new ColuaRepository();
+window.coluaRepo = window.coluaRepository;

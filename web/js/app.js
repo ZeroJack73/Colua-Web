@@ -557,7 +557,7 @@ const App = {
                         En Teléfono Móvil:
                     </strong>
                     <p style="font-size:0.82rem;color:#475569;margin:0;line-height:1.45;">
-                        Toca el botón de opciones del navegador (<strong>⋮</strong> o Compartir) y presiona <strong>"Agregar a la pantalla de inicio"</strong>.
+                        Toca el menú del navegador (<strong>⋮</strong> o Compartir) y selecciona <strong>"Instalar aplicación"</strong> (o <strong>"Instalar COLUA R.L."</strong>) para instalarla como app completa en tu teléfono.
                     </p>
                 </div>
             </div>

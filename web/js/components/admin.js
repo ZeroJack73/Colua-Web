@@ -723,6 +723,17 @@ class AdminComponent {
                         <textarea id="item-desc" rows="3" style="width: 100%; padding: 8px 12px; border: 1.5px solid var(--colua-gray-200); border-radius: 8px; font-size: 0.88rem;">${currentData.description || ''}</textarea>
                     </div>
 
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">
+                            Fecha de Publicación * <span style="font-size: 0.76rem; font-weight: 400; color: var(--colua-gray-500);">(La fecha más reciente encabezará como novedad)</span>
+                        </label>
+                        <input type="datetime-local" id="item-pub-date" value="${(() => {
+                            const raw = currentData.publicationDate || Date.now();
+                            const d = new Date(typeof raw === 'number' ? raw : Number(raw) || Date.now());
+                            return isNaN(d.getTime()) ? new Date().toISOString().slice(0, 16) : new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                        })()}" style="width: 100%; padding: 8px 12px; border: 1.5px solid var(--colua-gray-200); border-radius: 8px; font-size: 0.9rem;" />
+                    </div>
+
                     <!-- Subida de Imagen a Supabase Storage -->
                     <div class="form-group" style="margin-bottom: 16px;">
                         <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">Imagen de Portada (Supabase Storage)</label>
@@ -766,6 +777,13 @@ class AdminComponent {
 
         document.getElementById('item-edit-form')?.addEventListener('submit', async (e) => {
             e.preventDefault();
+            const pubDateInput = document.getElementById('item-pub-date');
+            let chosenTimestamp = currentData.publicationDate || Date.now();
+            if (pubDateInput && pubDateInput.value) {
+                const parsed = new Date(pubDateInput.value).getTime();
+                if (!isNaN(parsed)) chosenTimestamp = parsed;
+            }
+
             const updated = {
                 ...currentData,
                 sectionId: this.selectedSectionId,
@@ -773,6 +791,7 @@ class AdminComponent {
                 subtitle: document.getElementById('item-subtitle').value.trim(),
                 description: document.getElementById('item-desc').value.trim(),
                 imageUrl: imgUrlInput.value.trim(),
+                publicationDate: chosenTimestamp,
                 isDraft: true,
                 lastModified: Date.now()
             };

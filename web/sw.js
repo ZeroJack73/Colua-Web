@@ -1,4 +1,4 @@
-const CACHE_NAME = 'colua-web-digital-v4.1.0';
+const CACHE_NAME = 'colua-web-digital-v4.3.0';
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -69,6 +69,11 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Solo interceptar peticiones GET bajo protocolos http/https
+  if (event.request.method !== 'GET' || !event.request.url.startsWith('http')) {
+    return;
+  }
+
   const requestUrl = new URL(event.request.url);
 
   // APIs y datos en vivo
