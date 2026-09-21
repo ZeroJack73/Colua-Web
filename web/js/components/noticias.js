@@ -986,14 +986,15 @@ class NoticiasComponent {
                 ${tagsHtml}
 
                 <!-- Pie del modal limpio -->
-                <div style="background: var(--colua-gray-50); padding: 14px 18px; border-radius: 12px; display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 12px;">
-                    <button class="btn btn-outline ${isLiked ? 'liked' : ''}" style="font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; ${isLiked ? 'color:#e42a67;border-color:#e42a67;' : ''}" id="modal-btn-like" title="${likeTooltip}">
-                        <span style="display: inline-flex; align-items: center;">${isLiked ? NEWS_ICONS.heartFilled : NEWS_ICONS.heartOutline}</span>
+                <div style="background: var(--colua-gray-50); padding: 12px 14px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: nowrap;">
+                    <button class="btn btn-outline ${isLiked ? 'liked' : ''}" style="flex: 1; justify-content: center; font-size: 0.8rem; padding: 8px 4px; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; ${isLiked ? 'color:#e42a67;border-color:#e42a67;' : ''}" id="modal-btn-like" title="${likeTooltip}">
+                        <span style="display: inline-flex; align-items: center; transform: scale(0.9);">${isLiked ? NEWS_ICONS.heartFilled : NEWS_ICONS.heartOutline}</span>
                         <span>${isLiked ? 'Te gusta' : 'Me gusta'}</span>
-                        <span style="font-size: 0.78rem; font-weight: 700;">(${likesCount})</span>
+                        <span style="font-size: 0.75rem; font-weight: 700;">(${likesCount})</span>
                     </button>
-                    <button class="btn btn-primary" style="font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;" id="modal-btn-share">
-                        ${NEWS_ICONS.share} Compartir
+                    <button class="btn btn-primary" style="flex: 1; justify-content: center; font-size: 0.8rem; padding: 8px 4px; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;" id="modal-btn-share">
+                        <span style="display: inline-flex; align-items: center; transform: scale(0.9);">${NEWS_ICONS.share}</span>
+                        <span>Compartir</span>
                     </button>
                 </div>
             </div>
@@ -1015,11 +1016,11 @@ class NoticiasComponent {
                     const nowLiked = this.likedArticles.has(item.id);
                     const count = (item.likesCount || item.likes || 0) + (nowLiked ? 1 : 0);
                     modalLikeBtn.className = `btn btn-outline ${nowLiked ? 'liked' : ''}`;
-                    modalLikeBtn.style.cssText = `font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; ${nowLiked ? 'color:#e42a67;border-color:#e42a67;' : ''}`;
+                    modalLikeBtn.style.cssText = `flex: 1; justify-content: center; font-size: 0.8rem; padding: 8px 4px; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; ${nowLiked ? 'color:#e42a67;border-color:#e42a67;' : ''}`;
                     modalLikeBtn.innerHTML = `
-                        <span style="display: inline-flex; align-items: center;">${nowLiked ? NEWS_ICONS.heartFilled : NEWS_ICONS.heartOutline}</span>
+                        <span style="display: inline-flex; align-items: center; transform: scale(0.9);">${nowLiked ? NEWS_ICONS.heartFilled : NEWS_ICONS.heartOutline}</span>
                         <span>${nowLiked ? 'Te gusta' : 'Me gusta'}</span>
-                        <span style="font-size: 0.78rem; font-weight: 700;">(${count})</span>
+                        <span style="font-size: 0.75rem; font-weight: 700;">(${count})</span>
                     `;
                 }
             });
