@@ -915,7 +915,6 @@ class NoticiasComponent {
         const images = this.getArticleImages(item);
         let modalSlideIndex = 0;
         const displayDate = this.formatDisplayDate(item);
-        const readTime = this.calculateReadTime(item.description || item.content);
         const authorName = item.issuerName || 'Cooperativa COLUA';
         const hasMultiple = images.length > 1;
         const isLiked = this.likedArticles.has(item.id);
@@ -972,9 +971,6 @@ class NoticiasComponent {
                         <span>${authorName}</span>
                         <span class="news-verified-badge" style="width: 15px; height: 15px; font-size: 0.6rem;">✓</span>
                     </div>
-                    <span style="font-size: 0.8rem; color: var(--colua-gray-500); display: inline-flex; align-items: center; gap: 4px;">
-                        ${NEWS_ICONS.clock} Lectura estimada: ${readTime}
-                    </span>
                 </div>
 
                 <h2 style="font-size: 1.35rem; font-weight: 800; color: var(--colua-navy); margin-bottom: 14px; line-height: 1.35;">
