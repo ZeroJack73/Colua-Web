@@ -820,7 +820,6 @@ class NoticiasComponent {
                 <div class="news-lightbox-header">
                     <div style="display: flex; align-items: center; gap: 8px; overflow: hidden;">
                         <span class="news-lightbox-title">${title || 'Fotografía de la Noticia'}</span>
-                        ${hasMultiple ? `<span style="font-size: 0.8rem; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px;">${currentIndex + 1} de ${imgList.length}</span>` : ''}
                     </div>
                     <button class="news-lightbox-close-btn" id="lightbox-close-btn" title="Cerrar visor (Escape)">
                         ${NEWS_ICONS.close}
@@ -832,6 +831,9 @@ class NoticiasComponent {
                 </div>
 
                 ${hasMultiple ? `
+                    <div style="position: absolute; bottom: 30px; left: 0; width: 100%; display: flex; justify-content: center; gap: 8px; z-index: 110;">
+                        ${imgList.map((_, idx) => `<span class="carousel-dot-indicator ${idx === currentIndex ? 'active' : ''}" style="width: 8px; height: 8px; background: ${idx === currentIndex ? '#ffffff' : 'rgba(255,255,255,0.4)'}; border-radius: 50%;"></span>`).join('')}
+                    </div>
                     <button class="lightbox-nav-btn lightbox-nav-prev" id="lightbox-prev-btn" title="Imagen anterior (Flecha izquierda)">
                         ${NEWS_ICONS.chevronLeft}
                     </button>
@@ -992,9 +994,6 @@ class NoticiasComponent {
                             <span>${isLiked ? 'Te gusta' : 'Me gusta'}</span>
                             <span style="font-size: 0.78rem; font-weight: 700;">(${likesCount})</span>
                         </button>
-                        <button class="btn btn-outline" style="font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;" id="modal-btn-open-lightbox">
-                            ${NEWS_ICONS.expand} Ver imagen completa
-                        </button>
                         <button class="btn btn-primary" style="font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;" id="modal-btn-share">
                             ${NEWS_ICONS.share} Compartir
                         </button>
@@ -1010,7 +1009,6 @@ class NoticiasComponent {
             const stage = document.getElementById('modal-carousel-stage');
             const prevBtn = document.getElementById('modal-prev-btn');
             const nextBtn = document.getElementById('modal-next-btn');
-            const openLightboxBtn = document.getElementById('modal-btn-open-lightbox');
             const shareBtn = document.getElementById('modal-btn-share');
             const modalLikeBtn = document.getElementById('modal-btn-like');
 
@@ -1040,10 +1038,6 @@ class NoticiasComponent {
 
             stage?.addEventListener('click', (e) => {
                 if (e.target.closest('.carousel-nav-btn')) return;
-                this.openImageLightbox(images, modalSlideIndex, item.title);
-            });
-
-            openLightboxBtn?.addEventListener('click', () => {
                 this.openImageLightbox(images, modalSlideIndex, item.title);
             });
 
