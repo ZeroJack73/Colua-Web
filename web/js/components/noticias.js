@@ -374,6 +374,9 @@ class NoticiasComponent {
             </div>
         ` : '';
 
+        const isReg = this.isUserRegistered();
+        const likeTooltip = isReg ? (isLiked ? 'Ya no me gusta' : 'Me gusta') : 'Inicia sesión o regístrate para dar Me Gusta';
+
         return `
             <article class="news-hero-split-card" id="news-hero-card">
                 <!-- Columna Izquierda: Carrusel Fotográfico con soporte de deslizamiento -->
@@ -430,7 +433,7 @@ class NoticiasComponent {
                             Leer comunicado completo <span style="display: inline-flex; align-items: center; margin-left: 2px;">${NEWS_ICONS.arrowRight}</span>
                         </button>
                         <div class="news-hero-actions">
-                            <button class="news-action-icon-btn ${isLiked ? 'liked' : ''}" id="hero-like-btn" title="Me gusta">
+                            <button class="news-action-icon-btn ${isLiked ? 'liked' : ''}" id="hero-like-btn" title="${likeTooltip}">
                                 <span style="display: inline-flex; align-items: center;">${isLiked ? NEWS_ICONS.heartFilled : NEWS_ICONS.heartOutline}</span>
                                 <span class="like-count" style="font-size: 0.8rem; font-weight: 600;">${likesCount}</span>
                             </button>
@@ -545,6 +548,9 @@ class NoticiasComponent {
             </button>
         ` : '';
 
+        const isReg = this.isUserRegistered();
+        const likeTooltip = isReg ? (isLiked ? 'Ya no me gusta' : 'Me gusta') : 'Inicia sesión o regístrate para dar Me Gusta';
+
         return `
             <div id="news-card-${item.id}" class="news-card-editorial">
                 <div class="news-card-media carousel-wrapper" id="card-media-${item.id}" title="Presiona para leer o ver imagen completa">
@@ -579,7 +585,7 @@ class NoticiasComponent {
 
                 <div class="news-card-footer-editorial">
                     <div style="display: flex; align-items: center; gap: 8px;">
-                        <button class="news-like-btn news-action-icon-btn ${isLiked ? 'liked' : ''}" style="padding: 4px 6px;" title="Me gusta">
+                        <button class="news-like-btn news-action-icon-btn ${isLiked ? 'liked' : ''}" style="padding: 4px 6px;" title="${likeTooltip}">
                             <span style="display: inline-flex; align-items: center;">${isLiked ? NEWS_ICONS.heartFilled : NEWS_ICONS.heartOutline}</span>
                             <span class="like-count" style="font-size: 0.8rem;">${likesCount}</span>
                         </button>
@@ -704,7 +710,52 @@ class NoticiasComponent {
         });
     }
 
+    isUserRegistered() {
+        if (!window.authManager) return false;
+        if (typeof window.authManager.isRegistered === 'function') {
+            return window.authManager.isRegistered();
+        }
+        if (typeof window.authManager.isLoggedIn === 'function' && !window.authManager.isLoggedIn()) {
+            return false;
+        }
+        if (typeof window.authManager.isGuest === 'function' && window.authManager.isGuest()) {
+            return false;
+        }
+        const s = window.authManager.getCurrentSession ? window.authManager.getCurrentSession() : null;
+        if (!s) return false;
+        const role = (s.user_role || s.role || '').toLowerCase();
+        const tipo = (s.tipoUsuario || '').toLowerCase();
+        return !(role === 'guest' || role === 'invitado' || tipo === 'invitado' || (s.user_id || '').startsWith('guest_'));
+    }
+
+    showGuestLikePrompt() {
+        if (window.app && typeof window.app.showGuestLikePrompt === 'function') {
+            window.app.showGuestLikePrompt('dar "Me Gusta" a las publicaciones');
+            return;
+        }
+        if (window.Swal) {
+            Swal.fire({
+                title: '¡Únete a COLUA!',
+                text: 'Para dar Me Gusta e interactuar con las publicaciones debes estar registrado como asociado.',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonColor: '#173789',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Registrarme',
+                cancelButtonText: 'Continuar como invitado'
+            }).then((res) => {
+                if (res.isConfirmed && window.app) window.app.showRegisterModal();
+            });
+        }
+    }
+
     toggleLike(articleId) {
+        // Bloquear interacción si es un usuario invitado o no registrado
+        if (!this.isUserRegistered()) {
+            this.showGuestLikePrompt();
+            return;
+        }
+
         if (this.likedArticles.has(articleId)) {
             this.likedArticles.delete(articleId);
         } else {
@@ -844,37 +895,34 @@ class NoticiasComponent {
         const readTime = this.calculateReadTime(item.description || item.content);
         const authorName = item.issuerName || 'Cooperativa COLUA';
         const hasMultiple = images.length > 1;
+        const isLiked = this.likedArticles.has(item.id);
+        const likesCount = (item.likesCount || item.likes || 0) + (isLiked ? 1 : 0);
+        const isReg = this.isUserRegistered();
+        const likeTooltip = isReg ? (isLiked ? 'Ya no me gusta' : 'Me gusta') : 'Inicia sesión o regístrate para dar Me Gusta';
 
         let tagsHtml = '';
         if (item.tags) {
             const tagsList = item.tags.split(/\s+/).filter(t => t.startsWith('#'));
-            tagsHtml = `<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px;">
-                ${tagsList.map(t => `<span style="background: #f1f5f9; color: #173789; font-size: 0.8rem; font-weight: 600; padding: 3px 8px; border-radius: 6px;">${t}</span>`).join('')}
-            </div>`;
+            tagsHtml = tagsList.map(t => `<span class="badge" style="background: #f1f5f9; color: #173789; font-weight: 600; margin-right: 6px; margin-bottom: 6px;">${t}</span>`).join(' ');
         }
 
         const renderModalCarousel = (idx) => `
-            <div style="position: relative; border-radius: 12px; overflow: hidden; margin-bottom: 16px; max-height: 420px; background: #0f172a; display: flex; justify-content: center; align-items: center; cursor: zoom-in;"
-                 id="modal-carousel-stage"
-                 title="Presiona para ver a pantalla completa">
-                <img src="${images[idx]}" alt="${item.title}" style="max-width: 100%; max-height: 420px; object-fit: contain;" id="modal-active-img"
+            <div style="position: relative; width: 100%; height: 320px; border-radius: 12px; overflow: hidden; background: #0f172a; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; cursor: zoom-in;" id="modal-carousel-stage" title="Click para ampliar imagen">
+                <img src="${images[idx]}" alt="${item.title}" style="width: 100%; height: 100%; object-fit: contain;"
                     onerror="this.onerror=null; this.src='assets/noticia_reforestacion.jpg';" />
 
                 ${hasMultiple ? `
-                    <button class="carousel-nav-btn carousel-nav-prev" id="modal-prev-btn" title="Foto anterior" style="left: 10px;">
-                        ${NEWS_ICONS.chevronLeft}
-                    </button>
-                    <button class="carousel-nav-btn carousel-nav-next" id="modal-next-btn" title="Siguiente foto" style="right: 10px;">
-                        ${NEWS_ICONS.chevronRight}
-                    </button>
-                    <div class="carousel-count-badge" style="bottom: 12px; left: 12px;">
+                    <div style="position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.65); color: white; padding: 4px 10px; border-radius: 14px; font-size: 0.75rem; display: flex; align-items: center; gap: 5px; backdrop-filter: blur(4px);">
                         ${NEWS_ICONS.photosCount} <span>${idx + 1} de ${images.length}</span>
                     </div>
-                ` : ''}
 
-                <div class="news-zoom-hint" id="modal-zoom-hint" style="pointer-events: none;">
-                    ${NEWS_ICONS.expand} <span>Ampliar</span>
-                </div>
+                    <button class="carousel-nav-btn carousel-nav-prev" id="modal-prev-btn" title="Foto anterior" style="left: 12px;">
+                        ${NEWS_ICONS.chevronLeft}
+                    </button>
+                    <button class="carousel-nav-btn carousel-nav-next" id="modal-next-btn" title="Foto siguiente" style="right: 12px;">
+                        ${NEWS_ICONS.chevronRight}
+                    </button>
+                ` : ''}
             </div>
 
             <!-- Tira de Miniaturas si hay múltiples imágenes -->
@@ -919,7 +967,12 @@ class NoticiasComponent {
                 <!-- Pie del modal limpio -->
                 <div style="background: var(--colua-gray-50); padding: 14px 18px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                     <button class="btn btn-outline" style="font-size: 0.85rem;" onclick="app.closeModal()">Cerrar</button>
-                    <div style="display: flex; gap: 8px;">
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button class="btn btn-outline ${isLiked ? 'liked' : ''}" style="font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; ${isLiked ? 'color:#e42a67;border-color:#e42a67;' : ''}" id="modal-btn-like" title="${likeTooltip}">
+                            <span style="display: inline-flex; align-items: center;">${isLiked ? NEWS_ICONS.heartFilled : NEWS_ICONS.heartOutline}</span>
+                            <span>${isLiked ? 'Te gusta' : 'Me gusta'}</span>
+                            <span style="font-size: 0.78rem; font-weight: 700;">(${likesCount})</span>
+                        </button>
                         <button class="btn btn-outline" style="font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;" id="modal-btn-open-lightbox">
                             ${NEWS_ICONS.expand} Ver imagen completa
                         </button>
@@ -940,6 +993,22 @@ class NoticiasComponent {
             const nextBtn = document.getElementById('modal-next-btn');
             const openLightboxBtn = document.getElementById('modal-btn-open-lightbox');
             const shareBtn = document.getElementById('modal-btn-share');
+            const modalLikeBtn = document.getElementById('modal-btn-like');
+
+            modalLikeBtn?.addEventListener('click', () => {
+                this.toggleLike(item.id);
+                if (this.isUserRegistered()) {
+                    const nowLiked = this.likedArticles.has(item.id);
+                    const count = (item.likesCount || item.likes || 0) + (nowLiked ? 1 : 0);
+                    modalLikeBtn.className = `btn btn-outline ${nowLiked ? 'liked' : ''}`;
+                    modalLikeBtn.style.cssText = `font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; ${nowLiked ? 'color:#e42a67;border-color:#e42a67;' : ''}`;
+                    modalLikeBtn.innerHTML = `
+                        <span style="display: inline-flex; align-items: center;">${nowLiked ? NEWS_ICONS.heartFilled : NEWS_ICONS.heartOutline}</span>
+                        <span>${nowLiked ? 'Te gusta' : 'Me gusta'}</span>
+                        <span style="font-size: 0.78rem; font-weight: 700;">(${count})</span>
+                    `;
+                }
+            });
 
             const updateModalIndex = (newIdx) => {
                 modalSlideIndex = (newIdx + images.length) % images.length;

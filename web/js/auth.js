@@ -307,7 +307,13 @@ class AuthManager {
   isGuest() {
     const s = this.getCurrentSession();
     if (!s) return true;
-    return s.user_role === 'GUEST' || (s.user_id || '').startsWith('guest_');
+    const role = (s.user_role || s.role || '').toLowerCase();
+    const tipo = (s.tipoUsuario || '').toLowerCase();
+    return role === 'guest' || role === 'invitado' || tipo === 'invitado' || (s.user_id || '').startsWith('guest_');
+  }
+
+  isRegistered() {
+    return this.isLoggedIn() && !this.isGuest();
   }
 
   getCurrentUser() {

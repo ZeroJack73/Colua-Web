@@ -512,6 +512,62 @@ const App = {
         window.location.hash = '#inicio';
     },
 
+    // ── Invitación a Registrarse para Interactuar ──
+    showGuestLikePrompt(actionMessage = 'dar "Me Gusta" a las publicaciones') {
+        this.showModal(`
+            <div style="text-align:center;padding:10px 4px;">
+                <div style="width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg, rgba(228,42,103,0.12), rgba(23,55,137,0.08));display:flex;align-items:center;justify-content:center;margin:0 auto 16px auto;box-shadow:0 8px 22px rgba(228,42,103,0.18);border:2px solid rgba(228,42,103,0.25);">
+                    <svg width="34" height="34" viewBox="0 0 24 24" fill="#E42A67" stroke="#E42A67" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                </div>
+
+                <h3 style="font-size:1.3rem;font-weight:800;color:var(--colua-navy);margin-bottom:8px;line-height:1.3;">
+                    ¡Únete a COLUA para interactuar!
+                </h3>
+                
+                <p style="font-size:0.9rem;color:#475569;line-height:1.55;margin:0 auto 18px auto;max-width:360px;">
+                    Como invitado puedes leer y explorar todo nuestro contenido. Para <strong>${actionMessage}</strong> y participar activamente, regístrate como asociado o inicia sesión con tu cuenta.
+                </p>
+
+                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:14px 16px;margin-bottom:20px;text-align:left;">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                        <span style="font-size:1.1rem;">❤️</span>
+                        <span style="font-size:0.84rem;color:#334155;font-weight:600;">Reacciona con "Me Gusta" y apoya noticias cooperativas</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                        <span style="font-size:1.1rem;">✨</span>
+                        <span style="font-size:0.84rem;color:#334155;font-weight:600;">Acceso a beneficios, tasas preferenciales y eventos</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="font-size:1.1rem;">⚡</span>
+                        <span style="font-size:0.84rem;color:#334155;font-weight:600;">Registro rápido en menos de 1 minuto</span>
+                    </div>
+                </div>
+
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <button type="button" id="btn-guest-prompt-register" class="btn btn-primary" style="width:100%;padding:12px;font-size:0.95rem;font-weight:700;box-shadow:0 4px 14px rgba(23,55,137,0.25);">
+                        Registrarme como Asociado
+                    </button>
+                    <button type="button" id="btn-guest-prompt-login" class="btn btn-outline" style="width:100%;padding:11px;font-size:0.9rem;font-weight:600;color:var(--colua-navy);border-color:#cbd5e1;">
+                        Ya tengo cuenta / Iniciar Sesión
+                    </button>
+                    <button type="button" onclick="window.app.closeModal()" style="background:none;border:none;color:#94a3b8;font-size:0.82rem;font-weight:500;padding:6px;cursor:pointer;margin-top:2px;">
+                        Continuar explorando como invitado
+                    </button>
+                </div>
+            </div>
+        `);
+
+        document.getElementById('btn-guest-prompt-register')?.addEventListener('click', () => {
+            this.showRegisterModal();
+        });
+
+        document.getElementById('btn-guest-prompt-login')?.addEventListener('click', () => {
+            this.showLoginModal();
+        });
+    },
+
     // ── PWA & Instalación ─────────────────────────
     promptInstallApp() {
         if (this.deferredInstallPrompt) {

@@ -136,6 +136,15 @@ Assert-Check ($adminJsContent -match 'item-pub-date') "Selector de fecha de publ
 Assert-Check (-not ($manifestContent -match '"id":\s*"/colua-micoope-v4"')) "Manifest ID no usa ruta absoluta de dominio para compatibilidad WebAPK"
 Assert-Check ($manifestContent -match '"id":\s*"\./index\.html"') "Manifest ID coincide con start_url relativa dentro del scope"
 
+# 8. Validar Restriccion de Likes a Invitados e Invitacion a Registrarse
+Write-Host "`n8. Validando restriccion de Likes a invitados e invitacion a registrarse:" -ForegroundColor Yellow
+$appJsContent = Get-Content (Join-Path $webDir "js\app.js") -Raw
+Assert-Check ($authJsContent -match 'isRegistered\(\)') "Metodo isRegistered implementado en auth.js"
+Assert-Check ($appJsContent -match 'showGuestLikePrompt') "Modal institucional showGuestLikePrompt implementado en app.js"
+Assert-Check ($noticiasJsContent -match 'isUserRegistered\(\)') "Validacion isUserRegistered presente en noticias.js"
+Assert-Check ($noticiasJsContent -match 'showGuestLikePrompt\(\)') "Invitacion a registrarse llamada en toggleLike para invitados"
+Assert-Check ($noticiasJsContent -match 'modal-btn-like') "Boton de interaccion con Likes integrado en modal completo de noticias"
+
 Write-Host "`n====================================================" -ForegroundColor Cyan
 $pct = [Math]::Round(($passedTests / $totalTests) * 100)
 Write-Host "RESULTADOS: $passedTests de $totalTests pruebas pasadas ($pct por ciento)" -ForegroundColor Cyan
