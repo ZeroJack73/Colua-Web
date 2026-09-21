@@ -71,8 +71,8 @@ foreach ($asset in $requiredAssets) {
 Write-Host "`n3. Validando manifest.json:" -ForegroundColor Yellow
 $manifestPath = Join-Path $webDir "manifest.json"
 $manifestJson = Get-Content $manifestPath -Raw | ConvertFrom-Json
-Assert-Check ($manifestJson.name -eq "COLUA R.L. - MICOOPE") "Nombre de la aplicacion en manifest"
-Assert-Check ($manifestJson.short_name -eq "COLUA R.L.") "Short name en manifest"
+Assert-Check ($manifestJson.name -eq "Colua Digital") "Nombre de la aplicacion en manifest: Colua Digital"
+Assert-Check ($manifestJson.short_name -eq "Colua Digital") "Short name en manifest: Colua Digital"
 Assert-Check ($manifestJson.theme_color -eq "#173789") "Color de tema #173789"
 Assert-Check ($manifestJson.display -eq "standalone") "Modo de visualizacion standalone"
 Assert-Check ($manifestJson.icons.Count -gt 0) "Iconos PWA definidos"

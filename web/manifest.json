@@ -1,7 +1,7 @@
 {
   "id": "./index.html",
-  "name": "COLUA R.L. - MICOOPE",
-  "short_name": "COLUA R.L.",
+  "name": "Colua Digital",
+  "short_name": "Colua Digital",
   "description": "Plataforma digital informativa y CMS de COLUA MICOOPE. Conoce nuestros ahorros, créditos, seguros, remesas, agencias y noticias.",
   "start_url": "./index.html",
   "scope": "./",
