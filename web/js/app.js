@@ -596,7 +596,29 @@ const App = {
     },
 
     showLogoutConfirm() {
+        if (window.Swal) {
+            Swal.fire({
+                title: '¿Cerrar Sesión?',
+                text: '¿Estás seguro de que deseas salir de tu cuenta?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#173789',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Sí, cerrar sesión',
+                cancelButtonText: 'Cancelar'
+            }).then((res) => {
+                if (res.isConfirmed) {
+                    this._executeLogout();
+                }
+            });
+        } else {
+            this._executeLogout();
+        }
+    },
+
+    _executeLogout() {
         if (window.authManager) window.authManager.clearSession();
+        if (window.authService && window.authService.logout) window.authService.logout();
         this.showToast('Sesión cerrada correctamente', 'info');
         const sideEl = document.getElementById('sidebar-root');
         if (sideEl && window.sidebarComponent) {

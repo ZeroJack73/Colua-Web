@@ -270,18 +270,31 @@ class NoticiasComponent {
         if (ts > 0) {
             const d = new Date(ts);
             if (!isNaN(d.getTime())) {
-                const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'];
-                return `${d.getDate()} ${meses[d.getMonth()]}, ${d.getFullYear()}`;
+                const now = Date.now();
+                const diffMs = now - d.getTime();
+                const diffSec = Math.floor(diffMs / 1000);
+                const diffMin = Math.floor(diffSec / 60);
+                const diffHour = Math.floor(diffMin / 60);
+                const diffDay = Math.floor(diffHour / 24);
+
+                if (diffDay === 0) {
+                    if (diffHour > 0) return `Hace ${diffHour} hora${diffHour > 1 ? 's' : ''}`;
+                    if (diffMin > 0) return `Hace ${diffMin} min${diffMin > 1 ? 's' : ''}`;
+                    return 'Hace un momento';
+                } else if (diffDay === 1) {
+                    return 'Ayer';
+                } else if (diffDay < 7) {
+                    return `Hace ${diffDay} días`;
+                } else if (diffDay < 30) {
+                    const weeks = Math.floor(diffDay / 7);
+                    return `Hace ${weeks} semana${weeks > 1 ? 's' : ''}`;
+                } else {
+                    const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sept', 'oct', 'nov', 'dic'];
+                    return `${d.getDate()} ${meses[d.getMonth()]}, ${d.getFullYear()}`;
+                }
             }
         }
         return 'Reciente';
-    }
-
-    calculateReadTime(text) {
-        if (!text) return '3 min';
-        const words = text.trim().split(/\s+/).length;
-        const minutes = Math.max(2, Math.ceil(words / 40));
-        return `${minutes} min`;
     }
 
     renderFeaturedAndGrid() {
@@ -343,7 +356,6 @@ class NoticiasComponent {
         const images = this.getArticleImages(item);
         const currentImg = images[this.heroSlideIndex] || images[0];
         const displayDate = this.formatDisplayDate(item);
-        const readTime = this.calculateReadTime(item.description || item.content);
         const authorName = item.issuerName || 'Cooperativa COLUA';
         const issuerRole = item.issuerRole || 'Oficial';
 
@@ -408,7 +420,7 @@ class NoticiasComponent {
                         <!-- Metadatos con Iconos Vectoriales -->
                         <div class="news-meta-row">
                             <span style="display: inline-flex; align-items: center;">${NEWS_ICONS.clock}</span>
-                            <span>${issuerRole} • ${displayDate} • Lectura: ${readTime}</span>
+                            <span>${issuerRole} • ${displayDate}</span>
                         </div>
 
                         <!-- Título Principal -->
@@ -532,7 +544,6 @@ class NoticiasComponent {
         const currentIdx = this.cardSlideIndices[item.id] || 0;
         const currentImg = images[currentIdx] || images[0];
         const displayDate = this.formatDisplayDate(item);
-        const readTime = this.calculateReadTime(item.description || item.content);
         const authorName = item.issuerName || 'Cooperativa COLUA';
 
         const hasMultiple = images.length > 1;
@@ -571,8 +582,6 @@ class NoticiasComponent {
                     <div style="display: flex; align-items: center; gap: 5px; margin-bottom: 6px; font-size: 0.78rem; font-weight: 700; color: var(--colua-gray-600);">
                         <span>${authorName}</span>
                         <span class="news-verified-badge" style="width: 14px; height: 14px; font-size: 0.55rem;">✓</span>
-                        <span style="color: var(--colua-gray-400); margin: 0 2px;">•</span>
-                        <span style="color: var(--colua-gray-500); font-weight: 500;">${readTime}</span>
                     </div>
 
                     <h3 class="news-card-title-editorial">
