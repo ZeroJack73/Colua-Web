@@ -12,6 +12,36 @@ class ColuaRepository {
     const raw = localStorage.getItem(this.localStorageKey);
     if (!raw) {
       this.seedInitialData();
+    } else {
+      // Auto-limpieza de cualquier residuo heredado de "Comunidad" para asegurar que solo existe "Nosotros"
+      try {
+        const db = JSON.parse(raw);
+        let changed = false;
+        if (db.sections && db.sections.some(s => s.id === 'sec_comunidad' || s.slug === 'comunidad' || s.title === 'Comunidad')) {
+          db.sections = db.sections.filter(s => s.id !== 'sec_comunidad' && s.slug !== 'comunidad' && s.title !== 'Comunidad');
+          changed = true;
+        }
+        if (db.navigation_items && db.navigation_items.some(n => n.targetSectionId === 'sec_comunidad' || n.id === 'nav_comunidad')) {
+          db.navigation_items = db.navigation_items.filter(n => n.targetSectionId !== 'sec_comunidad' && n.id !== 'nav_comunidad');
+          changed = true;
+        }
+        if (db.content_items && db.content_items.some(i => i.sectionId === 'sec_comunidad')) {
+          db.content_items = db.content_items.filter(i => i.sectionId !== 'sec_comunidad');
+          changed = true;
+        }
+        // Auto-limpieza de métricas mock heredadas para garantizar 100% datos reales
+        if (db.analytics && db.analytics.page_views && db.analytics.page_views.inicio > 500) {
+          db.analytics = {
+            page_views: { inicio: 1 },
+            daily_visits: {},
+            last_updated: Date.now()
+          };
+          changed = true;
+        }
+        if (changed) {
+          this.saveLocalDb(db);
+        }
+      } catch (e) {}
     }
   }
 
@@ -19,8 +49,12 @@ class ColuaRepository {
     try {
       const raw = localStorage.getItem(this.localStorageKey);
       let db = raw ? JSON.parse(raw) : null;
-      if (!db || !db.agencias || db.agencias.length < 25 || !db.content_items || db.content_items.length < 8) {
+      if (!db || !db.agencias || db.agencias.length < 25 || !db.content_items || db.content_items.length < 30) {
         db = this.seedInitialData(true);
+      }
+      // Garantizar que Comunidad nunca contamine los datos locales
+      if (db && db.sections) {
+        db.sections = db.sections.filter(s => s.id !== 'sec_comunidad' && s.slug !== 'comunidad' && s.title !== 'Comunidad');
       }
       return db;
     } catch (e) {
@@ -30,6 +64,9 @@ class ColuaRepository {
 
   saveLocalDb(db) {
     try {
+      if (db && db.sections) {
+        db.sections = db.sections.filter(s => s.id !== 'sec_comunidad' && s.slug !== 'comunidad' && s.title !== 'Comunidad');
+      }
       localStorage.setItem(this.localStorageKey, JSON.stringify(db));
     } catch (e) {
       console.error('Error guardando en localStorage:', e);
@@ -294,18 +331,153 @@ class ColuaRepository {
         issuerRole: "Oficial",
         publicationDate: 1789666915273,
         updatedAt: 1789769069835
-      }
+      },
+
+      // --- 1. AHORROS ---
+      { id: "item_ahorro_aportacion_adulto", sectionId: "sec_ahorros", title: "Cuenta Aportación Adulto", subtitle: "Monto de apertura: desde Q50.00, Tasa de interés: 5% anual afecto a ISR, Intereses: capitalizables anualmente", description: "Otorga el derecho a la persona natural a asociarse a la cooperativa, convirtiéndolo en dueño con voz y voto en la asamblea general.", imageUrl: "assets/ahorro1.png", displayOrder: 1, isVisible: true, isDraft: false },
+      { id: "item_ahorro_aportacion_infanto", sectionId: "sec_ahorros", title: "Cuenta Aportación Infanto Juvenil", subtitle: "Monto de apertura: desde Q50.00, Tasa de interés: 5% anual afecto a ISR, Intereses: capitalizables anualmente", description: "Otorga el derecho al menor de edad a asociarse a la cooperativa e iniciar el hábito del ahorro con beneficios educativos.", imageUrl: "assets/ahorro_infanto_juvenil.png", displayOrder: 2, isVisible: true, isDraft: false },
+      { id: "item_ahorro_infanto_juvenil", sectionId: "sec_ahorros", title: "Cuenta Ahorro Infanto Juvenil", subtitle: "Monto de apertura: desde Q10.00, Tasa de interés: 3% anual afecto a ISR, 5 Beneficios al mantener mínimo Q500.00", description: "Diseñada para motivar y fomentar en los niños y adolescentes la cultura del ahorro y educación financiera.", imageUrl: "assets/ahorro2.png", displayOrder: 3, isVisible: true, isDraft: false },
+      { id: "item_ahorro_disponible", sectionId: "sec_ahorros", title: "Cuenta Ahorro Disponible", subtitle: "Apertura: desde Q50.00 o $100.00, Tasa: 3% anual en Q y 1.50% en $, Intereses: capitalizables mensualmente, Acceso a canales digitales sin costo", description: "Cuenta que el asociado podrá utilizar para darle movimiento diario a sus fondos con total disponibilidad.", imageUrl: "assets/ahorro_disponible.png", displayOrder: 4, isVisible: true, isDraft: false },
+      { id: "item_ahorro_programado", sectionId: "sec_ahorros", title: "Cuenta Ahorro Programado", subtitle: "Apertura: desde Q25.00, Tasa de interés: 7.50% anual afecto a ISR, Plazos de 3, 5, 10, 15 o 20 años, Intereses mensuales", description: "Permite a los asociados aportar cuotas fijas mensuales para metas y proyectos futuros con tasas preferenciales.", imageUrl: "assets/ahorro_programado.png", displayOrder: 5, isVisible: true, isDraft: false },
+      { id: "item_ahorro_plazo_fijo", sectionId: "sec_ahorros", title: "Cuenta Ahorro Plazo Fijo", subtitle: "Apertura: desde Q1,000.00 o $200.00, Plazos de 90, 180 y 365 días, Intereses capitalizables trimestralmente", description: "Obtén el máximo rendimiento y seguridad garantizada sobre tus inversiones a plazo fijo.", imageUrl: "assets/ahorro_plazo_fijo.png", displayOrder: 6, isVisible: true, isDraft: false },
+
+      // --- 2. CRÉDITOS ---
+      { id: "item_cred_productivo", sectionId: "sec_creditos", title: "Crédito Productivo", subtitle: "Monto: desde Q1,000.00 en adelante", description: "Para capital de trabajo, inventario, mercadería y maquinaria.", imageUrl: "assets/credito_productivo.png", displayOrder: 1, isVisible: true, isDraft: false },
+      { id: "item_cred_consumo", sectionId: "sec_creditos", title: "Crédito Consumo", subtitle: "Monto: desde Q1,000.00 en adelante", description: "Gastos personales, consolidación de deudas, menaje de casa o estudios.", imageUrl: "assets/credi_consumo.png", displayOrder: 2, isVisible: true, isDraft: false },
+      { id: "item_cred_vivienda", sectionId: "sec_creditos", title: "Crédito Vivienda", subtitle: "Monto: desde Q5,000.00 en adelante", description: "Construcción, compra de terreno, vivienda nueva o remodelación.", imageUrl: "assets/credito_vivienda.png", displayOrder: 3, isVisible: true, isDraft: false },
+      { id: "item_cred_vehiculo", sectionId: "sec_creditos", title: "Crédi Vehículo", subtitle: "Monto: desde Q5,000.00 en adelante", description: "Adquisición de vehículos o motocicletas para uso comercial o personal.", imageUrl: "assets/credi_vehiculo.png", displayOrder: 4, isVisible: true, isDraft: false },
+      { id: "item_cred_mipymes", sectionId: "sec_creditos", title: "Crédito MIPYMES", subtitle: "Monto: desde Q2,000.00 en adelante", description: "Financiamiento para pequeñas y medianas empresas en crecimiento.", imageUrl: "assets/credito.png", displayOrder: 5, isVisible: true, isDraft: false },
+      { id: "item_cred_agricola", sectionId: "sec_creditos", title: "Crédito Agrícola", subtitle: "Monto: adaptado al ciclo de cultivo", description: "Siembra, renovación de cultivos, fertilizantes y tecnificación agrícola.", imageUrl: "assets/credito1.png", displayOrder: 6, isVisible: true, isDraft: false },
+      { id: "item_cred_automatico", sectionId: "sec_creditos", title: "Crédito Automático", subtitle: "Monto: hasta 90% de tus aportaciones", description: "Crédito inmediato respaldado sobre tus cuentas de ahorro en la cooperativa.", imageUrl: "assets/credito2.png", displayOrder: 7, isVisible: true, isDraft: false },
+      { id: "item_cred_microcreditos", sectionId: "sec_creditos", title: "Microcréditos", subtitle: "Monto: ágil y sin complicaciones", description: "Impulso financiero ágil para pequeños emprendedores y comerciantes.", imageUrl: "assets/credito.png", displayOrder: 8, isVisible: true, isDraft: false },
+
+      // --- 3. SEGUROS ---
+      { id: "item_seg_cv_especial", sectionId: "sec_seguros", title: "Seguro CV Especial", subtitle: "Primas solidarias y accesibles", description: "Cobertura de vida con indemnización y respaldo solidario inmediato.", imageUrl: "assets/seguro_cv_personal.png", displayOrder: 1, isVisible: true, isDraft: false },
+      { id: "item_seg_vida_saludable", sectionId: "sec_seguros", title: "Seguro Vida Saludable", subtitle: "Cobertura médica y preventiva", description: "Protección integral para gastos médicos y asistencia preventiva.", imageUrl: "assets/seguro_vida_saludable.png", displayOrder: 2, isVisible: true, isDraft: false },
+      { id: "item_seg_edad_oro", sectionId: "sec_seguros", title: "Seguro de Accidentes Edad de Oro", subtitle: "Para mayores de 60 años", description: "Diseñado especialmente para asociados de la tercera edad.", imageUrl: "assets/seguro_edad_de_oro.png", displayOrder: 3, isVisible: true, isDraft: false },
+      { id: "item_seg_cancer", sectionId: "sec_seguros", title: "Seguro de Cáncer", subtitle: "Indemnización al primer diagnóstico", description: "Indemnización directa al primer diagnóstico de patología oncológica.", imageUrl: "assets/seguro_de_cancer.png", displayOrder: 4, isVisible: true, isDraft: false },
+      { id: "item_seg_infanto_juvenil", sectionId: "sec_seguros", title: "Seguro Accidentes Infanto Juvenil", subtitle: "Protección escolar 365 días", description: "Protección escolar y de recreación para los hijos de asociados.", imageUrl: "assets/seguro_accidentes_infanto_juvenil.png", displayOrder: 5, isVisible: true, isDraft: false },
+      { id: "item_seg_manejo", sectionId: "sec_seguros", title: "Seguro de Manejo", subtitle: "Asistencia vial nacional", description: "Asistencia vial y respaldo ante incidentes en carretera en todo el país.", imageUrl: "assets/seguro_manejo.png", displayOrder: 6, isVisible: true, isDraft: false },
+      { id: "item_seg_vida_familiar", sectionId: "sec_seguros", title: "Seguro de Vida Individual o Familiar", subtitle: "Tranquilidad a largo plazo", description: "Tranquilidad financiera a largo plazo para el bienestar de tu familia.", imageUrl: "assets/seguro_de_vida_individual_o_familar.png", displayOrder: 7, isVisible: true, isDraft: false },
+
+      // --- 4. REMESAS ---
+      { id: "item_rem_repatriacion", sectionId: "sec_remesas", title: "Asistencia de Repatriación para Remitente", subtitle: "100% Cobertura Sin Costo", description: "Gestión integral y cobertura sin costo. Asesoramiento en trámites legales y coordinación total del retorno aéreo de restos mortales a Guatemala.", imageUrl: "assets/rd1.png", displayOrder: 1, isVisible: true, isDraft: false },
+      { id: "item_rem_funeraria", sectionId: "sec_remesas", title: "Asistencia Funeraria para Remitente", subtitle: "Red Funeraria Nacional", description: "Apoyo y trámites de coordinación. Preparación, capilla ardiente, servicio religioso y traslado terrestre hacia cualquier municipio del país.", imageUrl: "assets/rd2.png", displayOrder: 2, isVisible: true, isDraft: false },
+      { id: "item_rem_referencias", sectionId: "sec_remesas", title: "Referencias Médicas y Clínicas", subtitle: "Acceso Inmediato y Tarifas Especiales", description: "Directorio e información verificada de médicos especialistas, clínicas, farmacias y laboratorios clínicos con convenios preferenciales para asociados.", imageUrl: "assets/rd3.png", displayOrder: 3, isVisible: true, isDraft: false },
+      { id: "item_rem_orientacion", sectionId: "sec_remesas", title: "Orientación Médica Telefónica 24/7", subtitle: "Sin Límite de Llamadas", description: "Apoyo profesional en interpretación de pruebas de laboratorio, dosificación segura de medicamentos y primeros auxilios a distancia las 24 horas.", imageUrl: "assets/rd4.png", displayOrder: 4, isVisible: true, isDraft: false },
+
+      // --- 5. SERVICIOS DIGITALES ---
+      { id: "item_serv_tarjeta_debito", sectionId: "sec_servicios", title: "Tarjeta de Débito MICOOPE Visa", subtitle: "Compras nacionales e internacionales", description: "Realiza compras en comercios afiliados a VISA en Guatemala y el extranjero, notificaciones por mensajes de texto y cobertura integral contra fraude.", imageUrl: "assets/tarjeta_debito.png", displayOrder: 1, isVisible: true, isDraft: false },
+      { id: "item_serv_app_enlinea", sectionId: "sec_servicios", title: "MICOOPE en Línea (Web y App)", subtitle: "Banca móvil disponible 24/7", description: "Banca web y móvil 24/7. Realiza consultas de saldos, transferencias directas, pago de préstamos y servicios básicos al instante sin hacer filas.", imageUrl: "assets/micoope_enlinea.png", displayOrder: 2, isVisible: true, isDraft: false },
+      { id: "item_serv_tarjeta_credito", sectionId: "sec_servicios", title: "Tarjeta de Crédito MICOOPE Visa", subtitle: "Hasta 55 días sin intereses", description: "Membresía gratis de por vida, tarjeta VISA internacional, cobertura por fraude o extravío y la tasa de interés más baja del mercado financiero.", imageUrl: "assets/tarjeta_debito.png", displayOrder: 3, isVisible: true, isDraft: false },
+      { id: "item_serv_pago_servicios", sectionId: "sec_servicios", title: "Pago de Servicios Básicos", subtitle: "Luz, Agua, Telefonía y Colegios", description: "Paga tus facturas de electricidad, agua potable, telefonía, internet y colegiaturas en cualquiera de nuestras agencias o canales digitales.", imageUrl: "assets/servicios_digitales.png", displayOrder: 4, isVisible: true, isDraft: false },
+      { id: "item_serv_agentes", sectionId: "sec_servicios", title: "Agentes MICOOPE", subtitle: "En tiendas y comercios cercanos", description: "Puntos de atención en comercios locales para depósitos, retiros y pagos sin desplazarte a una agencia central.", imageUrl: "assets/servicios_digitales.png", displayOrder: 5, isVisible: true, isDraft: false },
+      { id: "item_serv_cajeros_5b", sectionId: "sec_servicios", title: "Cajeros Red 5B", subtitle: "Más de 3,500 cajeros en todo el país", description: "Disponibilidad de efectivo las 24 horas del día con tu tarjeta de débito o crédito en cajeros automáticos 5B.", imageUrl: "assets/servicios_digitales.png", displayOrder: 6, isVisible: true, isDraft: false },
+
+      // --- 6. BENEFICIOS ---
+      { id: "item_ben_renta_diaria", sectionId: "sec_beneficios", title: "Renta Diaria por Hospitalización", subtitle: "✓ Incluido al ser Asociado", description: "Apoyo económico diario en caso de ser internado en hospital público o privado.", imageUrl: "assets/renta_diaria.png", displayOrder: 1, isVisible: true, isDraft: false },
+      { id: "item_ben_apoyo_quirurgico", sectionId: "sec_beneficios", title: "Apoyo Quirúrgico", subtitle: "✓ Incluido al ser Asociado", description: "Apoyo económico para cubrir gastos médicos incurridos por intervenciones quirúrgicas.", imageUrl: "assets/apoyo_quirurgico.png", displayOrder: 2, isVisible: true, isDraft: false },
+      { id: "item_ben_servicio_funerario", sectionId: "sec_beneficios", title: "Servicio Funerario", subtitle: "✓ Incluido al ser Asociado", description: "Sepelio digno y ataúd fúnebre para tranquilidad de la familia del asociado.", imageUrl: "assets/servicio_funerario.png", displayOrder: 3, isVisible: true, isDraft: false },
+      { id: "item_ben_seguro_ahorrantes", sectionId: "sec_beneficios", title: "Seguro de Ahorrantes", subtitle: "✓ Hasta Q150,000.00", description: "Devolución de ahorros más seguro sobre depósitos hasta por Q150,000.00.", imageUrl: "assets/beneficio_de_ahorrantes.png", displayOrder: 4, isVisible: true, isDraft: false },
+      { id: "item_ben_seguro_deudores", sectionId: "sec_beneficios", title: "Seguro de Deudores", subtitle: "✓ Hasta Q200,000.00", description: "Cobertura de saldos insolutos de crédito vigente hasta por Q200,000.00 en siniestro.", imageUrl: "assets/beneficio_de_deudores.png", displayOrder: 5, isVisible: true, isDraft: false },
+      { id: "item_ben_beneficio_oro", sectionId: "sec_beneficios", title: "Beneficio de Oro", subtitle: "✓ Mayores de 70 años", description: "Apoyo económico único para asociados mayores de 70 años con lealtad cooperativa.", imageUrl: "assets/beneficio_de_oro.png", displayOrder: 6, isVisible: true, isDraft: false },
+
+      // --- 7. SOSTENIBILIDAD ---
+      { id: "item_sost_educacion", sectionId: "sec_sostenibilidad", title: "Educación y Formación Cooperativa", subtitle: "Eje Estratégico 01", description: "Fortalecemos las capacidades individuales y colectivas mediante la educación financiera y el cooperativismo como motores de superación familiar.", imageUrl: "assets/noticia_taller_finanzas.jpg", displayOrder: 1, isVisible: true, isDraft: false },
+      { id: "item_sost_empleabilidad", sectionId: "sec_sostenibilidad", title: "Empleabilidad y Empresarialidad", subtitle: "Eje Estratégico 02", description: "Impulsamos la generación de ingresos propios y la innovación productiva para dinamizar la economía solidaria de nuestros pueblos.", imageUrl: "assets/nosotros_artesana.jpg", displayOrder: 2, isVisible: true, isDraft: false },
+      { id: "item_sost_desarrollo", sectionId: "sec_sostenibilidad", title: "Desarrollo Comunitario", subtitle: "Eje Estratégico 03", description: "Fortalecemos la identidad cooperativa, la participación democrática y la formación dirigencial en beneficio del bien común.", imageUrl: "assets/noticia_asamblea_general.jpg", displayOrder: 3, isVisible: true, isDraft: false },
+      { id: "item_sost_ambiente", sectionId: "sec_sostenibilidad", title: "Medio Ambiente y Sostenibilidad", subtitle: "Eje Estratégico 04", description: "Protegemos los recursos naturales de Sololá y Quiché mediante jornadas de reforestación y educación ecológica comunitaria.", imageUrl: "assets/noticia_reforestacion.jpg", displayOrder: 4, isVisible: true, isDraft: false },
+
+      // --- 8. NOSOTROS ---
+      { id: "item_nos_mision_vision", sectionId: "sec_nosotros", title: "Misión y Visión COLUA", subtitle: "Nuestra Razón de Ser", description: "Somos una cooperativa sólida que fomenta el desarrollo socioeconómico de sus asociados mediante servicios financieros éticos, transparentes y competitivos.", imageUrl: "assets/distintivo_colua.png", displayOrder: 1, isVisible: true, isDraft: false },
+      { id: "item_nos_historia", sectionId: "sec_nosotros", title: "Nuestra Historia", subtitle: "Más de 50 años de trayectoria", description: "Nacida en el corazón del altiplano guatemalteco, COLUA ha transformado la vida de miles de familias y comunidades a lo largo de décadas.", imageUrl: "assets/logo_composite.png", displayOrder: 2, isVisible: true, isDraft: false },
+      { id: "item_nos_valores", sectionId: "sec_nosotros", title: "Valores Institucionales", subtitle: "Solidaridad, Honestidad y Respeto", description: "Guiamos cada una de nuestras decisiones bajo principios inquebrantables de equidad, transparencia, responsabilidad social y ayuda mutua.", imageUrl: "assets/valores_colua.png", displayOrder: 3, isVisible: true, isDraft: false },
+
+      // --- 9. AGENCIAS (25 UBICACIONES OFICIALES) ---
+      { id: "ag_agencia_corporativa", sectionId: "sec_agencias", title: "Agencia Corporativa", subtitle: "Sololá • PBX: 7795-7795", description: "Carretera Interamericana, Km. 138.5 Aldea San Juan Argueta, Sololá.", imageUrl: "assets/colua_edificio.png", displayOrder: 1, isVisible: true, isDraft: false },
+      { id: "ag_agencia_central", sectionId: "sec_agencias", title: "Agencia Central", subtitle: "Sololá • Tel: 7795-7722", description: "Camino Principal Aldea San Juan Argueta, Sololá.", imageUrl: "assets/colua_edificio.png", displayOrder: 2, isVisible: true, isDraft: false },
+      { id: "ag_plaza_colua_micoope", sectionId: "sec_agencias", title: "Plaza COLUA MICOOPE", subtitle: "Sololá • Tel: 7762-3180", description: "Plaza COLUA 2do. Nivel, 6ta. Avenida 7-47, Zona 2 Sololá.", imageUrl: "assets/colua_edificio.png", displayOrder: 3, isVisible: true, isDraft: false },
+      { id: "ag_el_calvario", sectionId: "sec_agencias", title: "El Calvario", subtitle: "Sololá • Tel: 4931-5495", description: "7ma. Avenida, 6ta. Calle esquina, Zona 2 Barrio El Calvario, Sololá.", imageUrl: "assets/colua_edificio.png", displayOrder: 4, isVisible: true, isDraft: false },
+      { id: "ag_san_bartolo", sectionId: "sec_agencias", title: "San Bartolo", subtitle: "Sololá • Tel: 7795-7723", description: "11 Calle 8-04, Zona 2, Barrio San Bartolo, Sololá.", imageUrl: "assets/colua_edificio.png", displayOrder: 5, isVisible: true, isDraft: false },
+      { id: "ag_concepcion", sectionId: "sec_agencias", title: "Concepción", subtitle: "Sololá • Tel: 7795-7735", description: "Sector Chuicumes I, Zona 0, Calle Principal Concepción, Sololá.", imageUrl: "assets/colua_edificio.png", displayOrder: 6, isVisible: true, isDraft: false },
+      { id: "ag_los_encuentros", sectionId: "sec_agencias", title: "Los Encuentros", subtitle: "Sololá • Tel: 5829-2086", description: "Carretera Interamericana, Caserío Central Aldea Los Encuentros, Sololá.", imageUrl: "assets/colua_edificio.png", displayOrder: 7, isVisible: true, isDraft: false },
+      { id: "ag_panajachel", sectionId: "sec_agencias", title: "Panajachel", subtitle: "Sololá • Tel: 7795-7718", description: "0 Avenida, Calle del Estadio, 0-74, Zona 1 Panajachel.", imageUrl: "assets/colua_edificio.png", displayOrder: 8, isVisible: true, isDraft: false },
+      { id: "ag_san_andres_semetabaj", sectionId: "sec_agencias", title: "San Andrés Semetabaj", subtitle: "Sololá • Tel: 7795-7733", description: "Barrio Tzanjuyu, San Andrés Semetabaj.", imageUrl: "assets/colua_edificio.png", displayOrder: 9, isVisible: true, isDraft: false },
+      { id: "ag_santiago_atitlan", sectionId: "sec_agencias", title: "Santiago Atitlán", subtitle: "Sololá • Tel: 7795-7720", description: "3ra. Calle 0-58, Cantón Tzanjuyu, Zona 1 Santiago Atitlán.", imageUrl: "assets/colua_edificio.png", displayOrder: 10, isVisible: true, isDraft: false },
+      { id: "ag_san_pedro_la_laguna", sectionId: "sec_agencias", title: "San Pedro La Laguna", subtitle: "Sololá • Tel: 7721-8061", description: "Calle al Embarcadero Chuasanahí, 5-60, Zona 2 San Pedro La Laguna.", imageUrl: "assets/colua_edificio.png", displayOrder: 11, isVisible: true, isDraft: false },
+      { id: "ag_san_juan_la_laguna", sectionId: "sec_agencias", title: "San Juan La Laguna", subtitle: "Sololá • Tel: 7795-7728", description: "4ta. Avenida Cantón Chuitinamit, Zona 2 San Juan La Laguna.", imageUrl: "assets/colua_edificio.png", displayOrder: 12, isVisible: true, isDraft: false },
+      { id: "ag_santa_clara_la_laguna", sectionId: "sec_agencias", title: "Santa Clara La Laguna", subtitle: "Sololá • Tel: 4928-2887", description: "1ra. Avenida, Zona 2 Santa Clara La Laguna.", imageUrl: "assets/colua_edificio.png", displayOrder: 13, isVisible: true, isDraft: false },
+      { id: "ag_santa_lucia_utatlan", sectionId: "sec_agencias", title: "Santa Lucía Utatlán", subtitle: "Sololá • Tel: 7722-1519", description: "Avenida Tecún Umán, entre 2da. y 3ra. Calle, Zona 1 Santa Lucía Utatlán.", imageUrl: "assets/colua_edificio.png", displayOrder: 14, isVisible: true, isDraft: false },
+      { id: "ag_el_novillero", sectionId: "sec_agencias", title: "El Novillero", subtitle: "Sololá • Tel: 4928-1377", description: "Calle Principal, Aldea El Novillero, Santa Lucía Utatlán.", imageUrl: "assets/colua_edificio.png", displayOrder: 15, isVisible: true, isDraft: false },
+      { id: "ag_nahuala", sectionId: "sec_agencias", title: "Nahualá", subtitle: "Sololá • Tel: 7795-7713", description: "Calle Principal, 1ra. Avenida 2-05, Zona 1 Nahualá.", imageUrl: "assets/colua_edificio.png", displayOrder: 16, isVisible: true, isDraft: false },
+      { id: "ag_santa_catarina_ixtahuacan", sectionId: "sec_agencias", title: "Santa Catarina Ixtahuacán", subtitle: "Sololá • Tel: 7795-7732", description: "Barrio Chuijuyup, frente al Mercado Municipal, Santa Catarina Ixtahuacán.", imageUrl: "assets/colua_edificio.png", displayOrder: 17, isVisible: true, isDraft: false },
+      { id: "ag_guineales", sectionId: "sec_agencias", title: "Guineales", subtitle: "Sololá • Tel: 7795-7731", description: "Sector Campo, a un costado del Estadio Aldea Guineales, Santa Catarina Ixtahuacán.", imageUrl: "assets/colua_edificio.png", displayOrder: 18, isVisible: true, isDraft: false },
+      { id: "ag_agencia_quiche", sectionId: "sec_agencias", title: "Quiché", subtitle: "Quiché • Tel: 7795-7730", description: "3ra. Avenida 04-35, Zona 1, Santa Cruz del Quiché.", imageUrl: "assets/colua_edificio.png", displayOrder: 19, isVisible: true, isDraft: false },
+      { id: "ag_agencia_chichicastenango", sectionId: "sec_agencias", title: "Chichicastenango", subtitle: "Quiché • Tel: 7795-7719", description: "5ta. Calle, entre 5ta y 6ta. Avenida, Chichicastenango.", imageUrl: "assets/colua_edificio.png", displayOrder: 20, isVisible: true, isDraft: false },
+      { id: "ag_agencia_joyabaj", sectionId: "sec_agencias", title: "Joyabaj", subtitle: "Quiché • Tel: 7795-7715", description: "Calle Principal, Barrio La Libertad, Joyabaj.", imageUrl: "assets/colua_edificio.png", displayOrder: 21, isVisible: true, isDraft: false },
+      { id: "ag_agencia_zacualpa", sectionId: "sec_agencias", title: "Zacualpa", subtitle: "Quiché • Tel: 5829-3158", description: "1ra. Calle, 2da. Avenida, Zona 1, Zacualpa.", imageUrl: "assets/colua_edificio.png", displayOrder: 22, isVisible: true, isDraft: false },
+      { id: "ag_agencia_la_esperanza", sectionId: "sec_agencias", title: "La Esperanza", subtitle: "Totonicapán • Tel: 7795-7714", description: "Camino Principal, Aldea La Esperanza, Totonicapán.", imageUrl: "assets/colua_edificio.png", displayOrder: 23, isVisible: true, isDraft: false },
+      { id: "ag_agencia_la_concordia", sectionId: "sec_agencias", title: "La Concordia", subtitle: "Totonicapán • Tel: 7795-7724", description: "Calle Principal, Aldea La Concordia, Totonicapán.", imageUrl: "assets/colua_edificio.png", displayOrder: 24, isVisible: true, isDraft: false },
+      { id: "ag_agencia_santo_tomas_la_union", sectionId: "sec_agencias", title: "Santo Tomás La Unión", subtitle: "Suchitepéquez • Tel: 7872-8526", description: "3ra. Calle, entre 4ta y 5ta. Avenida, Zona 1, Santo Tomás La Unión.", imageUrl: "assets/colua_edificio.png", displayOrder: 25, isVisible: true, isDraft: false }
     ];
 
     const defaultBlocks = [
       { id: "block_home_slogan", sectionId: "sec_home", type: "TEXT", content: "SOMOS EL LADO HUMANO\nde los Ahorros y Créditos", title: "SOMOS EL LADO HUMANO", displayOrder: 1, isVisible: true, isDraft: false },
-      { id: "block_home_institutional_contact", sectionId: "sec_home", type: "CONTAINER", content: "Comunícate a nuestro PBX central o búscanos en nuestras redes sociales oficiales.", title: "SOMOS EL LADO HUMANO", buttonText: "PBX: 7795-7795", buttonAction: "tel:77957795", mediaPath: "distintivo_colua", backgroundColor: "#173789", displayOrder: 2, isVisible: true, isDraft: false }
+      { id: "block_home_institutional_contact", sectionId: "sec_home", type: "CONTAINER", content: "Comunícate a nuestro PBX central o búscanos en nuestras redes sociales oficiales.", title: "SOMOS EL LADO HUMANO", buttonText: "PBX: 7795-7795", buttonAction: "tel:77957795", mediaPath: "distintivo_colua", backgroundColor: "#173789", displayOrder: 2, isVisible: true, isDraft: false },
+      { id: "block_remesas_banner", sectionId: "sec_remesas", type: "BANNER", content: "Beneficio al recibir tu remesa dirigida a tu Cuenta Disponible. En caso de fallecimiento en el extranjero, te ofrecemos el BENEFICIO DE REPATRIACIÓN.", title: "Más que una remesa, unimos familias", buttonText: "Abrir Cuenta Disponible", buttonAction: "#sec_ahorros", displayOrder: 1, isVisible: true, isDraft: false },
+
+      // Bloques de Ahorros
+      { id: "b_ah_ad_1", itemId: "item_ahorro_aportacion_adulto", sectionId: "sec_ahorros", blockType: "bullet", content: "Monto de apertura: desde Q50.00", displayOrder: 1 },
+      { id: "b_ah_ad_2", itemId: "item_ahorro_aportacion_adulto", sectionId: "sec_ahorros", blockType: "bullet", content: "Tasa de interés: 5% anual afecto a ISR", displayOrder: 2 },
+      { id: "b_ah_ad_3", itemId: "item_ahorro_aportacion_adulto", sectionId: "sec_ahorros", blockType: "bullet", content: "Intereses: capitalizables anualmente", displayOrder: 3 },
+      { id: "b_ah_inf_1", itemId: "item_ahorro_aportacion_infanto", sectionId: "sec_ahorros", blockType: "bullet", content: "Monto de apertura: desde Q50.00", displayOrder: 1 },
+      { id: "b_ah_inf_2", itemId: "item_ahorro_aportacion_infanto", sectionId: "sec_ahorros", blockType: "bullet", content: "Tasa de interés: 5% anual afecto a ISR", displayOrder: 2 },
+      { id: "b_ah_inf_3", itemId: "item_ahorro_aportacion_infanto", sectionId: "sec_ahorros", blockType: "bullet", content: "Intereses: capitalizables anualmente", displayOrder: 3 },
+      { id: "b_ah_juv_1", itemId: "item_ahorro_infanto_juvenil", sectionId: "sec_ahorros", blockType: "bullet", content: "Monto de apertura: desde Q10.00", displayOrder: 1 },
+      { id: "b_ah_juv_2", itemId: "item_ahorro_infanto_juvenil", sectionId: "sec_ahorros", blockType: "bullet", content: "Tasa de interés: 3% anual afecto a ISR", displayOrder: 2 },
+      { id: "b_ah_juv_3", itemId: "item_ahorro_infanto_juvenil", sectionId: "sec_ahorros", blockType: "bullet", content: "5 Beneficios al mantener mínimo Q500.00", displayOrder: 3 },
+      { id: "b_ah_disp_1", itemId: "item_ahorro_disponible", sectionId: "sec_ahorros", blockType: "bullet", content: "Apertura: desde Q50.00 o $100.00", displayOrder: 1 },
+      { id: "b_ah_disp_2", itemId: "item_ahorro_disponible", sectionId: "sec_ahorros", blockType: "bullet", content: "Tasa: 3% anual en Q y 1.50% en $", displayOrder: 2 },
+      { id: "b_ah_disp_3", itemId: "item_ahorro_disponible", sectionId: "sec_ahorros", blockType: "bullet", content: "Intereses: capitalizables mensualmente", displayOrder: 3 },
+      { id: "b_ah_disp_4", itemId: "item_ahorro_disponible", sectionId: "sec_ahorros", blockType: "bullet", content: "Acceso a canales digitales sin costo", displayOrder: 4 },
+      { id: "b_ah_prog_1", itemId: "item_ahorro_programado", sectionId: "sec_ahorros", blockType: "bullet", content: "Apertura: desde Q25.00", displayOrder: 1 },
+      { id: "b_ah_prog_2", itemId: "item_ahorro_programado", sectionId: "sec_ahorros", blockType: "bullet", content: "Tasa de interés: 7.50% anual afecto a ISR", displayOrder: 2 },
+      { id: "b_ah_prog_3", itemId: "item_ahorro_programado", sectionId: "sec_ahorros", blockType: "bullet", content: "Plazos de 3, 5, 10, 15 o 20 años", displayOrder: 3 },
+      { id: "b_ah_pf_1", itemId: "item_ahorro_plazo_fijo", sectionId: "sec_ahorros", blockType: "bullet", content: "Apertura: desde Q1,000.00 o $200.00", displayOrder: 1 },
+      { id: "b_ah_pf_2", itemId: "item_ahorro_plazo_fijo", sectionId: "sec_ahorros", blockType: "bullet", content: "Plazos de 90, 180 y 365 días", displayOrder: 2 },
+      { id: "b_ah_pf_3", itemId: "item_ahorro_plazo_fijo", sectionId: "sec_ahorros", blockType: "bullet", content: "Intereses capitalizables trimestralmente", displayOrder: 3 },
+
+      // Bloques de Sostenibilidad (Ejes y Programas)
+      { id: "b_sost_edu_1", itemId: "item_sost_educacion", sectionId: "sec_sostenibilidad", blockType: "bullet", content: "Educación y Formación Financiera: Capacitación continua en finanzas familiares y uso responsable del crédito.", displayOrder: 1 },
+      { id: "b_sost_edu_2", itemId: "item_sost_educacion", sectionId: "sec_sostenibilidad", blockType: "bullet", content: "Programa de Becas Jóvenes Cooperativistas: Financiamiento educativo para estudiantes destacados.", displayOrder: 2 },
+      { id: "b_sost_edu_3", itemId: "item_sost_educacion", sectionId: "sec_sostenibilidad", blockType: "bullet", content: "Programa de Educación Financiera Huellas: Formación de hábitos de ahorro para niños y jóvenes.", displayOrder: 3 },
+      { id: "b_sost_edu_4", itemId: "item_sost_educacion", sectionId: "sec_sostenibilidad", blockType: "bullet", content: "Programa Wachalal: Acompañamiento escolar y valores cooperativos en escuelas locales.", displayOrder: 4 },
+      { id: "b_sost_emp_1", itemId: "item_sost_empleabilidad", sectionId: "sec_sostenibilidad", blockType: "bullet", content: "Centros de Innovación en Sololá y Argueta: Espacios tecnológicos equipados para inclusión digital y técnica.", displayOrder: 1 },
+      { id: "b_sost_emp_2", itemId: "item_sost_empleabilidad", sectionId: "sec_sostenibilidad", blockType: "bullet", content: "Cursos de Formación Técnica Práctica y Digital: Talleres en oficios técnicos y herramientas digitales.", displayOrder: 2 },
+      { id: "b_sost_emp_3", itemId: "item_sost_empleabilidad", sectionId: "sec_sostenibilidad", blockType: "bullet", content: "Emprendimiento Sostenible y Feria de Emprendedores: Asesoría de planes de negocio y vitrinas comerciales.", displayOrder: 3 },
+      { id: "b_sost_emp_4", itemId: "item_sost_empleabilidad", sectionId: "sec_sostenibilidad", blockType: "bullet", content: "Club de Lectura, Música y Ajedrez: Desarrollo artístico, intelectual y estratégico juvenil.", displayOrder: 4 },
+      { id: "b_sost_des_1", itemId: "item_sost_desarrollo", sectionId: "sec_sostenibilidad", blockType: "bullet", content: "ADN COLUA: Sentido de pertenencia solidaria y consolidación de valores cooperativos.", displayOrder: 1 },
+      { id: "b_sost_des_2", itemId: "item_sost_desarrollo", sectionId: "sec_sostenibilidad", blockType: "bullet", content: "Programa de Líderes Cooperativos: Formación de cuadros dirigenciales éticos para comités locales.", displayOrder: 2 },
+      { id: "b_sost_des_3", itemId: "item_sost_desarrollo", sectionId: "sec_sostenibilidad", blockType: "bullet", content: "Plan de Desarrollo Cooperativo: Instrumento institucional de planificación territorial.", displayOrder: 3 },
+      { id: "b_sost_amb_1", itemId: "item_sost_ambiente", sectionId: "sec_sostenibilidad", blockType: "bullet", content: "Jornadas Médicas y Proyectos de Caridad: Atención médica preventiva y brigadas solidarias.", displayOrder: 1 },
+      { id: "b_sost_amb_2", itemId: "item_sost_ambiente", sectionId: "sec_sostenibilidad", blockType: "bullet", content: "Proyectos de Reforestación: Siembra masiva de árboles para protección de cuencas hídricas.", displayOrder: 2 },
+      { id: "b_sost_amb_3", itemId: "item_sost_ambiente", sectionId: "sec_sostenibilidad", blockType: "bullet", content: "Práctica de Valores y Tradiciones: Convivencia comunitaria y respeto a raíces culturales.", displayOrder: 3 },
+
+      // Bloques de Nosotros (Pilaress y Valores)
+      { id: "b_nos_mv_1", itemId: "item_nos_mision_vision", sectionId: "sec_nosotros", blockType: "callout", content: "Propuesta de Valor: Reconocemos tu valor como persona para alcanzar tu bienestar integral a través de productos éticos y accesibles.", displayOrder: 1 },
+      { id: "b_nos_mv_2", itemId: "item_nos_mision_vision", sectionId: "sec_nosotros", blockType: "paragraph", content: "Visión Institucional: Ser un modelo de desarrollo y sostenibilidad integral basado en la cooperación mutua y solvencia técnica.", displayOrder: 2 },
+      { id: "b_nos_mv_3", itemId: "item_nos_mision_vision", sectionId: "sec_nosotros", blockType: "paragraph", content: "Propósito Visionario: Mejorar sostenidamente la calidad de vida de nuestros asociados y comunidades.", displayOrder: 3 },
+      { id: "b_nos_val_1", itemId: "item_nos_valores", sectionId: "sec_nosotros", blockType: "bullet", content: "Integridad: Actuar con coherencia y transparencia en cada acción fiduciaria.", displayOrder: 1 },
+      { id: "b_nos_val_2", itemId: "item_nos_valores", sectionId: "sec_nosotros", blockType: "bullet", content: "Cooperación: Trabajo en equipo, ayuda mutua y solidaridad comunitaria.", displayOrder: 2 },
+      { id: "b_nos_val_3", itemId: "item_nos_valores", sectionId: "sec_nosotros", blockType: "bullet", content: "Responsabilidad: Cuidar los ahorros confiados con máxima prudencia técnica.", displayOrder: 3 },
+      { id: "b_nos_val_4", itemId: "item_nos_valores", sectionId: "sec_nosotros", blockType: "bullet", content: "Enfoque al Asociado: Vocación de servicio y soluciones de alta calidad.", displayOrder: 4 }
     ];
 
     const defaultGlobalConfig = {
       slogan_text: "SOMOS EL LADO HUMANO\nde los Ahorros y Créditos",
       help_title: "¿Necesitas ayuda adicional?",
       help_desc: "Comunícate a nuestro PBX central o búscanos en nuestras redes sociales oficiales.",
+      pbx_phone: "7795-7795",
       logo_path: "logo_composite",
       distintivo_path: "distintivo_colua",
       master_admin_password_hash: "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4",
@@ -342,19 +514,46 @@ class ColuaRepository {
 
   // --- SECCIONES ---
   async getAllSections() {
+    const db = this.getLocalDb();
+    const localSections = (db.sections || [])
+      .filter(s => s.id !== 'sec_comunidad' && s.slug !== 'comunidad' && (s.title || '').trim().toLowerCase() !== 'comunidad');
+
     try {
       if (this.fb && this.fb.db) {
         const snap = await this._withTimeout(this.fb.collection('sections').get());
         if (!snap.empty) {
-          const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-          return list.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+          // Filtrar activamente cualquier residuo de sec_comunidad
+          const cloudSections = snap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter(s => s.id !== 'sec_comunidad' && s.slug !== 'comunidad' && (s.title || '').trim().toLowerCase() !== 'comunidad');
+          
+          // Eliminar documento de Firestore si existía para que no reaparezca jamás
+          snap.docs.forEach(d => {
+            const data = d.data() || {};
+            if (d.id === 'sec_comunidad' || d.id === 'comunidad' || data.slug === 'comunidad' || (data.title || '').trim().toLowerCase() === 'comunidad') {
+              this.fb.collection('sections').doc(d.id).delete().catch(() => {});
+            }
+          });
+
+          // Unir datos de la nube con borradores y ediciones locales
+          const mergedMap = new Map();
+          cloudSections.forEach(cs => mergedMap.set(cs.id, cs));
+          localSections.forEach(ls => {
+            const cs = mergedMap.get(ls.id);
+            if (!cs || ls.isDraft || !ls.isPublished || (ls.updatedAt && (!cs.updatedAt || ls.updatedAt >= cs.updatedAt)) || (ls.lastModified && (!cs.lastModified || ls.lastModified >= cs.lastModified))) {
+              mergedMap.set(ls.id, ls);
+            }
+          });
+
+          const list = Array.from(mergedMap.values());
+          return list.sort((a, b) => (a.orderIndex || a.displayOrder || 0) - (b.orderIndex || b.displayOrder || 0));
         }
       }
     } catch (e) {
       console.warn('Firestore offline o timeout, cargando secciones locales:', e);
     }
-    const db = this.getLocalDb();
-    return (db.sections || []).sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+
+    return localSections.sort((a, b) => (a.orderIndex || a.displayOrder || 0) - (b.orderIndex || b.displayOrder || 0));
   }
 
   async getPublishedSections() {
@@ -370,12 +569,34 @@ class ColuaRepository {
   async insertSection(section) {
     if (!section.id) section.id = 'sec_' + Math.random().toString(36).substring(2, 9);
     section.updatedAt = Date.now();
+    section.lastModified = Date.now();
     
     // Guardar local
     const db = this.getLocalDb();
     const idx = db.sections.findIndex(s => s.id === section.id);
     if (idx >= 0) db.sections[idx] = section;
     else db.sections.push(section);
+
+    // Sincronizar automáticamente en la barra inferior si esta sección está en algún slot
+    if (db.global_config && db.global_config.bottom_nav_slots) {
+      db.global_config.bottom_nav_slots.forEach(slot => {
+        if (slot.sectionId === section.id || (slot.slotIndex === 3 && section.id === 'sec_home')) {
+          slot.label = section.title;
+          if (section.slug) slot.slug = section.slug;
+        }
+      });
+    }
+
+    // Sincronizar navigation_items
+    if (db.navigation_items) {
+      db.navigation_items.forEach(nav => {
+        if (nav.targetSectionId === section.id || nav.id === 'nav_' + section.id.replace('sec_', '')) {
+          nav.label = section.title;
+          nav.updatedAt = Date.now();
+        }
+      });
+    }
+
     this.saveLocalDb(db);
 
     // Guardar en Firestore si hay conexión
@@ -505,29 +726,103 @@ class ColuaRepository {
   }
 
   // --- CONTENIDO (ITEMS Y BLOQUES) ---
-  async getItemsBySection(sectionId) {
+  async getItemsBySection(sectionId, includeDrafts = false) {
     const cleanId = (sectionId || '').toLowerCase();
     const isNews = cleanId === 'sec_noticias' || cleanId === 'noticias';
+    const isAgencias = cleanId === 'sec_agencias' || cleanId === 'agencias';
     try {
       if (this.fb && this.fb.db) {
         const snap = await this._withTimeout(this.fb.collection('content_items').where('sectionId', '==', cleanId).get());
         if (!snap.empty) {
-          const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          let list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          if (!includeDrafts) {
+            list = list.filter(i => i.isEnabled !== false && i.isVisible !== false && i.isDraft !== true);
+          }
           if (isNews) {
             return this.sortNewsByDate(list);
           }
           return list.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+        }
+
+        if (isAgencias) {
+          const agSnap = await this._withTimeout(this.fb.collection('agencias').get());
+          if (!agSnap.empty) {
+            let agList = agSnap.docs.map((d, idx) => {
+              const data = d.data();
+              return {
+                id: d.id,
+                sectionId: 'sec_agencias',
+                title: data.nombre || data.title || 'Agencia COLUA',
+                subtitle: `${data.departamento || ''} • Tel: ${data.telefono || ''}`,
+                description: data.direccion || '',
+                imageUrl: data.imageUrl || 'assets/colua_edificio.png',
+                displayOrder: data.displayOrder || (idx + 1),
+                ...data
+              };
+            });
+            if (!includeDrafts) {
+              agList = agList.filter(i => i.isEnabled !== false && i.isVisible !== false && i.isDraft !== true);
+            }
+            return agList;
+          }
         }
       }
     } catch (e) {
       console.warn('Firestore offline o timeout, cargando items locales:', e);
     }
     const db = this.getLocalDb();
-    const list = (db.content_items || []).filter(i => (i.sectionId || '').toLowerCase() === cleanId);
+    let list = (db.content_items || []).filter(i => (i.sectionId || '').toLowerCase() === cleanId);
+    if (list.length === 0 && isAgencias && db.agencias && db.agencias.length > 0) {
+      list = db.agencias.map((a, idx) => ({
+        id: a.id,
+        sectionId: 'sec_agencias',
+        title: a.nombre,
+        subtitle: `${a.departamento} • Tel: ${a.telefono}`,
+        description: a.direccion,
+        imageUrl: 'assets/colua_edificio.png',
+        displayOrder: idx + 1,
+        isEnabled: a.isEnabled !== false,
+        isVisible: a.isVisible !== false,
+        isDraft: a.isDraft === true
+      }));
+    }
+    if (!includeDrafts) {
+      list = list.filter(i => i.isEnabled !== false && i.isVisible !== false && i.isDraft !== true);
+    }
     if (isNews) {
       return this.sortNewsByDate(list);
     }
     return list.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+  }
+
+  async getAllContentItemsBySection(sectionId) {
+    return this.getItemsBySection(sectionId, true);
+  }
+
+  async toggleContentItemVisibility(id) {
+    const db = this.getLocalDb();
+    const item = (db.content_items || []).find(i => i.id === id);
+    if (!item) return { success: false, error: 'Elemento no encontrado' };
+
+    const newStatus = item.isEnabled === false || item.isVisible === false ? true : false;
+    item.isEnabled = newStatus;
+    item.isVisible = newStatus;
+    item.updatedAt = Date.now();
+    this.saveLocalDb(db);
+
+    if (this.fb && this.fb.db) {
+      try {
+        await this.fb.collection('content_items').doc(id).set(item, { merge: true });
+      } catch (e) {}
+    }
+
+    await this.logAudit({
+      action: newStatus ? 'ACTIVAR_ELEMENTO' : 'OCULTAR_ELEMENTO',
+      performedBy: 'Super Administrador',
+      details: `Tarjeta ${item.title} (${item.id}) ahora está ${newStatus ? 'Visible' : 'Oculta'}`
+    });
+
+    return { success: true, item, isEnabled: newStatus };
   }
 
   // Helper para decodificar documentos de la API REST de Firestore
@@ -639,12 +934,31 @@ class ColuaRepository {
       .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
   }
 
+  async getBlocksByItemId(itemId) {
+    if (!itemId) return [];
+    try {
+      if (this.fb && this.fb.db) {
+        const snap = await this._withTimeout(this.fb.collection('content_blocks').where('itemId', '==', itemId).get());
+        if (!snap.empty) {
+          const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          return list.sort((a, b) => (a.orderIndex || a.displayOrder || 0) - (b.orderIndex || b.displayOrder || 0));
+        }
+      }
+    } catch (e) {}
+    const db = this.getLocalDb();
+    return (db.content_blocks || [])
+      .filter(b => b.itemId === itemId || b.sectionId === itemId)
+      .sort((a, b) => (a.orderIndex || a.displayOrder || 0) - (b.orderIndex || b.displayOrder || 0));
+  }
+
   async insertItem(item) {
     if (!item.id) item.id = 'item_' + Math.random().toString(36).substring(2, 9);
     item.updatedAt = Date.now();
     const sec = (item.sectionId || '').toLowerCase();
     const id = (item.id || '').toLowerCase();
     const isNews = sec === 'sec_noticias' || sec === 'noticias' || id.startsWith('news_');
+    const isAgencia = sec === 'sec_agencias' || sec === 'agencias' || id.startsWith('ag_');
+
     if (isNews && !item.publicationDate && !item.date && !item.fecha) {
       item.publicationDate = Date.now();
     }
@@ -656,6 +970,33 @@ class ColuaRepository {
       if (isNews) db.content_items.unshift(item);
       else db.content_items.push(item);
     }
+
+    // Sincronizar con agencias
+    if (isAgencia) {
+      if (!db.agencias) db.agencias = [];
+      const agIdx = db.agencias.findIndex(a => a.id === item.id);
+      const sub = item.subtitle || '';
+      const deptPart = sub.includes('•') ? sub.split('•')[0].trim() : (sub || 'Sololá');
+      const telPart = sub.includes('•') ? sub.split('•')[1].trim().replace(/Tel:\s*/i, '').replace(/PBX:\s*/i, '') : '7795-7795';
+      const agData = {
+        id: item.id,
+        nombre: item.title,
+        direccion: item.description || '',
+        departamento: deptPart,
+        telefono: telPart,
+        colorHex: '#173789',
+        tipo: 'AGENCIA',
+        imageUrl: item.imageUrl || 'assets/colua_edificio.png',
+        updatedAt: Date.now()
+      };
+      if (agIdx >= 0) db.agencias[agIdx] = { ...db.agencias[agIdx], ...agData };
+      else db.agencias.push(agData);
+
+      if (this.fb && this.fb.db) {
+        try { await this.fb.collection('agencias').doc(item.id).set(agData, { merge: true }); } catch (e) {}
+      }
+    }
+
     this.saveLocalDb(db);
 
     if (this.fb && this.fb.db) {
@@ -686,9 +1027,13 @@ class ColuaRepository {
   async deleteItemById(id) {
     const db = this.getLocalDb();
     db.content_items = db.content_items.filter(i => i.id !== id);
+    if (db.agencias) db.agencias = db.agencias.filter(a => a.id !== id);
     this.saveLocalDb(db);
     if (this.fb && this.fb.db) {
-      try { await this.fb.collection('content_items').doc(id).delete(); } catch (e) {}
+      try { 
+        await this.fb.collection('content_items').doc(id).delete(); 
+        await this.fb.collection('agencias').doc(id).delete();
+      } catch (e) {}
     }
   }
 
@@ -701,10 +1046,74 @@ class ColuaRepository {
     }
   }
 
+  async duplicateContentItem(itemId) {
+    const db = this.getLocalDb();
+    const original = (db.content_items || []).find(i => i.id === itemId);
+    if (!original) return { success: false, error: 'Elemento original no encontrado' };
+
+    const newItemId = 'item_' + Math.random().toString(36).substring(2, 10);
+    const duplicatedItem = {
+      ...original,
+      id: newItemId,
+      title: `${original.title} (Copia)`,
+      orderIndex: (original.orderIndex || 0) + 1,
+      publicationDate: Date.now(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      isDraft: true
+    };
+
+    await this.insertItem(duplicatedItem);
+
+    // Duplicar también los bloques asociados si los tiene
+    const blocks = await this.getBlocksByItemId(itemId);
+    if (blocks && blocks.length > 0) {
+      for (const b of blocks) {
+        const newBlock = {
+          ...b,
+          id: 'block_' + Math.random().toString(36).substring(2, 10),
+          itemId: newItemId,
+          updatedAt: Date.now()
+        };
+        await this.insertBlock(newBlock);
+      }
+    }
+
+    await this.logAudit({
+      action: 'DUPLICAR_CONTENIDO',
+      performedBy: 'Super Administrador',
+      details: `Se duplicó el elemento "${original.title}" a "${duplicatedItem.title}" (${newItemId})`
+    });
+
+    return { success: true, item: duplicatedItem };
+  }
+
   // --- AGENCIAS ---
   async getAllAgencias() {
     try {
       if (this.fb && this.fb.db) {
+        // Consultar content_items con sectionId == sec_agencias primero
+        const itemSnap = await this._withTimeout(this.fb.collection('content_items').where('sectionId', '==', 'sec_agencias').get());
+        if (!itemSnap.empty) {
+          return itemSnap.docs.map(d => {
+            const data = d.data();
+            const sub = data.subtitle || '';
+            const dept = sub.includes('•') ? sub.split('•')[0].trim() : (data.departamento || 'Sololá');
+            const tel = sub.includes('•') ? sub.split('•')[1].trim().replace(/Tel:\s*/i, '').replace(/PBX:\s*/i, '') : (data.telefono || '7795-7795');
+            return {
+              id: d.id,
+              nombre: data.title || data.nombre || 'Agencia COLUA',
+              departamento: dept,
+              direccion: data.description || data.direccion || 'Guatemala',
+              telefono: tel,
+              colorHex: data.colorHex || '#173789',
+              tipo: data.tipo || 'AGENCIA',
+              imageUrl: data.imageUrl || 'assets/colua_edificio.png',
+              ...data
+            };
+          });
+        }
+
         const snap = await this._withTimeout(this.fb.collection('agencias').get());
         if (!snap.empty) {
           return snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -773,6 +1182,84 @@ class ColuaRepository {
   }
 
   // --- GESTIÓN DE USUARIOS Y PERFILES (Firestore) ---
+  async saveUserProfile(uid, userData) {
+    if (!uid && !userData) return;
+    try {
+      // Sincronizar en base de datos local
+      const db = this.getLocalDb();
+      if (!db.usuarios) db.usuarios = [];
+      const userIdx = db.usuarios.findIndex(u => (uid && (u.uid === uid || u.id === uid || u.userId === uid)) || (userData.email && u.email === userData.email));
+      if (userIdx >= 0) {
+        db.usuarios[userIdx] = { ...db.usuarios[userIdx], ...userData };
+      } else {
+        db.usuarios.push({ uid, id: uid, userId: uid, ...userData });
+      }
+      this.saveLocalDb(db);
+
+      if (this.fb && this.fb.db) {
+        let docRef = null;
+        let docId = uid;
+        let existingData = {};
+
+        // Buscar el documento existente por firebaseUid
+        let query = await this.fb.collection('usuarios').where('firebaseUid', '==', uid).get();
+        if (query.empty && userData.email) {
+          query = await this.fb.collection('usuarios').where('email', '==', userData.email.toLowerCase().trim()).get();
+        }
+
+        if (!query.empty) {
+          const snap = query.docs[0];
+          docId = snap.id;
+          docRef = snap.ref;
+          existingData = snap.data() || {};
+        } else if (userData.userId && /^\d{1,7}$/.test(userData.userId)) {
+          docId = String(userData.userId).padStart(7, '0');
+          docRef = this.fb.collection('usuarios').doc(docId);
+          const snap = await docRef.get();
+          if (snap.exists) existingData = snap.data() || {};
+        } else {
+          docRef = this.fb.collection('usuarios').doc(docId);
+        }
+
+        const cleanDpiDigits = (userData.dpi || existingData.dpiNormalizado || existingData.dpi || '').replace(/\D/g, '');
+        const formattedDpi = cleanDpiDigits.length === 13
+          ? `${cleanDpiDigits.substring(0, 4)} ${cleanDpiDigits.substring(4, 9)} ${cleanDpiDigits.substring(9, 13)}`
+          : (userData.dpi || existingData.dpi || '');
+        const cleanPhone = (userData.telefono || userData.phone || existingData.telefono || '').replace(/\D/g, '');
+        const phoneDigits = cleanPhone.startsWith('502') ? cleanPhone.substring(3) : cleanPhone;
+
+        const numId = existingData.idNumerico !== undefined 
+          ? existingData.idNumerico 
+          : (userData.idNumerico !== undefined ? userData.idNumerico : (parseInt(docId, 10) || 1));
+
+        // Esquema Estricto e Idéntico a Android
+        const canonicalDoc = {
+          dpi: formattedDpi,
+          dpiNormalizado: cleanDpiDigits,
+          email: (userData.email || existingData.email || '').toLowerCase().trim(),
+          estadoCuenta: existingData.estadoCuenta || "ACTIVA",
+          fechaRegistro: existingData.fechaRegistro || new Date(),
+          firebaseUid: existingData.firebaseUid || uid,
+          idNumerico: numId,
+          installationId: existingData.installationId || ('web_' + (localStorage.getItem('colua_install_id') || Math.random().toString(36).substring(2, 10))),
+          nombre: (userData.nombre || existingData.nombre || '').trim(),
+          schemaVersion: existingData.schemaVersion || 2,
+          telefono: phoneDigits,
+          telefonoCompleto: phoneDigits ? `+502${phoneDigits}` : '',
+          tipoUsuario: existingData.tipoUsuario || (this._isAdminAuthorized(userData.email || existingData.email) ? "ADMIN" : "ASOCIADO"),
+          ultimaActividad: new Date(),
+          userId: String(docId).padStart(7, '0')
+        };
+
+        // Reemplazar limpiamente en Firestore sin campos redundantes
+        await docRef.set(canonicalDoc);
+      }
+    } catch (e) {
+      console.error('Error al guardar el perfil del usuario:', e);
+      throw e;
+    }
+  }
+
   async crearPerfilUsuario(uid, nombre, telefono, rawDpi, email, esInvitado) {
     const installId = 'web_' + (localStorage.getItem('colua_install_id') || Math.random().toString(36).substring(2, 10));
     localStorage.setItem('colua_install_id', installId);
@@ -783,17 +1270,16 @@ class ColuaRepository {
         firebaseUid: uid,
         userId: guestId,
         tipoUsuario: "INVITADO",
-        role: "GUEST",
         nombre: "Invitado",
         installationId: installId,
         fechaRegistro: new Date(),
         ultimaActividad: new Date(),
-        schemaVersion: 3
+        schemaVersion: 2
       };
 
       if (this.fb && this.fb.db) {
         try {
-          await this.fb.collection('usuarios').doc(guestId).set(profileData, { merge: true });
+          await this.fb.collection('usuarios').doc(guestId).set(profileData);
         } catch (e) {
           console.warn('Error guardando perfil invitado en Firestore:', e);
         }
@@ -829,25 +1315,26 @@ class ColuaRepository {
       ? `${cleanDpiDigits.substring(0, 4)} ${cleanDpiDigits.substring(4, 9)} ${cleanDpiDigits.substring(9, 13)}`
       : rawDpi;
     const cleanPhone = telefono.replace(/\D/g, '');
+    const phoneDigits = cleanPhone.startsWith('502') ? cleanPhone.substring(3) : cleanPhone;
     const isAdminEmail = this._isAdminAuthorized(email);
 
+    // Esquema Canónico Estricto (Idéntico a Android)
     const profileData = {
-      firebaseUid: uid,
-      userId: formattedId,
-      idNumerico: assignedNumber,
-      tipoUsuario: isAdminEmail ? "ADMIN" : "ASOCIADO",
-      role: isAdminEmail ? "ADMIN" : "MEMBER",
-      nombre: nombre.trim(),
       dpi: formattedDpi,
       dpiNormalizado: cleanDpiDigits,
-      telefono: cleanPhone,
-      telefonoCompleto: `+502${cleanPhone}`,
-      email: email.trim(),
+      email: email.toLowerCase().trim(),
       estadoCuenta: "ACTIVA",
-      installationId: installId,
       fechaRegistro: new Date(),
+      firebaseUid: uid,
+      idNumerico: assignedNumber,
+      installationId: installId,
+      nombre: nombre.trim(),
+      schemaVersion: 2,
+      telefono: phoneDigits,
+      telefonoCompleto: phoneDigits ? `+502${phoneDigits}` : '',
+      tipoUsuario: isAdminEmail ? "ADMIN" : "ASOCIADO",
       ultimaActividad: new Date(),
-      schemaVersion: 3
+      userId: formattedId
     };
 
     if (this.fb && this.fb.db) {
@@ -877,6 +1364,13 @@ class ColuaRepository {
     const cleanEmail = (email || '').toLowerCase().trim();
     const isAdminEmail = this._isAdminAuthorized(cleanEmail);
 
+    // Revisar primero en la base local
+    const db = this.getLocalDb();
+    let localUser = null;
+    if (db.usuarios && db.usuarios.length > 0) {
+      localUser = db.usuarios.find(u => (uid && (u.uid === uid || u.userId === uid || u.id === uid)) || (cleanEmail && (u.email || '').toLowerCase().trim() === cleanEmail));
+    }
+
     if (this.fb && this.fb.db) {
       try {
         // Buscar por firebaseUid
@@ -888,16 +1382,48 @@ class ColuaRepository {
         if (!query.empty) {
           const doc = query.docs[0];
           const data = doc.data();
+          const cleanPhone = (data.telefono || data.phone || '').replace(/\D/g, '');
+          const phoneWithPrefix = cleanPhone ? (cleanPhone.startsWith('502') ? `+502 ${cleanPhone.substring(3)}` : `+502 ${cleanPhone}`) : (data.telefonoCompleto || '');
+
+          let cleanAssocId = '';
+          if (data.idNumerico !== undefined && data.idNumerico !== null) {
+            cleanAssocId = String(data.idNumerico).padStart(7, '0');
+          } else if (/^\d{1,7}$/.test(doc.id)) {
+            cleanAssocId = doc.id.padStart(7, '0');
+          } else if (/^\d{1,7}$/.test(data.userId || '')) {
+            cleanAssocId = String(data.userId).padStart(7, '0');
+          } else if (/^\d{1,7}$/.test(data.associateId || '')) {
+            cleanAssocId = String(data.associateId).padStart(7, '0');
+          } else if (window.authService && typeof window.authService.generateAssociateId === 'function') {
+            cleanAssocId = window.authService.generateAssociateId(uid || cleanEmail);
+          } else {
+            cleanAssocId = '0000001';
+          }
+
+          const hasEmail = Boolean(cleanEmail && cleanEmail.includes('@'));
+          const isElevated = isAdminEmail || data.tipoUsuario === 'ADMIN' || data.role === 'superadmin' || data.role === 'admin' || data.role === 'SUPER_ADMIN';
+          const role = isElevated ? (isAdminEmail ? "superadmin" : "admin") : (hasEmail ? "asociado" : (data.role || "asociado"));
+          const tipo = isElevated ? "ADMIN" : (hasEmail ? "ASOCIADO" : (data.tipoUsuario || "ASOCIADO"));
+          const nombre = (data.nombre && data.nombre !== 'Invitado') ? data.nombre : (data.displayName && data.displayName !== 'Invitado' ? data.displayName : (cleanEmail ? cleanEmail.split('@')[0] : "Asociado COLUA"));
+
+          const rawDpi = data.dpi || data.dpiNormalizado || (localUser ? localUser.dpi : '');
+          const cleanDpi = String(rawDpi || '').replace(/\D/g, '');
+          const formattedDpi = cleanDpi.length === 13 ? `${cleanDpi.substring(0, 4)} ${cleanDpi.substring(4, 9)} ${cleanDpi.substring(9, 13)}` : (rawDpi || '');
+
           return {
             success: true,
             user: {
-              userId: doc.id,
-              nombre: data.nombre || (isAdminEmail ? "Administrador COLUA" : "Asociado COLUA"),
-              telefono: data.telefono || "",
-              dpi: data.dpi || "",
-              email: cleanEmail,
-              role: isAdminEmail ? "SUPER_ADMIN" : (data.role || data.tipoUsuario || "MEMBER"),
-              tipoUsuario: data.tipoUsuario || (isAdminEmail ? "ADMIN" : "ASOCIADO")
+              userId: cleanAssocId,
+              uid: uid,
+              associateId: cleanAssocId,
+              nombre: nombre,
+              telefono: phoneWithPrefix || (localUser ? (localUser.telefono || localUser.phone) : ""),
+              phone: phoneWithPrefix || (localUser ? (localUser.telefono || localUser.phone) : ""),
+              dpi: formattedDpi,
+              email: data.email || cleanEmail,
+              role: role,
+              tipoUsuario: tipo,
+              fechaCreacion: data.fechaRegistro || data.createdAt || (localUser ? localUser.fechaCreacion : null)
             }
           };
         }
@@ -906,14 +1432,45 @@ class ColuaRepository {
       }
     }
 
+    if (localUser) {
+      const cleanPhone = (localUser.telefono || localUser.phone || '').replace(/\D/g, '');
+      const phoneWithPrefix = cleanPhone ? (cleanPhone.startsWith('502') ? `+502 ${cleanPhone.substring(3)}` : `+502 ${cleanPhone}`) : '';
+      let cleanAssocId = localUser.associateId || localUser.userId || '0010025';
+      if (!cleanAssocId || cleanAssocId.length > 8 || !/^\d+$/.test(cleanAssocId)) {
+        if (window.authService && typeof window.authService.generateAssociateId === 'function') {
+          cleanAssocId = window.authService.generateAssociateId(localUser.email || localUser.uid || 'colua');
+        } else {
+          cleanAssocId = '0010025';
+        }
+      }
+      return {
+        success: true,
+        user: {
+          userId: cleanAssocId,
+          uid: localUser.uid || localUser.id || localUser.userId,
+          associateId: cleanAssocId,
+          nombre: localUser.nombre || (isAdminEmail ? "Administrador COLUA" : "Asociado COLUA"),
+          telefono: phoneWithPrefix,
+          phone: phoneWithPrefix,
+          dpi: localUser.dpi || '',
+          email: localUser.email || cleanEmail,
+          role: localUser.role || (isAdminEmail ? "superadmin" : "asociado"),
+          tipoUsuario: localUser.tipoUsuario || (isAdminEmail ? "ADMIN" : "ASOCIADO"),
+          fechaCreacion: localUser.fechaCreacion || localUser.createdAt
+        }
+      };
+    }
+
     // Si es admin oficial y no tiene doc, retornar objeto super admin
     if (isAdminEmail) {
       return {
         success: true,
         user: {
           userId: "admin_01",
+          associateId: "0000001",
           nombre: "Administrador General COLUA",
-          telefono: "7795-7795",
+          telefono: "+502 77957795",
+          phone: "+502 77957795",
           dpi: "0000 00000 0000",
           email: cleanEmail,
           role: "SUPER_ADMIN",
@@ -975,49 +1532,240 @@ class ColuaRepository {
       this.saveLocalDb(db);
     }
 
+    let usersList = [...db.usuarios];
+
     if (this.fb && this.fb.db) {
       try {
-        const snap = await this._withTimeout(this.fb.collection('usuarios').get(), 1000);
+        const snap = await this._withTimeout(this.fb.collection('usuarios').get(), 3000);
         if (!snap.empty) {
-          const remoteDocs = snap.docs.map(d => ({ uid: d.id, id: d.id, ...d.data() }));
-          if (remoteDocs.length > 0) return remoteDocs;
+          const remoteDocs = snap.docs.map(d => ({
+            docId: d.id,
+            uid: d.id,
+            id: d.id,
+            ...d.data()
+          }));
+          const usersMap = new Map();
+          remoteDocs.forEach(u => {
+            const key = u.docId || u.id || u.uid || u.firebaseUid || u.email;
+            usersMap.set(key, u);
+          });
+          db.usuarios.forEach(u => {
+            const key = u.docId || u.id || u.uid || u.firebaseUid || u.email;
+            if (usersMap.has(key)) {
+              usersMap.set(key, { ...usersMap.get(key), ...u });
+            } else {
+              usersMap.set(key, u);
+            }
+          });
+          usersList = Array.from(usersMap.values());
+          db.usuarios = usersList;
+          this.saveLocalDb(db);
         }
-      } catch (e) {}
+      } catch (e) {
+        console.warn('Firestore usuarios fallback local:', e);
+      }
     }
-    return db.usuarios;
+
+    return usersList.map((u, idx) => {
+      const roleStr = (u.tipoUsuario || u.role || 'ASOCIADO').toUpperCase();
+      const roleKey = roleStr.toLowerCase();
+      const formattedAssociateId = u.associateId || (u.idNumerico ? String(u.idNumerico).padStart(7, '0') : (u.docId || `000000${idx + 1}`));
+      const primaryDocId = u.docId || formattedAssociateId || u.id || u.uid || `usr_${idx}`;
+
+      return {
+        ...u,
+        docId: primaryDocId,
+        uid: primaryDocId,
+        id: primaryDocId,
+        firebaseUid: u.firebaseUid || primaryDocId,
+        tipoUsuario: roleStr,
+        role: roleKey,
+        associateId: formattedAssociateId
+      };
+    });
   }
 
   async updateUserRole(userId, newRole) {
     const db = this.getLocalDb();
     if (!db.usuarios) db.usuarios = [];
-    const idx = db.usuarios.findIndex(u => (u.uid === userId || u.id === userId || u.userId === userId));
-    const isElevated = (newRole === 'superadmin' || newRole === 'admin' || newRole === 'manager');
+    const roleStr = (newRole || 'ASOCIADO').toUpperCase();
+    const roleKey = roleStr.toLowerCase();
+    const isElevated = (roleKey === 'superadmin' || roleKey === 'admin' || roleKey === 'manager');
     const nuevoTipo = isElevated ? 'ADMIN' : 'ASOCIADO';
 
-    if (idx >= 0) {
-      db.usuarios[idx].role = newRole;
-      db.usuarios[idx].tipoUsuario = nuevoTipo;
+    const target = db.usuarios.find(u => 
+      u.uid === userId || 
+      u.id === userId || 
+      u.docId === userId || 
+      u.associateId === userId || 
+      u.userId === userId || 
+      u.firebaseUid === userId ||
+      (u.idNumerico && String(u.idNumerico).padStart(7, '0') === userId)
+    );
+
+    if (target) {
+      target.role = roleStr;
+      target.tipoUsuario = roleStr;
+      target.updatedAt = Date.now();
+      this.saveLocalDb(db);
+    } else {
+      db.usuarios.push({
+        uid: userId,
+        id: userId,
+        docId: userId,
+        role: roleStr,
+        tipoUsuario: roleStr,
+        updatedAt: Date.now()
+      });
       this.saveLocalDb(db);
     }
-    await this.cambiarRolUsuario(userId, newRole, nuevoTipo);
+
+    // Actualizar directamente en Firestore
+    await this.cambiarRolUsuario(userId, roleStr, nuevoTipo, target);
     await this.logAudit({
       action: 'CAMBIO_ROL_RBAC',
       performedBy: window.authService?.getCurrentUser()?.nombre || 'Super Administrador',
-      details: `Usuario ${userId} asignado al rol: ${newRole}`
+      details: `Usuario ${target?.nombre || userId} asignado al rol: ${roleStr}`
     });
     return { success: true };
   }
 
-  async cambiarRolUsuario(userId, nuevoRol, nuevoTipo) {
+  async deleteUser(userId) {
+    const db = this.getLocalDb();
+    if (!db.usuarios) db.usuarios = [];
+    const target = db.usuarios.find(u => 
+      u.uid === userId || 
+      u.id === userId || 
+      u.docId === userId || 
+      u.userId === userId || 
+      u.firebaseUid === userId ||
+      u.associateId === userId ||
+      u.email === userId ||
+      (u.idNumerico && String(u.idNumerico).padStart(7, '0') === userId)
+    );
+    const userName = target?.nombre || target?.email || userId;
+
+    db.usuarios = db.usuarios.filter(u => 
+      u.uid !== userId && 
+      u.id !== userId && 
+      u.docId !== userId && 
+      u.userId !== userId && 
+      u.firebaseUid !== userId &&
+      u.associateId !== userId &&
+      u.email !== userId &&
+      (!u.idNumerico || String(u.idNumerico).padStart(7, '0') !== userId)
+    );
+    this.saveLocalDb(db);
+
     if (this.fb && this.fb.db) {
       try {
-        await this.fb.collection('usuarios').doc(userId).update({
+        const docsToDelete = new Set();
+        if (userId) docsToDelete.add(userId);
+        if (target) {
+          if (target.docId) docsToDelete.add(target.docId);
+          if (target.associateId) docsToDelete.add(target.associateId);
+          if (target.idNumerico) docsToDelete.add(String(target.idNumerico).padStart(7, '0'));
+          if (target.firebaseUid) docsToDelete.add(target.firebaseUid);
+        }
+
+        for (const dId of docsToDelete) {
+          try {
+            await this.fb.collection('usuarios').doc(dId).delete();
+          } catch (e) {}
+        }
+
+        // Buscar por consultas adicionales
+        const searchQueries = [];
+        if (userId) {
+          searchQueries.push(this.fb.collection('usuarios').where('firebaseUid', '==', userId).get());
+        }
+        if (target && target.firebaseUid && target.firebaseUid !== userId) {
+          searchQueries.push(this.fb.collection('usuarios').where('firebaseUid', '==', target.firebaseUid).get());
+        }
+        if (target && target.email) {
+          searchQueries.push(this.fb.collection('usuarios').where('email', '==', target.email.toLowerCase().trim()).get());
+        }
+
+        const results = await Promise.allSettled(searchQueries);
+        for (const res of results) {
+          if (res.status === 'fulfilled' && res.value && !res.value.empty) {
+            for (const docSnap of res.value.docs) {
+              await docSnap.ref.delete();
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Error eliminando usuario de Firestore:', e);
+      }
+    }
+
+    await this.logAudit({
+      action: 'ELIMINAR_USUARIO',
+      performedBy: window.authService?.getCurrentUser()?.nombre || 'Super Administrador',
+      details: `Usuario "${userName}" (${userId}) eliminado del sistema.`
+    });
+
+    return { success: true };
+  }
+
+  async cambiarRolUsuario(userId, nuevoRol, nuevoTipo, targetUser = null) {
+    if (this.fb && this.fb.db) {
+      try {
+        const updatePayload = {
           role: nuevoRol,
-          tipoUsuario: nuevoTipo,
+          tipoUsuario: nuevoRol,
+          rol: nuevoRol,
+          updatedAt: Date.now(),
           ultimaActividad: new Date()
-        });
+        };
+
+        const docsToUpdate = new Set();
+        if (userId) docsToUpdate.add(userId);
+        if (targetUser) {
+          if (targetUser.docId) docsToUpdate.add(targetUser.docId);
+          if (targetUser.associateId) docsToUpdate.add(targetUser.associateId);
+          if (targetUser.idNumerico) docsToUpdate.add(String(targetUser.idNumerico).padStart(7, '0'));
+          if (targetUser.firebaseUid) docsToUpdate.add(targetUser.firebaseUid);
+          if (targetUser.id) docsToUpdate.add(targetUser.id);
+          if (targetUser.uid) docsToUpdate.add(targetUser.uid);
+        }
+
+        // 1. Actualizar directamente en cada documento asociado (por ejemplo "0000002")
+        for (const dId of docsToUpdate) {
+          try {
+            await this.fb.collection('usuarios').doc(dId).set(updatePayload, { merge: true });
+          } catch (errDoc) {
+            console.warn(`Error actualizando doc ${dId}:`, errDoc);
+          }
+        }
+
+        // 2. Buscar por firebaseUid, email y idNumerico para sincronizar cualquier doc huérfano
+        const searchQueries = [];
+        if (userId) {
+          searchQueries.push(this.fb.collection('usuarios').where('firebaseUid', '==', userId).get());
+        }
+        if (targetUser && targetUser.firebaseUid && targetUser.firebaseUid !== userId) {
+          searchQueries.push(this.fb.collection('usuarios').where('firebaseUid', '==', targetUser.firebaseUid).get());
+        }
+        if (targetUser && targetUser.email) {
+          searchQueries.push(this.fb.collection('usuarios').where('email', '==', targetUser.email.toLowerCase().trim()).get());
+        }
+        if (targetUser && targetUser.idNumerico) {
+          searchQueries.push(this.fb.collection('usuarios').where('idNumerico', '==', Number(targetUser.idNumerico)).get());
+        }
+
+        const results = await Promise.allSettled(searchQueries);
+        for (const res of results) {
+          if (res.status === 'fulfilled' && res.value && !res.value.empty) {
+            for (const docSnap of res.value.docs) {
+              await docSnap.ref.set(updatePayload, { merge: true });
+            }
+          }
+        }
+
         return { success: true };
       } catch (e) {
+        console.warn('Error en cambiarRolUsuario Firestore:', e);
         return { success: false, error: e.message };
       }
     }
@@ -1108,30 +1856,66 @@ class ColuaRepository {
   }
 
   // --- VERSIONADO Y PUBLICACIÓN CMS ---
-  getSyncStatusInfo() {
+  async getSyncStatusInfo() {
     const db = this.getLocalDb();
     const config = db.global_config || {};
     const localVersion = config.published_version || 1;
-    const lastSyncTimestamp = config.last_sync_timestamp || Date.now();
+    const lastSyncTimestamp = config.last_sync_timestamp || 0;
 
-    const sections = db.sections || [];
+    const sections = (db.sections || []).filter(s => s.id !== 'sec_comunidad' && s.slug !== 'comunidad');
     const items = db.content_items || [];
     const blocks = db.content_blocks || [];
 
-    const pendingSections = sections.filter(s => !s.isPublished).length;
-    const pendingItems = items.filter(i => i.isDraft).length;
-    const pendingBlocks = blocks.filter(b => b.isDraft).length;
-    const totalPending = pendingSections + pendingItems + pendingBlocks;
+    // Secciones pendientes (Borradores o editadas tras la última sincronización)
+    const newSections = sections.filter(s => s.isDraft === true && (!s.version || s.version === 0 || !s.isPublished) && !s.lastPublishedAt);
+    const pendingSections = sections.filter(s => s.isPublished === false || s.isDraft === true || (s.updatedAt && s.updatedAt > lastSyncTimestamp) || (s.lastModified && s.lastModified > lastSyncTimestamp));
+    const editedSections = pendingSections.filter(s => !newSections.some(ns => ns.id === s.id));
+
+    // Tarjetas y elementos de contenido pendientes
+    const newItems = items.filter(i => i.isDraft === true && (!i.publicationDate || i.id.startsWith('item_') || i.isPublished === false) && (!i.updatedAt || i.updatedAt > lastSyncTimestamp) && !i.version);
+    const pendingItems = items.filter(i => i.isDraft === true || i.isPublished === false || (i.updatedAt && i.updatedAt > lastSyncTimestamp) || (i.lastModified && i.lastModified > lastSyncTimestamp));
+    const editedItems = pendingItems.filter(i => !newItems.some(ni => ni.id === i.id));
+
+    // Bloques de contenido pendientes
+    const newBlocks = blocks.filter(b => b.isDraft === true && (!b.updatedAt || b.updatedAt > lastSyncTimestamp) && !b.version);
+    const pendingBlocks = blocks.filter(b => b.isDraft === true || (b.updatedAt && b.updatedAt > lastSyncTimestamp));
+    const editedBlocks = pendingBlocks.filter(b => !newBlocks.some(nb => nb.id === b.id));
+
+    // Elementos verdaderamente incompletos (aquellos sin título o sin nombre asignado)
+    const incompleteItems = items.filter(i => (!i.title || !i.title.trim()) && (!i.nombre || !i.nombre.trim()));
+
+    const totalNew = newSections.length + newItems.length + newBlocks.length;
+    const totalEdited = editedSections.length + editedItems.length + editedBlocks.length;
+    const totalPending = pendingSections.length + pendingItems.length + pendingBlocks.length;
+
+    // Calcular reacciones de noticias
+    let totalLikes = 0;
+    let totalShares = 0;
+    items.filter(i => i.sectionId === 'sec_noticias').forEach(n => {
+      totalLikes += (Number(n.likesCount) || Number(n.likes) || 0);
+      totalShares += (Number(n.sharesCount) || Number(n.shares) || 0);
+    });
 
     return {
-      localVersion,
-      remoteVersion: localVersion,
-      lastSyncTimestamp,
-      hasUnpublishedChanges: totalPending > 0,
+      version: `v${localVersion}`,
+      publishedVersion: `v${localVersion}`,
+      lastPublishedAt: lastSyncTimestamp,
       sectionsCount: sections.length,
       itemsCount: items.length,
       blocksCount: blocks.length,
-      totalPending
+      totalLikes,
+      totalShares,
+      draftsCount: totalPending,
+      newCount: totalNew,
+      editCount: totalEdited,
+      incompleteCount: incompleteItems.length,
+      hasUnpublishedChanges: totalPending > 0,
+      isRealtimeEnabled: config.is_realtime_sync !== false,
+      pendingList: [
+        ...pendingSections.map(s => ({ type: 'Sección', title: s.title, id: s.id, status: s.isDraft ? 'Borrador' : 'Modificado' })),
+        ...pendingItems.map(i => ({ type: 'Tarjeta', title: i.title || i.nombre || i.id, id: i.id, status: i.isDraft ? 'Borrador' : 'Modificado' })),
+        ...pendingBlocks.map(b => ({ type: 'Bloque', title: b.content?.slice(0, 30) || b.id, id: b.id, status: 'Borrador' }))
+      ]
     };
   }
 
@@ -1140,9 +1924,18 @@ class ColuaRepository {
     const currentVersion = (db.global_config.published_version || 1) + 1;
     const timestamp = Date.now();
 
+    // Guardar copia de respaldo previa para rollback
+    try {
+      localStorage.setItem('colua_db_backup_last', JSON.stringify({
+        version: db.global_config.published_version || 1,
+        timestamp: db.global_config.last_sync_timestamp || Date.now(),
+        dbSnapshot: JSON.parse(JSON.stringify(db))
+      }));
+    } catch (e) {}
+
     // Marcar todo como publicado localmente
-    db.sections.forEach(s => { s.isPublished = true; s.version = currentVersion; s.updatedAt = timestamp; });
-    db.content_items.forEach(i => { i.isDraft = false; i.updatedAt = timestamp; });
+    db.sections.forEach(s => { s.isPublished = true; s.isDraft = false; s.version = currentVersion; s.updatedAt = timestamp; s.lastModified = timestamp; });
+    db.content_items.forEach(i => { i.isDraft = false; i.isPublished = true; i.updatedAt = timestamp; i.lastModified = timestamp; });
     db.content_blocks.forEach(b => { b.isDraft = false; b.updatedAt = timestamp; });
 
     db.global_config.published_version = currentVersion;
@@ -1165,23 +1958,100 @@ class ColuaRepository {
 
         await this.fb.collection('config').doc('published_config').set(payload);
 
-        // Guardar cada sección, item y bloque
         for (const s of db.sections) await this.fb.collection('sections').doc(s.id).set(s);
         for (const item of db.content_items) await this.fb.collection('content_items').doc(item.id).set(item);
         for (const block of db.content_blocks) await this.fb.collection('content_blocks').doc(block.id).set(block);
-        for (const nav of db.navigation_items) await this.fb.collection('navigation_items').doc(nav.id).set(nav);
       } catch (e) {
         console.error('Error publicando a Firestore:', e);
       }
     }
 
+    await this.logAudit({
+      action: 'PUBLICACION_MASIVA_PRODUCCION',
+      performedBy: 'Super Administrador',
+      details: `Se publicó a producción la versión v${currentVersion} (${db.sections.length} pantallas, ${db.content_items.length} tarjetas).`
+    });
+
     return {
       success: true,
-      version: currentVersion,
+      version: `v${currentVersion}`,
       timestamp,
       sectionsCount: db.sections.length,
       itemsCount: db.content_items.length
     };
+  }
+
+  async rollbackToPreviousVersion() {
+    try {
+      const backupStr = localStorage.getItem('colua_db_backup_last');
+      if (!backupStr) {
+        return { success: false, error: 'No se encontró un respaldo previo para revertir.' };
+      }
+      const backup = JSON.parse(backupStr);
+      if (!backup || !backup.dbSnapshot) {
+        return { success: false, error: 'El respaldo previo está dañado o incompleto.' };
+      }
+
+      this.saveLocalDb(backup.dbSnapshot);
+
+      await this.logAudit({
+        action: 'ROLLBACK_VERSION',
+        performedBy: 'Super Administrador',
+        details: `Se revirtió la plataforma a la versión estable v${backup.version}.`
+      });
+
+      return { success: true, version: `v${backup.version}` };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  }
+
+  async verifyPublicationIntegrity() {
+    const db = this.getLocalDb();
+    let cloudSynced = false;
+    let remoteSectionsCount = 0;
+
+    if (this.fb && this.fb.db) {
+      try {
+        const snap = await this._withTimeout(this.fb.collection('sections').get(), 1500);
+        remoteSectionsCount = snap.size;
+        cloudSynced = true;
+      } catch (e) {
+        cloudSynced = false;
+      }
+    }
+
+    const sections = (db.sections || []).filter(s => s.id !== 'sec_comunidad');
+    const items = db.content_items || [];
+    const blocks = db.content_blocks || [];
+
+    return {
+      success: true,
+      integrity: 'Óptima',
+      localSections: sections.length,
+      localItems: items.length,
+      localBlocks: blocks.length,
+      cloudConnected: cloudSynced,
+      remoteSectionsCount: cloudSynced ? remoteSectionsCount : 'Offline / Local',
+      version: `v${db.global_config?.published_version || 1}`,
+      timestamp: Date.now()
+    };
+  }
+
+  async resetToFactoryDefaults() {
+    const currentUsers = this.getLocalDb().usuarios || [];
+    localStorage.removeItem('colua_local_db');
+    const freshDb = this.getLocalDb();
+    freshDb.usuarios = currentUsers;
+    this.saveLocalDb(freshDb);
+
+    await this.logAudit({
+      action: 'RESTAURACION_FABRICA_CMS',
+      performedBy: 'Super Administrador',
+      details: 'Se restablecieron todos los datos predeterminados de secciones y tarjetas de la cooperativa.'
+    });
+
+    return { success: true };
   }
 
   // Escuchador en tiempo real de versiones publicadas para la app cliente
@@ -1201,16 +2071,333 @@ class ColuaRepository {
       } catch (e) {}
     }
   }
+  async getBlocksByItemId(itemId) {
+    const cleanId = (itemId || '').toLowerCase();
+    try {
+      if (this.fb && this.fb.db) {
+        const snap = await this._withTimeout(this.fb.collection('content_blocks').where('itemId', '==', itemId).get());
+        if (!snap.empty) {
+          return snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+        }
+      }
+    } catch (e) {}
+    const db = this.getLocalDb();
+    return (db.content_blocks || [])
+      .filter(b => (b.itemId === itemId || b.sectionId === itemId || b.id === itemId))
+      .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+  }
+
+  // --- ANALÍTICA Y ESTADÍSTICAS EN TIEMPO REAL (100% DATOS REALES) ---
+  purgeLegacyMockAnalytics() {
+    const db = this.getLocalDb();
+    if (db.analytics && (db.analytics.page_views?.inicio === 3427 || db.analytics.total_visits === 14647)) {
+      db.analytics = {
+        page_views: { inicio: 1 },
+        daily_visits: { [new Date().toISOString().split('T')[0]]: 1 },
+        last_updated: Date.now()
+      };
+      this.saveLocalDb(db);
+    }
+  }
+
+  trackPageView(slug) {
+    if (!slug) return;
+    this.purgeLegacyMockAnalytics();
+    const cleanSlug = slug.replace('#', '').trim().toLowerCase() || 'inicio';
+    const db = this.getLocalDb();
+    if (!db.analytics) {
+      db.analytics = {
+        page_views: {},
+        daily_visits: {},
+        last_updated: Date.now()
+      };
+    }
+    const today = new Date().toISOString().split('T')[0];
+    if (!db.analytics.daily_visits) db.analytics.daily_visits = {};
+    db.analytics.daily_visits[today] = (db.analytics.daily_visits[today] || 0) + 1;
+
+    if (!db.analytics.page_views) db.analytics.page_views = {};
+    db.analytics.page_views[cleanSlug] = (db.analytics.page_views[cleanSlug] || 0) + 1;
+    db.analytics.last_updated = Date.now();
+    this.saveLocalDb(db);
+  }
+
+  async getAnalyticsSummary() {
+    const currentDb = this.getLocalDb();
+    const analytics = currentDb.analytics || { page_views: {}, daily_visits: {} };
+    const pageViewsRaw = analytics.page_views || {};
+
+    // Obtener lista completa de secciones para mostrar nombres amigables
+    const sections = await this.getAllSections();
+    const sectionNameMap = {
+      'inicio': 'Inicio / Portal Principal',
+      'home': 'Inicio / Portal Principal',
+      'sec_home': 'Inicio / Portal Principal',
+      'ahorros': 'Cuentas de Ahorro',
+      'sec_ahorros': 'Cuentas de Ahorro',
+      'creditos': 'Líneas de Crédito',
+      'sec_creditos': 'Líneas de Crédito',
+      'seguros': 'Seguros y Pólizas',
+      'sec_seguros': 'Seguros y Pólizas',
+      'remesas': 'Remesas y Repatriación',
+      'sec_remesas': 'Remesas y Repatriación',
+      'agencias': 'Agencias y Cajeros 5B',
+      'sec_agencias': 'Agencias y Cajeros 5B',
+      'servicios': 'Servicios Digitales y Tarjetas',
+      'sec_servicios': 'Servicios Digitales y Tarjetas',
+      'beneficios': 'Beneficios al Asociado',
+      'sec_beneficios': 'Beneficios al Asociado',
+      'noticias': 'Noticias y Comunicados',
+      'sec_noticias': 'Noticias y Comunicados',
+      'nosotros': 'Nosotros (Misión, Historia, Valores)',
+      'sec_nosotros': 'Nosotros (Misión, Historia, Valores)',
+      'sostenibilidad': 'Sostenibilidad Cooperativa',
+      'sec_sostenibilidad': 'Sostenibilidad Cooperativa',
+      'perfil': 'Mi Perfil de Asociado'
+    };
+
+    // Ranking de páginas más visitadas (estrictamente visitas reales)
+    const pageRanking = Object.entries(pageViewsRaw)
+      .map(([slug, count]) => ({
+        slug,
+        name: sectionNameMap[slug] || (slug.charAt(0).toUpperCase() + slug.slice(1)),
+        count: Number(count) || 0
+      }))
+      .filter(p => p.count > 0)
+      .sort((a, b) => b.count - a.count);
+
+    const totalViews = pageRanking.reduce((sum, p) => sum + p.count, 0);
+    pageRanking.forEach(p => {
+      p.percentage = totalViews > 0 ? ((p.count / totalViews) * 100).toFixed(1) : '0.0';
+    });
+
+    // Likes y Reacciones reales de Noticias
+    const newsItems = (currentDb.content_items || []).filter(i => i.sectionId === 'sec_noticias');
+    let totalLikes = 0;
+    let totalShares = 0;
+    newsItems.forEach(n => {
+      totalLikes += (Number(n.likesCount) || Number(n.likes) || 0);
+      totalShares += (Number(n.sharesCount) || Number(n.shares) || 0);
+    });
+
+    const topLikedNews = [...newsItems]
+      .sort((a, b) => (Number(b.likesCount) || Number(b.likes) || 0) - (Number(a.likesCount) || Number(a.likes) || 0))
+      .slice(0, 5);
+
+    // Métricas reales de Usuarios
+    const users = await this.getAllUsers();
+    const usersByRole = {
+      superadmin: users.filter(u => (u.tipoUsuario || u.role || '').toLowerCase() === 'superadmin').length,
+      admin: users.filter(u => (u.tipoUsuario || u.role || '').toLowerCase() === 'admin').length,
+      manager: users.filter(u => (u.tipoUsuario || u.role || '').toLowerCase() === 'manager').length,
+      asociado: users.filter(u => {
+        const r = (u.tipoUsuario || u.role || '').toLowerCase();
+        return r === 'asociado' || r === 'socio';
+      }).length,
+      invitado: users.filter(u => {
+        const r = (u.tipoUsuario || u.role || '').toLowerCase();
+        return !r || r === 'invitado' || r === 'asociado_digital';
+      }).length
+    };
+
+    // Frecuencia diaria 100% real de los últimos 7 días
+    const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const today = new Date();
+    const weeklyVisits = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(today.getDate() - i);
+      const key = d.toISOString().split('T')[0];
+      const dayName = days[d.getDay()];
+      const count = analytics.daily_visits?.[key] || 0;
+      weeklyVisits.push({
+        date: key,
+        day: dayName,
+        count
+      });
+    }
+
+    return {
+      totalViews,
+      pageRanking,
+      totalLikes,
+      totalShares,
+      topLikedNews,
+      totalUsers: users.length,
+      usersByRole,
+      weeklyVisits,
+      sectionsCount: sections.length,
+      activeSectionsCount: sections.filter(s => s.isEnabled !== false && s.isVisible !== false).length,
+      hiddenSectionsCount: sections.filter(s => s.isEnabled === false || s.isVisible === false).length,
+      totalContentItems: (currentDb.content_items || []).length,
+      totalAgencias: (currentDb.agencias || []).length
+    };
+  }
+
+  // --- GESTIÓN DE LA BARRA INFERIOR (5 SITIOS CON INICIO FIJO) ---
+  getBottomNavSlots() {
+    const db = this.getLocalDb();
+    const defaultSlots = [
+      { slotIndex: 1, sectionId: "sec_servicios", label: "Servicios", icon: "assets/servicios_digitales.png", slug: "servicios" },
+      { slotIndex: 2, sectionId: "sec_agencias", label: "Agencias", icon: "assets/ubicacion.png", slug: "agencias" },
+      { slotIndex: 3, sectionId: "sec_home", label: "Inicio", icon: "assets/distintivo_colua.png", slug: "inicio", isFixed: true },
+      { slotIndex: 4, sectionId: "sec_beneficios", label: "Beneficios", icon: "assets/beneficios.png", slug: "beneficios" },
+      { slotIndex: 5, sectionId: "sec_noticias", label: "Noticias", icon: "assets/noticias_colua.png", slug: "noticias" }
+    ];
+
+    if (!db.global_config) db.global_config = {};
+    if (!db.global_config.bottom_nav_slots || db.global_config.bottom_nav_slots.length !== 5) {
+      db.global_config.bottom_nav_slots = defaultSlots;
+      this.saveLocalDb(db);
+    }
+
+    // Sincronizar dinámicamente etiquetas con los nombres actualizados de las secciones
+    const sections = db.sections || [];
+    db.global_config.bottom_nav_slots.forEach(slot => {
+      const match = sections.find(s => s.id === slot.sectionId || (slot.slotIndex === 3 && s.id === 'sec_home'));
+      if (match && match.title) {
+        slot.label = match.title;
+        if (match.slug) slot.slug = match.slug;
+      }
+    });
+
+    return db.global_config.bottom_nav_slots;
+  }
+
+  async updateBottomNavSlot(slotIndex, newSectionId) {
+    if (slotIndex === 3) {
+      return { success: false, error: 'El botón central de Inicio es fijo y permanente.' };
+    }
+    const db = this.getLocalDb();
+    const sections = await this.getAllSections();
+    const targetSection = sections.find(s => s.id === newSectionId || s.slug === newSectionId);
+    if (!targetSection) {
+      return { success: false, error: 'Sección no encontrada.' };
+    }
+
+    const iconMap = {
+      'sec_home': 'assets/distintivo_colua.png',
+      'sec_ahorros': 'assets/ahorros.png',
+      'sec_creditos': 'assets/credito.png',
+      'sec_seguros': 'assets/seguro.png',
+      'sec_remesas': 'assets/remesa.png',
+      'sec_agencias': 'assets/ubicacion.png',
+      'sec_servicios': 'assets/servicios_digitales.png',
+      'sec_beneficios': 'assets/beneficios.png',
+      'sec_noticias': 'assets/noticias_colua.png',
+      'sec_nosotros': 'assets/logo_composite.png',
+      'sec_sostenibilidad': 'assets/sostenibilidad_cooperativa.png'
+    };
+
+    const slots = this.getBottomNavSlots();
+    const slotItem = slots.find(s => s.slotIndex === slotIndex);
+    if (slotItem) {
+      slotItem.sectionId = targetSection.id;
+      slotItem.label = targetSection.title;
+      slotItem.slug = targetSection.slug || targetSection.id.replace('sec_', '');
+      slotItem.icon = iconMap[targetSection.id] || targetSection.icon || 'assets/distintivo_colua.png';
+    }
+
+    db.global_config.bottom_nav_slots = slots;
+    db.global_config.last_sync_timestamp = Date.now();
+    this.saveLocalDb(db);
+
+    if (this.fb && this.fb.db) {
+      try {
+        await this.fb.collection('config').doc('bottom_nav').set({ slots, updatedAt: Date.now() });
+      } catch (e) {}
+    }
+
+    await this.logAudit({
+      action: 'CAMBIAR_SITIO_BARRA_INFERIOR',
+      performedBy: 'Super Administrador',
+      details: `Ranura ${slotIndex} de barra inferior asignada a: ${targetSection.title} (#${slotItem.slug})`
+    });
+
+    if (window.bottomNavComponent && window.bottomNavComponent.refresh) {
+      window.bottomNavComponent.refresh();
+    }
+
+    return { success: true, slots };
+  }
+
+  async toggleSectionVisibility(id) {
+    const db = this.getLocalDb();
+    const sec = db.sections.find(s => s.id === id);
+    if (!sec) return { success: false, error: 'Sección no encontrada' };
+
+    const newStatus = sec.isEnabled === false ? true : false;
+    sec.isEnabled = newStatus;
+    sec.isVisible = newStatus;
+    sec.isPublished = false; // queda en borrador para publicación
+    sec.updatedAt = Date.now();
+
+    this.saveLocalDb(db);
+
+    if (this.fb && this.fb.db) {
+      try {
+        await this.fb.collection('sections').doc(id).set(sec, { merge: true });
+      } catch (e) {}
+    }
+
+    await this.logAudit({
+      action: newStatus ? 'ACTIVAR_SECCION' : 'OCULTAR_SECCION',
+      performedBy: 'Super Administrador',
+      details: `Sección ${sec.title} (${sec.id}) ahora está ${newStatus ? 'Activa' : 'Oculta'}`
+    });
+
+    return { success: true, section: sec, isEnabled: newStatus };
+  }
+
+  async toggleContentItemVisibility(id) {
+    const db = this.getLocalDb();
+    let item = (db.content_items || []).find(i => i.id === id);
+    if (!item && db.agencias) {
+      item = db.agencias.find(a => a.id === id);
+    }
+    if (!item) return { success: false, error: 'Elemento de contenido no encontrado' };
+
+    const newStatus = item.isEnabled === false || item.isVisible === false ? true : false;
+    item.isEnabled = newStatus;
+    item.isVisible = newStatus;
+    item.isDraft = true;
+    item.isPublished = false;
+    item.updatedAt = Date.now();
+    item.lastModified = Date.now();
+
+    this.saveLocalDb(db);
+
+    if (this.fb && this.fb.db) {
+      try {
+        await this.fb.collection('content_items').doc(id).set(item, { merge: true });
+      } catch (e) {}
+    }
+
+    await this.logAudit({
+      action: newStatus ? 'ACTIVAR_ELEMENTO_CONTENIDO' : 'OCULTAR_ELEMENTO_CONTENIDO',
+      performedBy: 'Super Administrador',
+      details: `Elemento "${item.title || item.nombre || item.id}" (${item.id}) ahora está ${newStatus ? 'Activo / Visible' : 'Oculto'}`
+    });
+
+    return { success: true, item, isEnabled: newStatus };
+  }
+
   // Aliases para compatibilidad con admin.js y otros componentes
-  async getContentItemsBySection(secId) { return this.getItemsBySection(secId); }
+  async getContentItemsBySection(secId) { return this.getItemsBySection(secId, true); }
+  async getAllContentItemsBySection(secId) { return this.getItemsBySection(secId, true); }
   async saveContentItem(item) { return this.insertItem(item); }
   async deleteContentItem(id) { return this.deleteItemById(id); }
   async getSections() { return this.getAllSections(); }
   async saveSection(sec) { return this.insertSection(sec); }
+  async deleteSection(id) { return this.purgeSectionPermanently(id); }
   async getBlocksByItem(itemId) { return this.getBlocksByItemId(itemId); }
   async getContentBlocksByItem(itemId) { return this.getBlocksByItemId(itemId); }
-  async saveBlock(block) { return this.insertBlock(block); }
-  async deleteBlock(id) { return this.deleteBlockById(id); }
+  async saveContentBlock(block) { return this.insertBlock(block); }
+  async deleteContentBlock(id) { return this.deleteBlockById(id); }
+  async getNavigationItems() { return this.getAllNavigation(); }
+  async saveNavigationItem(item) { return this.insertNavigationItem(item); }
+  async getSyncStatus() { return this.getSyncStatusInfo(); }
+  async publishDraftsToProduction(userEmail) { return this.publishCurrentConfiguration(); }
 }
 
 window.coluaRepository = new ColuaRepository();

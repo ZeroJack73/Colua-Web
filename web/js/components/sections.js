@@ -19,51 +19,67 @@ class SectionsComponent {
   }
 
   // --- 1. CUENTAS DE AHORRO ---
-  renderAhorros() {
-    const cuentas = [
-      {
-        titulo: "Cuenta Aportación Adulto",
-        desc: "Otorga el derecho a la persona natural a asociarse a la cooperativa, convirtiéndolo en dueño con voz y voto en la asamblea general.",
-        detalles: ["Monto de apertura: desde Q50.00", "Tasa de interés: 5% anual afecto a ISR", "Intereses: capitalizables anualmente"],
-        img: "assets/ahorro1.png",
-        hasImageTitle: false
-      },
-      {
-        titulo: "Cuenta Aportación Infanto Juvenil",
-        desc: "Otorga el derecho al menor de edad a asociarse a la cooperativa e iniciar el hábito del ahorro con beneficios educativos.",
-        detalles: ["Monto de apertura: desde Q50.00", "Tasa de interés: 5% anual afecto a ISR", "Intereses: capitalizables anualmente"],
-        img: "assets/ahorro_infanto_juvenil.png",
-        hasImageTitle: true
-      },
-      {
-        titulo: "Cuenta Ahorro Infanto Juvenil",
-        desc: "Diseñada para motivar y fomentar en los niños y adolescentes la cultura del ahorro y educación financiera.",
-        detalles: ["Monto de apertura: desde Q10.00", "Tasa de interés: 3% anual afecto a ISR", "5 Beneficios al mantener mínimo Q500.00"],
-        img: "assets/ahorro2.png",
-        hasImageTitle: false
-      },
-      {
-        titulo: "Cuenta Ahorro Disponible",
-        desc: "Cuenta que el asociado podrá utilizar para darle movimiento diario a sus fondos con total disponibilidad.",
-        detalles: ["Apertura: desde Q50.00 o $100.00", "Tasa: 3% anual en Q y 1.50% en $", "Intereses: capitalizables mensualmente", "Acceso a canales digitales sin costo"],
-        img: "assets/ahorro_disponible.png",
-        hasImageTitle: true
-      },
-      {
-        titulo: "Cuenta Ahorro Programado",
-        desc: "Permite a los asociados aportar cuotas fijas mensuales para metas y proyectos futuros con tasas preferenciales.",
-        detalles: ["Apertura: desde Q25.00", "Tasa de interés: 7.50% anual afecto a ISR", "Plazos de 3, 5, 10, 15 o 20 años", "Intereses mensuales"],
-        img: "assets/ahorro_programado.png",
-        hasImageTitle: true
-      },
-      {
-        titulo: "Cuenta Ahorro Plazo Fijo",
-        desc: "Obtén el máximo rendimiento y seguridad garantizada sobre tus inversiones a plazo fijo.",
-        detalles: ["Apertura: desde Q1,000.00 o $200.00", "Plazos de 90, 180 y 365 días", "Intereses capitalizables trimestralmente"],
-        img: "assets/ahorro_plazo_fijo.png",
-        hasImageTitle: true
+  async renderAhorros(sectionId) {
+    let cuentas = [];
+    try {
+      const dbItems = await window.coluaRepository.getItemsBySection(sectionId || 'sec_ahorros');
+      if (dbItems && dbItems.length > 0) {
+        cuentas = dbItems.map(i => ({
+          titulo: i.title,
+          desc: i.description || '',
+          detalles: i.subtitle ? i.subtitle.split(',').map(s => s.trim()).filter(Boolean) : [],
+          img: i.imageUrl || i.imagePath || 'assets/ahorros.png',
+          hasImageTitle: false
+        }));
       }
-    ];
+    } catch(e) { console.error(e); }
+
+    if (cuentas.length === 0) {
+      cuentas = [
+        {
+          titulo: "Cuenta Aportación Adulto",
+          desc: "Otorga el derecho a la persona natural a asociarse a la cooperativa, convirtiéndolo en dueño con voz y voto en la asamblea general.",
+          detalles: ["Monto de apertura: desde Q50.00", "Tasa de interés: 5% anual afecto a ISR", "Intereses: capitalizables anualmente"],
+          img: "assets/ahorro1.png",
+          hasImageTitle: false
+        },
+        {
+          titulo: "Cuenta Aportación Infanto Juvenil",
+          desc: "Otorga el derecho al menor de edad a asociarse a la cooperativa e iniciar el hábito del ahorro con beneficios educativos.",
+          detalles: ["Monto de apertura: desde Q50.00", "Tasa de interés: 5% anual afecto a ISR", "Intereses: capitalizables anualmente"],
+          img: "assets/ahorro_infanto_juvenil.png",
+          hasImageTitle: true
+        },
+        {
+          titulo: "Cuenta Ahorro Infanto Juvenil",
+          desc: "Diseñada para motivar y fomentar en los niños y adolescentes la cultura del ahorro y educación financiera.",
+          detalles: ["Monto de apertura: desde Q10.00", "Tasa de interés: 3% anual afecto a ISR", "5 Beneficios al mantener mínimo Q500.00"],
+          img: "assets/ahorro2.png",
+          hasImageTitle: false
+        },
+        {
+          titulo: "Cuenta Ahorro Disponible",
+          desc: "Cuenta que el asociado podrá utilizar para darle movimiento diario a sus fondos con total disponibilidad.",
+          detalles: ["Apertura: desde Q50.00 o $100.00", "Tasa: 3% anual en Q y 1.50% en $", "Intereses: capitalizables mensualmente", "Acceso a canales digitales sin costo"],
+          img: "assets/ahorro_disponible.png",
+          hasImageTitle: true
+        },
+        {
+          titulo: "Cuenta Ahorro Programado",
+          desc: "Permite a los asociados aportar cuotas fijas mensuales para metas y proyectos futuros con tasas preferenciales.",
+          detalles: ["Apertura: desde Q25.00", "Tasa de interés: 7.50% anual afecto a ISR", "Plazos de 3, 5, 10, 15 o 20 años", "Intereses mensuales"],
+          img: "assets/ahorro_programado.png",
+          hasImageTitle: true
+        },
+        {
+          titulo: "Cuenta Ahorro Plazo Fijo",
+          desc: "Obtén el máximo rendimiento y seguridad garantizada sobre tus inversiones a plazo fijo.",
+          detalles: ["Apertura: desde Q1,000.00 o $200.00", "Plazos de 90, 180 y 365 días", "Intereses capitalizables trimestralmente"],
+          img: "assets/ahorro_plazo_fijo.png",
+          hasImageTitle: true
+        }
+      ];
+    }
 
     return `
       <div class="clean-subpage-container">
@@ -90,6 +106,7 @@ class SectionsComponent {
                   <h3 class="clean-product-name">${c.titulo}</h3>
                 `}
                 <p class="clean-product-desc">${c.desc}</p>
+                ${c.detalles && c.detalles.length > 0 ? `
                 <ul class="clean-product-bullets">
                   ${c.detalles.map(d => `
                     <li>
@@ -98,6 +115,7 @@ class SectionsComponent {
                     </li>
                   `).join('')}
                 </ul>
+                ` : ''}
               </div>
               <a href="tel:77957795" class="clean-btn-card-action">
                 Solicitar Apertura (PBX)
@@ -110,17 +128,34 @@ class SectionsComponent {
   }
 
   // --- 2. CRÉDITOS ---
-  renderCreditos() {
-    const lineas = [
-      { titulo: "Crédito Productivo", sub: "Para capital de trabajo, inventario, mercadería y maquinaria.", img: "assets/credito_productivo.png", hasImageTitle: true },
-      { titulo: "Crédito Consumo", sub: "Gastos personales, consolidación de deudas, menaje de casa o estudios.", img: "assets/credi_consumo.png", hasImageTitle: true },
-      { titulo: "Crédito Vivienda", sub: "Construcción, compra de terreno, vivienda nueva o remodelación.", img: "assets/credito_vivienda.png", hasImageTitle: true },
-      { titulo: "Crédi Vehículo", sub: "Adquisición de vehículos o motocicletas para uso comercial o personal.", img: "assets/credi_vehiculo.png", hasImageTitle: true },
-      { titulo: "Crédito MIPYMES", sub: "Financiamiento para pequeñas y medianas empresas en crecimiento.", img: "assets/credito.png", hasImageTitle: false },
-      { titulo: "Crédito Agrícola", sub: "Siembra, renovación de cultivos, fertilizantes y tecnificación agrícola.", img: "assets/credito1.png", hasImageTitle: false },
-      { titulo: "Crédito Automático", sub: "Crédito inmediato respaldado sobre tus cuentas de ahorro en la cooperativa.", img: "assets/credito2.png", hasImageTitle: false },
-      { titulo: "Microcréditos", sub: "Impulso financiero ágil para pequeños emprendedores y comerciantes.", img: "assets/credito.png", hasImageTitle: false }
-    ];
+  async renderCreditos(sectionId) {
+    let lineas = [];
+    try {
+      const dbItems = await window.coluaRepository.getItemsBySection(sectionId || 'sec_creditos');
+      if (dbItems && dbItems.length > 0) {
+        lineas = dbItems.map(i => ({
+          titulo: i.title,
+          sub: i.description || i.shortDescription || '',
+          monto: i.subtitle || 'Monto: desde Q1,000.00 en adelante',
+          img: i.imageUrl || i.imagePath || 'assets/credito.png',
+          hasImageTitle: false,
+          buttonText: i.buttonText || 'Cotizar Crédito (PBX)'
+        }));
+      }
+    } catch(e) { console.error(e); }
+
+    if (lineas.length === 0) {
+      lineas = [
+        { titulo: "Crédito Productivo", sub: "Para capital de trabajo, inventario, mercadería y maquinaria.", img: "assets/credito_productivo.png", hasImageTitle: true },
+        { titulo: "Crédito Consumo", sub: "Gastos personales, consolidación de deudas, menaje de casa o estudios.", img: "assets/credi_consumo.png", hasImageTitle: true },
+        { titulo: "Crédito Vivienda", sub: "Construcción, compra de terreno, vivienda nueva o remodelación.", img: "assets/credito_vivienda.png", hasImageTitle: true },
+        { titulo: "Crédi Vehículo", sub: "Adquisición de vehículos o motocicletas para uso comercial o personal.", img: "assets/credi_vehiculo.png", hasImageTitle: true },
+        { titulo: "Crédito MIPYMES", sub: "Financiamiento para pequeñas y medianas empresas en crecimiento.", img: "assets/credito.png", hasImageTitle: false },
+        { titulo: "Crédito Agrícola", sub: "Siembra, renovación de cultivos, fertilizantes y tecnificación agrícola.", img: "assets/credito1.png", hasImageTitle: false },
+        { titulo: "Crédito Automático", sub: "Crédito inmediato respaldado sobre tus cuentas de ahorro en la cooperativa.", img: "assets/credito2.png", hasImageTitle: false },
+        { titulo: "Microcréditos", sub: "Impulso financiero ágil para pequeños emprendedores y comerciantes.", img: "assets/credito.png", hasImageTitle: false }
+      ];
+    }
 
     return `
       <div class="clean-subpage-container">
@@ -148,11 +183,11 @@ class SectionsComponent {
                 `}
                 <p class="clean-product-desc">${l.sub}</p>
                 <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:0.5rem 0.75rem;border-radius:8px;font-size:0.82rem;font-weight:600;color:#0f172a;margin-bottom:1.25rem;">
-                  Monto: desde Q1,000.00 en adelante
+                  ${l.monto || 'Monto: desde Q1,000.00 en adelante'}
                 </div>
               </div>
               <a href="tel:77957795" class="clean-btn-card-action">
-                Cotizar Crédito (PBX)
+                ${l.buttonText || 'Cotizar Crédito (PBX)'}
               </a>
             </div>
           `).join('')}
@@ -162,16 +197,33 @@ class SectionsComponent {
   }
 
   // --- 3. SEGUROS COLUMNA ---
-  renderSeguros() {
-    const polizas = [
-      { titulo: "Seguro CV Especial", desc: "Cobertura de vida con indemnización y respaldo solidario inmediato.", img: "assets/seguro_cv_personal.png", hasImageTitle: true },
-      { titulo: "Seguro Vida Saludable", desc: "Protección integral para gastos médicos y asistencia preventiva.", img: "assets/seguro_vida_saludable.png", hasImageTitle: true },
-      { titulo: "Seguro de Accidentes Edad de Oro", desc: "Diseñado especialmente para asociados de la tercera edad.", img: "assets/seguro_edad_de_oro.png", hasImageTitle: true },
-      { titulo: "Seguro de Cáncer", desc: "Indemnización directa al primer diagnóstico de patología oncológica.", img: "assets/seguro_de_cancer.png", hasImageTitle: true },
-      { titulo: "Seguro Accidentes Infanto Juvenil", desc: "Protección escolar y de recreación para los hijos de asociados.", img: "assets/seguro_accidentes_infanto_juvenil.png", hasImageTitle: true },
-      { titulo: "Seguro de Manejo", desc: "Asistencia vial y respaldo ante incidentes en carretera en todo el país.", img: "assets/seguro_manejo.png", hasImageTitle: true },
-      { titulo: "Seguro de Vida Individual o Familiar", desc: "Tranquilidad financiera a largo plazo para el bienestar de tu familia.", img: "assets/seguro_de_vida_individual_o_familar.png", hasImageTitle: true }
-    ];
+  async renderSeguros(sectionId) {
+    let polizas = [];
+    try {
+      const dbItems = await window.coluaRepository.getItemsBySection(sectionId || 'sec_seguros');
+      if (dbItems && dbItems.length > 0) {
+        polizas = dbItems.map(i => ({
+          titulo: i.title,
+          desc: i.description || i.shortDescription || '',
+          img: i.imageUrl || i.imagePath || 'assets/seguro.png',
+          hasImageTitle: false,
+          leyenda: i.subtitle || 'Primas solidarias y accesibles',
+          buttonText: i.buttonText || 'Solicitar Póliza (PBX)'
+        }));
+      }
+    } catch(e) { console.error(e); }
+
+    if (polizas.length === 0) {
+      polizas = [
+        { titulo: "Seguro CV Especial", desc: "Cobertura de vida con indemnización y respaldo solidario inmediato.", img: "assets/seguro_cv_personal.png", hasImageTitle: true },
+        { titulo: "Seguro Vida Saludable", desc: "Protección integral para gastos médicos y asistencia preventiva.", img: "assets/seguro_vida_saludable.png", hasImageTitle: true },
+        { titulo: "Seguro de Accidentes Edad de Oro", desc: "Diseñado especialmente para asociados de la tercera edad.", img: "assets/seguro_edad_de_oro.png", hasImageTitle: true },
+        { titulo: "Seguro de Cáncer", desc: "Indemnización directa al primer diagnóstico de patología oncológica.", img: "assets/seguro_de_cancer.png", hasImageTitle: true },
+        { titulo: "Seguro Accidentes Infanto Juvenil", desc: "Protección escolar y de recreación para los hijos de asociados.", img: "assets/seguro_accidentes_infanto_juvenil.png", hasImageTitle: true },
+        { titulo: "Seguro de Manejo", desc: "Asistencia vial y respaldo ante incidentes en carretera en todo el país.", img: "assets/seguro_manejo.png", hasImageTitle: true },
+        { titulo: "Seguro de Vida Individual o Familiar", desc: "Tranquilidad financiera a largo plazo para el bienestar de tu familia.", img: "assets/seguro_de_vida_individual_o_familar.png", hasImageTitle: true }
+      ];
+    }
 
     return `
       <div class="clean-subpage-container">
@@ -192,11 +244,11 @@ class SectionsComponent {
                 <h3 class="sr-only">${p.titulo}</h3>
                 <p class="clean-product-desc">${p.desc}</p>
                 <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:0.45rem 0.75rem;border-radius:8px;font-size:0.8rem;color:#64748b;margin-bottom:1.25rem;">
-                  Primas solidarias y accesibles
+                  ${p.leyenda || 'Primas solidarias y accesibles'}
                 </div>
               </div>
               <a href="tel:77957795" class="clean-btn-card-action">
-                Solicitar Póliza (PBX)
+                ${p.buttonText || 'Solicitar Póliza (PBX)'}
               </a>
             </div>
           `).join('')}
@@ -206,7 +258,30 @@ class SectionsComponent {
   }
 
   // --- 4. REMESAS FAMILIARES Y NUEVA REMESA DIRIGIDA ---
-  renderRemesas() {
+  async renderRemesas(sectionId) {
+    let asistencias = [];
+    try {
+      const dbItems = await window.coluaRepository.getItemsBySection(sectionId || 'sec_remesas');
+      if (dbItems && dbItems.length > 0) {
+        asistencias = dbItems.map(i => ({
+          titulo: i.title,
+          desc: i.description || i.shortDescription || '',
+          cat: i.subtitle || 'ASISTENCIA INTERNACIONAL',
+          img: i.imageUrl || i.imagePath || 'assets/rd1.png',
+          tag: '100% Cobertura'
+        }));
+      }
+    } catch(e) { console.error(e); }
+
+    if (asistencias.length === 0) {
+      asistencias = [
+        { cat: "TRÁMITE CONSULAR Y VUELO", img: "assets/rd1.png", titulo: "Asistencia de repatriación para remitente", desc: "Gestión integral y cobertura sin costo. Asesoramiento en trámites legales y coordinación total del retorno aéreo de restos mortales a Guatemala.", tag: "100% Cobertura" },
+        { cat: "ACOMPAÑAMIENTO FAMILIAR", img: "assets/rd2.png", titulo: "Asistencia funeraria para remitente", desc: "Apoyo y trámites de coordinación. Preparación, capilla ardiente, servicio religioso y traslado terrestre hacia cualquier municipio del país.", tag: "Red Funeraria Nacional" },
+        { cat: "RED DE SALUD", img: "assets/rd3.png", titulo: "Referencias médicas y clínicas", desc: "Directorio e información verificada de médicos especialistas, clínicas, farmacias y laboratorios clínicos con convenios preferenciales para asociados.", tag: "Acceso Inmediato" },
+        { cat: "ATENCIÓN TELEFÓNICA 24/7", img: "assets/rd4.png", titulo: "Orientación médica telefónica", desc: "Apoyo profesional en interpretación de pruebas de laboratorio, dosificación segura de medicamentos y primeros auxilios a distancia las 24 horas.", tag: "Sin Límite de Llamadas" }
+      ];
+    }
+
     return `
       <div class="clean-subpage-container">
         <!-- 1. Hero Remesas Familiares -->
@@ -359,7 +434,7 @@ class SectionsComponent {
           </div>
         </div>
 
-        <!-- 4. Asistencias Complementarias (4 Cards) -->
+        <!-- 4. Asistencias Complementarias (Tarjetas dinámicas) -->
         <div class="remesa-section-wrap">
           <div style="text-align:center;margin-bottom:2.25rem;">
             <h2 class="remesa-section-heading">Paquete de Asistencias Integradas al Remitente</h2>
@@ -369,69 +444,24 @@ class SectionsComponent {
           </div>
 
           <div class="remesa-cards-grid-4">
-            <div class="remesa-asistencia-card">
-              <span class="remesa-asistencia-cat">TRÁMITE CONSULAR Y VUELO</span>
-              <div class="remesa-asistencia-icon-wrap">
-                <img src="assets/rd1.png" alt="Asistencia de repatriación" />
+            ${asistencias.map(a => `
+              <div class="remesa-asistencia-card">
+                <span class="remesa-asistencia-cat">${a.cat}</span>
+                <div class="remesa-asistencia-icon-wrap">
+                  <img src="${a.img}" alt="${a.titulo}" onerror="this.src='assets/rd1.png'" />
+                </div>
+                <h4 class="remesa-asistencia-title">${a.titulo}</h4>
+                <p class="remesa-asistencia-desc">${a.desc}</p>
+                <div class="remesa-asistencia-tag">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#173789" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  ${a.tag}
+                </div>
               </div>
-              <h4 class="remesa-asistencia-title">Asistencia de repatriación para remitente</h4>
-              <p class="remesa-asistencia-desc">
-                Gestión integral y cobertura sin costo. Asesoramiento en trámites legales y coordinación total del retorno aéreo de restos mortales a Guatemala.
-              </p>
-              <div class="remesa-asistencia-tag">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#173789" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                100% Cobertura
-              </div>
-            </div>
-
-            <div class="remesa-asistencia-card">
-              <span class="remesa-asistencia-cat">ACOMPAÑAMIENTO FAMILIAR</span>
-              <div class="remesa-asistencia-icon-wrap">
-                <img src="assets/rd2.png" alt="Asistencia funeraria" />
-              </div>
-              <h4 class="remesa-asistencia-title">Asistencia funeraria para remitente</h4>
-              <p class="remesa-asistencia-desc">
-                Apoyo y trámites de coordinación. Preparación, capilla ardiente, servicio religioso y traslado terrestre hacia cualquier municipio del país.
-              </p>
-              <div class="remesa-asistencia-tag">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#173789" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                Red Funeraria Nacional
-              </div>
-            </div>
-
-            <div class="remesa-asistencia-card">
-              <span class="remesa-asistencia-cat">RED DE SALUD</span>
-              <div class="remesa-asistencia-icon-wrap">
-                <img src="assets/rd3.png" alt="Referencias médicas" />
-              </div>
-              <h4 class="remesa-asistencia-title">Referencias médicas y clínicas</h4>
-              <p class="remesa-asistencia-desc">
-                Directorio e información verificada de médicos especialistas, clínicas, farmacias y laboratorios clínicos con convenios preferenciales para asociados.
-              </p>
-              <div class="remesa-asistencia-tag">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#173789" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                Acceso Inmediato
-              </div>
-            </div>
-
-            <div class="remesa-asistencia-card">
-              <span class="remesa-asistencia-cat">ATENCIÓN TELEFÓNICA 24/7</span>
-              <div class="remesa-asistencia-icon-wrap">
-                <img src="assets/rd4.png" alt="Orientación médica" />
-              </div>
-              <h4 class="remesa-asistencia-title">Orientación médica telefónica</h4>
-              <p class="remesa-asistencia-desc">
-                Apoyo profesional en interpretación de pruebas de laboratorio, dosificación segura de medicamentos y primeros auxilios a distancia las 24 horas.
-              </p>
-              <div class="remesa-asistencia-tag">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#173789" stroke-width="2.5"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                Sin Límite de Llamadas
-              </div>
-            </div>
+            `).join('')}
           </div>
         </div>
 
-        <!-- 6. Red de Remesadoras Aliadas (13 Entidades y Banner Oficial) -->
+        <!-- 6. Red de Remesadoras Aliadas -->
         <div class="remesa-section-wrap">
           <div style="margin-bottom:2rem;">
             <h2 class="remesa-section-heading" style="margin-bottom:0.35rem;">Red de Remesadoras Aliadas</h2>
@@ -440,50 +470,41 @@ class SectionsComponent {
             </p>
           </div>
 
-          <!-- Banner oficial de remesadoras directas a cuenta -->
           <div style="border-radius:18px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 4px 16px rgba(0,0,0,0.04);">
             <img src="assets/remesadoras_afiliadas2.png" alt="Cobro mi Remesa en COLUA MICOOPE - Directo a tu cuenta" style="width:100%;height:auto;display:block;" />
-          </div>
-        </div>
-
-        <!-- 7. Pasos Claros: ¿Cómo cobrar tu remesa en COLUA? -->
-        <div class="remesa-section-wrap" style="margin-bottom:2rem;">
-          <div style="text-align:center;margin-bottom:2.25rem;">
-            <h2 class="remesa-section-heading">¿Cómo cobrar tu remesa en COLUA?</h2>
-          </div>
-
-          <div class="remesa-steps-grid">
-            <div class="remesa-step-card">
-              <div class="remesa-step-num">1</div>
-              <h4 class="remesa-step-title">Pide tu Clave</h4>
-              <p class="remesa-step-desc">
-                Tu familiar en EE. UU. o cualquier otro país envía el dinero e indica que sea cobrado a través de <strong>COLUA MICOOPE R.L.</strong> Te comparte el código o clave MTCN.
-              </p>
-            </div>
-
-            <div class="remesa-step-card">
-              <div class="remesa-step-num">2</div>
-              <h4 class="remesa-step-title">Visita o Transfiere</h4>
-              <p class="remesa-step-desc">
-                Acércate a cualquiera de nuestras agencias con tu DPI original o solicita la acreditación directa a tu <strong>Cuenta de Ahorro Disponible COLUA</strong> a través de MICOOPE en Línea.
-              </p>
-            </div>
-
-            <div class="remesa-step-card">
-              <div class="remesa-step-num">3</div>
-              <h4 class="remesa-step-title">Recibe sin Cobros Ocultos</h4>
-              <p class="remesa-step-desc">
-                Recibes tu dinero completo, en Quetzales o Dólares, disfrutando automáticamente de las coberturas de repatriación y asistencias médicas para tu remitente.
-              </p>
-            </div>
           </div>
         </div>
       </div>
     `;
   }
 
-  // --- 5. SERVICIOS DIGITALES Y FINANCIEROS (6 PRINCIPALES Y 3 OTROS SERVICIOS) ---
-  renderServicios() {
+  // --- 5. SERVICIOS DIGITALES Y FINANCIEROS ---
+  async renderServicios(sectionId) {
+    let servicios = [];
+    try {
+      const dbItems = await window.coluaRepository.getItemsBySection(sectionId || 'sec_servicios');
+      if (dbItems && dbItems.length > 0) {
+        servicios = dbItems.map(i => ({
+          titulo: i.title,
+          desc: i.description || i.shortDescription || '',
+          img: i.imageUrl || i.imagePath || 'assets/servicios_digitales.png',
+          linkText: i.buttonText || (i.targetSectionId?.startsWith('http') ? 'Ingresar a la Plataforma' : 'Solicitar Información (PBX)'),
+          linkUrl: i.targetSectionId || i.buttonAction || 'tel:77957795'
+        }));
+      }
+    } catch(e) { console.error(e); }
+
+    if (servicios.length === 0) {
+      servicios = [
+        { titulo: "Tarjeta de Débito MICOOPE Visa", desc: "Realiza compras en comercios afiliados a VISA en Guatemala y el extranjero, notificaciones por mensajes de texto y cobertura integral contra fraude.", img: "assets/tarjeta_debito.png", linkText: "Solicitar Tarjeta (PBX)", linkUrl: "tel:77957795" },
+        { titulo: "Descarga la App MICOOPE en Línea", desc: "Banca web y móvil 24/7. Realiza consultas de saldos, transferencias directas, pago de préstamos y servicios básicos al instante sin hacer filas.", img: "assets/micoope_enlinea.png", linkText: "Ingresar a la Plataforma", linkUrl: "https://micoopeenlinea.com.gt" },
+        { titulo: "Tarjeta de Crédito MICOOPE Visa", desc: "Tienes hasta 55 días para pagar, membresía gratis de por vida, tarjeta VISA internacional, cobertura por fraude o extravío y la tasa más baja.", img: "assets/tarjeta_debito.png", linkText: "Solicitar Crédito (PBX)", linkUrl: "tel:77957795" },
+        { titulo: "Cajeros Modernos Automáticos", desc: "Consulta de saldos, retiros y depósitos en efectivo; sin cobros por comisión en cajeros propios COLUA. Disponible 24/7.", img: "assets/servicios_digitales.png", linkText: "Ver Agencias con Cajero", linkUrl: "#sec_agencias" },
+        { titulo: "Descarga la App Fri", desc: "Envía, recibe y solicita dinero de forma rápida e inmediata entre tu cooperativa y bancos del sistema usando únicamente tu celular.", img: "assets/logo_fri.png", linkText: "Conocer App Fri", linkUrl: "https://fri.gt" },
+        { titulo: "Red de Agentes COLUA MICOOPE", desc: "Cobra tus remesas, paga tu préstamo y tarjeta de crédito, realiza depósitos y retiros en puntos autorizados cerca de tu hogar.", img: "assets/servicios_digitales.png", linkText: "Localizar Red de Agentes", linkUrl: "#sec_agencias" }
+      ];
+    }
+
     return `
       <div class="clean-subpage-container">
         <header class="clean-subpage-header">
@@ -493,113 +514,22 @@ class SectionsComponent {
           </p>
         </header>
 
-        <!-- 6 SERVICIOS PRINCIPALES -->
+        <!-- SERVICIOS DINÁMICOS -->
         <div class="clean-product-grid">
-          <!-- 1. Tarjeta de Débito MICOOPE Visa -->
-          <div class="clean-product-card">
-            <div>
-              <div class="clean-product-icon-wrap">
-                <img src="assets/tarjeta_debito.png" alt="Tarjeta Débito MICOOPE Visa" onerror="this.src='assets/servicios_digitales.png'" />
+          ${servicios.map(s => `
+            <div class="clean-product-card">
+              <div>
+                <div class="clean-product-icon-wrap" style="background: #ffffff;">
+                  <img src="${s.img}" alt="${s.titulo}" onerror="this.src='assets/servicios_digitales.png'" />
+                </div>
+                <h3 class="clean-product-name">${s.titulo}</h3>
+                <p class="clean-product-desc">${s.desc}</p>
               </div>
-              <h3 class="clean-product-name">Tarjeta de Débito MICOOPE Visa</h3>
-              <p class="clean-product-desc">
-                Realiza compras en comercios afiliados a VISA en Guatemala y el extranjero, notificaciones por mensajes de texto y cobertura integral contra fraude o clonación.
-              </p>
+              <a href="${s.linkUrl}" ${s.linkUrl.startsWith('http') ? 'target="_blank" rel="noopener noreferrer"' : ''} class="clean-btn-card-action">
+                ${s.linkText}
+              </a>
             </div>
-            <a href="tel:77957795" class="clean-btn-card-action">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-              Solicitar Tarjeta (PBX)
-            </a>
-          </div>
-
-          <!-- 2. Descarga la App MICOOPE en Línea -->
-          <div class="clean-product-card">
-            <div>
-              <div class="clean-product-icon-wrap" style="background: #ffffff;">
-                <img src="assets/micoope_enlinea.png" alt="MICOOPE en Línea" onerror="this.src='assets/servicios_digitales.png'" />
-              </div>
-              <h3 class="clean-product-name">Descarga la App MICOOPE en Línea</h3>
-              <p class="clean-product-desc">
-                Banca web y móvil 24/7. Realiza consultas de saldos, transferencias directas, pago de préstamos y servicios básicos al instante sin hacer filas.
-              </p>
-            </div>
-            <a href="https://micoopeenlinea.com.gt" target="_blank" rel="noopener noreferrer" class="clean-btn-card-action" style="background:#173789;color:#ffffff;border-color:#173789;">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-              Ingresar a la Plataforma
-            </a>
-          </div>
-
-          <!-- 3. Tarjeta de Crédito MICOOPE Visa -->
-          <div class="clean-product-card">
-            <div>
-              <div class="clean-product-icon-wrap">
-                <img src="assets/tarjeta_debito.png" alt="Tarjeta Crédito MICOOPE Visa" onerror="this.src='assets/servicios_digitales.png'" />
-              </div>
-              <h3 class="clean-product-name">Tarjeta de Crédito MICOOPE Visa</h3>
-              <p class="clean-product-desc">
-                Tienes hasta 55 días para pagar, membresía gratis de por vida, tarjeta VISA internacional, cobertura por fraude, robo o extravío y la tasa más baja del mercado.
-              </p>
-            </div>
-            <a href="tel:77957795" class="clean-btn-card-action">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-              Solicitar Crédito (PBX)
-            </a>
-          </div>
-
-          <!-- 4. Cajeros Modernos Automáticos -->
-          <div class="clean-product-card">
-            <div>
-              <div class="clean-product-icon-wrap">
-                <svg width="74" height="74" viewBox="0 0 24 24" fill="#173789">
-                  <path d="M8,9h8v10H8V9z M20,2H4C2.9,2 2,2.9 2,4v16c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V4C22,2.9 21.1,2 20,2z M20,19c0,0.55 -0.45,1 -1,1H5c-0.55,0 -1,-0.45 -1,-1V5c0,-0.55 0.45,-1 1,-1h14c0.55,0 1,0.45 1,1V19z M18,6H6v2h12V6z"/>
-                </svg>
-              </div>
-              <h3 class="clean-product-name">Cajeros Modernos Automáticos</h3>
-              <p class="clean-product-desc">
-                Consulta de saldos, retiros y depósitos en efectivo; sin cobros por comisión en cajeros propios COLUA. Servicio disponible las 24 horas, los 365 días del año.
-              </p>
-            </div>
-            <button class="clean-btn-card-action" onclick="window.coluaRouter ? window.coluaRouter.navigate('sec_agencias') : (window.location.hash='#sec_agencias')">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-              Ver Agencias con Cajero
-            </button>
-          </div>
-
-          <!-- 5. Descarga la App Fri -->
-          <div class="clean-product-card">
-            <div>
-              <div class="clean-product-icon-wrap">
-                <img src="assets/logo_fri.png" alt="App Fri" onerror="this.src='assets/servicios_digitales.png'" />
-              </div>
-              <h3 class="clean-product-name">Descarga la App Fri</h3>
-              <p class="clean-product-desc">
-                Envía, recibe y solicita dinero de forma rápida e inmediata entre tu cooperativa y bancos del sistema usando únicamente el número de celular vinculado a tu cuenta.
-              </p>
-            </div>
-            <a href="https://fri.gt" target="_blank" rel="noopener noreferrer" class="clean-btn-card-action">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
-              Conocer App Fri
-            </a>
-          </div>
-
-          <!-- 6. Red de Agentes COLUA MICOOPE -->
-          <div class="clean-product-card">
-            <div>
-              <div class="clean-product-icon-wrap">
-                <svg width="74" height="74" viewBox="0 0 24 24" fill="#173789">
-                  <path d="M20,4H4v2h16V4z M21,14v-2l-1,-5H4l-1,5v2h1v6h10v-6h4v6h2v-6H21z M12,18H6v-4h6V18z"/>
-                </svg>
-              </div>
-              <h3 class="clean-product-name">Red de Agentes COLUA MICOOPE</h3>
-              <p class="clean-product-desc">
-                Cobra tus remesas, paga tu préstamo y tarjeta de crédito, realiza depósitos y retiros de tus cuentas de ahorro en puntos autorizados cerca de tu hogar.
-              </p>
-            </div>
-            <button class="clean-btn-card-action" onclick="window.coluaRouter ? window.coluaRouter.navigate('sec_agencias') : (window.location.hash='#sec_agencias')">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-              Localizar Red de Agentes
-            </button>
-          </div>
+          `).join('')}
         </div>
 
         <!-- ==============================================
@@ -662,15 +592,30 @@ class SectionsComponent {
   }
 
   // --- 6. TUS 6 BENEFICIOS ---
-  renderBeneficios() {
-    const beneficios = [
-      { titulo: "Renta Diaria por Hospitalización", desc: "Apoyo económico diario en caso de ser internado en hospital público o privado.", img: "assets/renta_diaria.png" },
-      { titulo: "Apoyo Quirúrgico", desc: "Apoyo económico para cubrir gastos médicos incurridos por intervenciones quirúrgicas.", img: "assets/apoyo_quirurgico.png" },
-      { titulo: "Servicio Funerario", desc: "Sepelio digno y ataúd fúnebre para tranquilidad de la familia del asociado.", img: "assets/servicio_funerario.png" },
-      { titulo: "Seguro de Ahorrantes", desc: "Devolución de ahorros más seguro sobre depósitos hasta por Q150,000.00.", img: "assets/beneficio_de_ahorrantes.png" },
-      { titulo: "Seguro de Deudores", desc: "Cobertura de saldos insolutos de crédito vigente hasta por Q200,000.00 en siniestro.", img: "assets/beneficio_de_deudores.png" },
-      { titulo: "Beneficio de Oro", desc: "Apoyo económico único para asociados mayores de 70 años con lealtad cooperativa.", img: "assets/beneficio_de_oro.png" }
-    ];
+  async renderBeneficios(sectionId) {
+    let beneficios = [];
+    try {
+      const dbItems = await window.coluaRepository.getItemsBySection(sectionId || 'sec_beneficios');
+      if (dbItems && dbItems.length > 0) {
+        beneficios = dbItems.map(i => ({
+          titulo: i.title,
+          desc: i.description || i.shortDescription || '',
+          img: i.imageUrl || i.imagePath || 'assets/beneficios.png',
+          tag: i.subtitle || '✓ Incluido al ser Asociado'
+        }));
+      }
+    } catch(e) { console.error(e); }
+
+    if (beneficios.length === 0) {
+      beneficios = [
+        { titulo: "Renta Diaria por Hospitalización", desc: "Apoyo económico diario en caso de ser internado en hospital público o privado.", img: "assets/renta_diaria.png" },
+        { titulo: "Apoyo Quirúrgico", desc: "Apoyo económico para cubrir gastos médicos incurridos por intervenciones quirúrgicas.", img: "assets/apoyo_quirurgico.png" },
+        { titulo: "Servicio Funerario", desc: "Sepelio digno y ataúd fúnebre para tranquilidad de la familia del asociado.", img: "assets/servicio_funerario.png" },
+        { titulo: "Seguro de Ahorrantes", desc: "Devolución de ahorros más seguro sobre depósitos hasta por Q150,000.00.", img: "assets/beneficio_de_ahorrantes.png" },
+        { titulo: "Seguro de Deudores", desc: "Cobertura de saldos insolutos de crédito vigente hasta por Q200,000.00 en siniestro.", img: "assets/beneficio_de_deudores.png" },
+        { titulo: "Beneficio de Oro", desc: "Apoyo económico único para asociados mayores de 70 años con lealtad cooperativa.", img: "assets/beneficio_de_oro.png" }
+      ];
+    }
 
     return `
       <div class="clean-subpage-container">
@@ -692,7 +637,7 @@ class SectionsComponent {
                 <p class="clean-product-desc">${b.desc}</p>
               </div>
               <div style="font-size:0.78rem;font-weight:600;color:#2563eb;">
-                ✓ Incluido al ser Asociado
+                ${b.tag || '✓ Incluido al ser Asociado'}
               </div>
             </div>
           `).join('')}
@@ -703,7 +648,104 @@ class SectionsComponent {
 
   // --- 7. SOSTENIBILIDAD & FORMACIÓN ---
   // --- 7. SOSTENIBILIDAD COOPERATIVA (4 EJES ESTRATÉGICOS) ---
-  renderSostenibilidad() {
+  async renderSostenibilidad(sectionId) {
+    let customItems = [];
+    try {
+      customItems = await window.coluaRepository.getItemsBySection(sectionId || 'sec_sostenibilidad');
+    } catch(e) { console.error(e); }
+
+    const colors = [
+      { color: "#634794", bg: "#f5f3ff", border: "#ddd6fe" },
+      { color: "#0284C7", bg: "#f0f9ff", border: "#bae6fd" },
+      { color: "#E42A67", bg: "#fdf2f8", border: "#fbcfe8" },
+      { color: "#EF8819", bg: "#fff7ed", border: "#fed7aa" }
+    ];
+
+    if (customItems && customItems.length > 0) {
+      const itemsWithBlocks = await Promise.all(customItems.map(async (item, idx) => {
+        const blocks = await window.coluaRepository.getBlocksByItemId(item.id);
+        const style = colors[idx % colors.length];
+        return { item, blocks, style, idx };
+      }));
+
+      return `
+        <div class="sostenibilidad-page-wrapper">
+          <!-- Encabezado Institucional -->
+          <header class="sostenibilidad-hero">
+            <h1 class="sostenibilidad-hero-title">Sostenibilidad Cooperativa</h1>
+            <p class="sostenibilidad-hero-lead">
+              Impulsamos acciones orientadas al desarrollo social, educativo, cultural y productivo con el propósito de fortalecer el bienestar de nuestros asociados y comunidades. A través de espacios de participación, formación y convivencia, promovemos la cooperación, la solidaridad y el compromiso comunitario.
+            </p>
+            <p class="sostenibilidad-hero-sub">
+              Nuestras iniciativas se organizan en ejes estratégicos:
+            </p>
+          </header>
+
+          <!-- Los Ejes Estratégicos Dinámicos con sus Bloques/Programas -->
+          <div class="sostenibilidad-ejes-list">
+            ${itemsWithBlocks.map(({ item, blocks, style, idx }) => `
+              <article class="sostenibilidad-eje-card" style="--eje-color: ${style.color}; --eje-soft-bg: ${style.bg}; --eje-soft-border: ${style.border};">
+                <div class="sostenibilidad-eje-img-box">
+                  <img src="${item.imageUrl || 'assets/noticia_taller_finanzas.jpg'}" alt="${item.title}" class="sostenibilidad-eje-img" onerror="this.src='assets/programa_wachalal.png'" />
+                </div>
+                <div class="sostenibilidad-eje-content">
+                  <div class="sostenibilidad-eje-header">
+                    <span class="sostenibilidad-eje-kicker">${item.subtitle || `Eje Estratégico 0${idx + 1}`}</span>
+                    <h2 class="sostenibilidad-eje-title">${item.title}</h2>
+                    <p class="sostenibilidad-eje-desc">${item.description || ''}</p>
+                  </div>
+
+                  ${blocks.length > 0 ? `
+                    <div class="sostenibilidad-programas-grid">
+                      ${blocks.map(b => {
+                        const parts = (b.content || '').split(':');
+                        const bTitle = parts.length > 1 ? parts[0].trim() : (b.title || 'Iniciativa');
+                        const bDesc = parts.length > 1 ? parts.slice(1).join(':').trim() : b.content;
+                        return `
+                          <div class="sostenibilidad-programa-item">
+                            <div class="sostenibilidad-prog-icon">
+                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                            </div>
+                            <div class="sostenibilidad-prog-info">
+                              <h3 class="sostenibilidad-prog-title">${bTitle}</h3>
+                              <p class="sostenibilidad-prog-desc">${bDesc}</p>
+                            </div>
+                          </div>
+                        `;
+                      }).join('')}
+                    </div>
+                  ` : ''}
+                </div>
+              </article>
+            `).join('')}
+          </div>
+
+          <!-- Banner de Participación y Convocatoria -->
+          <section class="nosotros-contact-banner">
+            <div class="nosotros-contact-top">
+              <div class="nosotros-contact-left">
+                <span class="nosotros-sec-eyebrow" style="color:#173789;">PARTICIPACIÓN COMUNITARIA</span>
+                <h2 class="nosotros-sec-title" style="margin-bottom:0.4rem;">¿Deseas vincular a tu comunidad o escuela?</h2>
+                <p style="font-size:0.9rem;color:#64748b;line-height:1.55;">
+                  Comunícate a nuestro PBX central o visita tu agencia COLUA más cercana para conocer fechas y convocatorias de nuestros talleres, cursos y programas de becas.
+                </p>
+              </div>
+              <div class="nosotros-contact-actions">
+                <a href="tel:77957795" class="nosotros-btn-pbx">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  PBX: 7795-7795
+                </a>
+                <button class="nosotros-btn-agencias" onclick="window.coluaRouter ? window.coluaRouter.navigate('sec_agencias') : (window.location.hash='#sec_agencias')">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  Ver Agencias
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      `;
+    }
+
     return `
       <div class="sostenibilidad-page-wrapper">
         <!-- Encabezado Institucional -->
@@ -971,7 +1013,40 @@ class SectionsComponent {
   }
 
   // --- 8. NOSOTROS (IDENTIDAD Y GOBERNANZA COOPERATIVA) ---
-  renderNosotros() {
+  async renderNosotros(sectionId) {
+    let customItems = [];
+    try {
+      customItems = await window.coluaRepository.getItemsBySection(sectionId || 'sec_nosotros');
+    } catch(e) { console.error(e); }
+
+    if (customItems && customItems.length > 0) {
+      return `
+        <div class="nosotros-page-wrapper">
+          <header class="nosotros-header-block">
+            <span class="nosotros-kicker">IDENTIDAD Y GOBERNANZA COOPERATIVA</span>
+            <h1 class="nosotros-main-title">Nosotros: El lado humano de los ahorros y créditos</h1>
+            <p class="nosotros-main-sub">
+              Más de 50 años construyendo desarrollo socioeconómico, confianza y bienestar integral para las comunidades y familias.
+            </p>
+          </header>
+          <div class="clean-product-grid" style="margin-top: 2rem;">
+            ${customItems.map(item => `
+              <div class="clean-product-card">
+                <div>
+                  <div class="clean-product-icon-wrap">
+                    <img src="${item.imageUrl || 'assets/colua_edificio.png'}" alt="${item.title}" onerror="this.src='assets/distintivo_colua.png'" />
+                  </div>
+                  <h3 class="clean-product-name">${item.title}</h3>
+                  <p class="clean-product-desc">${item.description || item.subtitle || ''}</p>
+                </div>
+                ${item.buttonText ? `<a href="${item.targetSectionId || '#'}" class="clean-btn-card-action">${item.buttonText}</a>` : ''}
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
     return `
       <div class="nosotros-page-wrapper">
         <!-- Encabezado Principal de Identidad -->
@@ -1215,6 +1290,20 @@ class SectionsComponent {
     `;
   }
 
+  renderBlocksHtml(blocks) {
+    if (!blocks || blocks.length === 0) return '';
+    
+    return blocks.map(b => {
+      // Devolver los bloques como texto simple sin estilos invasivos, tal como solicitó el usuario
+      return `
+        <div style="margin-bottom: 16px; padding: 0 1rem;">
+          ${b.title ? `<h3 style="color: #0f172a; margin: 0 0 8px 0; font-size: 1.15rem;">${b.title}</h3>` : ''}
+          <p style="color: #475569; font-size: 0.95rem; line-height: 1.6; margin: 0;">${b.content || ''}</p>
+        </div>
+      `;
+    }).join('');
+  }
+
   // --- 9. RENDERIZADOR GENÉRICO CMS ---
   async renderDynamicGeneric(sectionId) {
     const repo = window.coluaRepository;
@@ -1224,26 +1313,20 @@ class SectionsComponent {
     const title = sec ? sec.title : sectionId;
     const desc = sec ? sec.description : '';
 
-    const items = await repo.getItemsBySection(sectionId);
-    const blocks = await repo.getBlocksBySection(sectionId);
+    const items = await repo.getItemsBySection(sec ? sec.id : sectionId);
 
     const itemsHtml = items.map(i => `
       <div class="clean-product-card">
         <div>
+          ${i.imageUrl || i.imagePath || i.icon ? `
+            <div class="clean-product-icon-wrap" style="margin-bottom: 12px; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #f1f5f9;">
+              ${i.imageUrl || i.imagePath ? `<img src="${i.imageUrl || i.imagePath}" alt="${i.title}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'"/>` : `<span style="font-size: 2rem;">${i.icon}</span>`}
+            </div>
+          ` : ''}
           <h3 class="clean-product-name">${i.title}</h3>
           ${i.subtitle ? `<span style="font-size:0.8rem;font-weight:600;color:#2563eb;">${i.subtitle}</span>` : ''}
           <p class="clean-product-desc" style="margin-top:0.5rem;">${i.description || i.shortDescription || ''}</p>
         </div>
-      </div>
-    `).join('');
-
-    const blocksHtml = blocks.map(b => `
-      <div class="clean-product-card">
-        <div>
-          ${b.title ? `<h3 class="clean-product-name">${b.title}</h3>` : ''}
-          <p class="clean-product-desc">${b.content || ''}</p>
-        </div>
-        ${b.buttonText ? `<a href="${b.buttonAction || 'tel:77957795'}" class="clean-btn-card-action">${b.buttonText}</a>` : ''}
       </div>
     `).join('');
 
@@ -1256,10 +1339,9 @@ class SectionsComponent {
 
         <div class="clean-product-grid">
           ${itemsHtml}
-          ${blocksHtml}
         </div>
 
-        ${items.length === 0 && blocks.length === 0 ? `
+        ${items.length === 0 ? `
           <div style="text-align:center;padding:3rem 1rem;color:#64748b;background:#f8fafc;border-radius:12px;border:1px dashed #e2e8f0;">
             <p>No hay contenido publicado en esta sección todavía.</p>
           </div>

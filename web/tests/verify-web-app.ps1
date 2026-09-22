@@ -157,7 +157,7 @@ Assert-Check (Test-Path $maskable192Path) "Icono maskable 192x192 generado y pre
 Assert-Check ($manifestContent -match 'distintivo_colua_maskable_192\.png') "Icono maskable 192x192 registrado en manifest.json"
 Assert-Check (-not ($manifestContent -match '297x290')) "Icono no cuadrado 297x290 excluido de manifest para no romper el WebAPK minting server"
 Assert-Check ($swJsContent -match 'distintivo_colua_maskable_192\.png') "Icono maskable 192x192 cacheado en sw.js"
-Assert-Check ($swJsContent -match 'colua-web-digital-v4\.4\.0') "Version de cache actualizada a v4.4.0 en sw.js"
+Assert-Check ($swJsContent -match 'colua-web-digital-v5') "Version de cache actualizada en sw.js (v5.x)"
 Assert-Check (-not ($rootIndexContent -match '<link rel="manifest"')) "Redireccionador raiz sin manifest incongruente de scope"
 Assert-Check ($appJsContent -match '_setupHistoryNavigation') "Metodo _setupHistoryNavigation implementado en app.js"
 Assert-Check ($appJsContent -match "window\.addEventListener\('popstate'") "Manejador popstate para boton atras / gestos implementado en app.js"
@@ -166,13 +166,53 @@ Assert-Check ($noticiasJsContent -match 'closeLightboxFromHistory') "Lightbox de
 Assert-Check ($sidebarJsContent -match 'coluaSidebar') "Drawer lateral sincronizado con historial del navegador"
 Assert-Check ($chatbotJsContent -match 'coluaChatbot') "Mesa de ayuda sincronizada con historial del navegador"
 
+# 10. Validar Editor Canvas, Duplicar, Selector de Tipos y Publicacion CMS
+Write-Host "`n10. Validando Editor Canvas, Duplicar, Selector de Tipos y Centro de Publicacion:" -ForegroundColor Yellow
+$adminJsContent = Get-Content (Join-Path $webDir "js\components\admin.js") -Raw
+$repoJsContent = Get-Content (Join-Path $webDir "js\repository.js") -Raw
+
+Assert-Check ($repoJsContent -match 'duplicateContentItem') "Metodo duplicateContentItem implementado en repository.js"
+Assert-Check ($adminJsContent -match 'duplicate-item-btn') "Boton Duplicar tarjeta implementado en admin.js"
+Assert-Check ($adminJsContent -match 'showSelectElementTypeModal') "Modal selector de tipo de elemento implementado en admin.js"
+Assert-Check ($adminJsContent -match 'financial_product') "Tipo Tarjeta de Producto (PRO) soportado en admin.js"
+Assert-Check ($adminJsContent -match 'benefit_list') "Tipo Lista de Beneficios soportado en admin.js"
+Assert-Check ($adminJsContent -match 'strategic_axis') "Tipo Eje Estrategico soportado en admin.js"
+Assert-Check ($appJsContent -match 'modal-drag-handle') "Drag handle para gestos tactiles implementado en app.js"
+Assert-Check ($repoJsContent -match 'rollbackToPreviousVersion') "Metodo rollbackToPreviousVersion implementado en repository.js"
+Assert-Check ($repoJsContent -match 'verifyPublicationIntegrity') "Metodo verifyPublicationIntegrity implementado en repository.js"
+Assert-Check ($repoJsContent -match 'resetToFactoryDefaults') "Metodo resetToFactoryDefaults implementado en repository.js"
+Assert-Check ($repoJsContent -match 'sec_comunidad') "Filtro activo para eliminar residuos de sec_comunidad presente"
+
+# 11. Validar Ocultar/Mostrar, Borradores Reales, Auditoria e Instrucciones
+Write-Host "`n11. Validando Ocultar/Mostrar, Borradores Reales, Auditoria e Instrucciones:" -ForegroundColor Yellow
+Assert-Check ($repoJsContent -match "toggleContentItemVisibility") "Metodo toggleContentItemVisibility implementado en repository.js"
+Assert-Check ($adminJsContent -match "renderTabInstrucciones") "Metodo renderTabInstrucciones implementado en admin.js"
+Assert-Check ($adminJsContent -match "toggle-item-visibility-btn") "Boton directo de Ocultar/Mostrar tarjeta presente en admin.js"
+Assert-Check ($adminJsContent -match "item-is-draft") "Checkbox de Guardar como Borrador implementado en modal de admin.js"
+Assert-Check ($adminJsContent -match "Para qué sirve la Bitácora de Auditoría") "Explicacion institucional de Auditoria implementada en admin.js"
+Assert-Check ($adminJsContent -match "MANUAL COMPLETO Y GUÍA CMS") "Manual oficial CMS implementado en pestana Instrucciones"
+
+Write-Host "`n12. Validando Métricas Reales de Publicación y Sincronización de Nombres de Sección:" -ForegroundColor Yellow
+Assert-Check ($repoJsContent -match "totalNew\s*=") "Calculo total de elementos nuevos implementado"
+Assert-Check ($repoJsContent -match "totalEdited\s*=") "Calculo total coherente de editados (secciones + tarjetas + bloques) implementado"
+Assert-Check ($repoJsContent -match "incompleteItems\s*=\s*items\.filter\(i\s*=>\s*\(!i\.title") "Conteo de incompletos restringido estrictamente a elementos sin titulo"
+Assert-Check ($repoJsContent -match "bottom_nav_slots\.forEach") "Sincronizacion automatica de nombres en barra inferior al editar seccion"
+Assert-Check ($adminJsContent -match "slot\.label\s*\|\|\s*\(homeSec\s*\?\s*homeSec\.title") "Visualizacion dinamica del nombre de Inicio / Inicio 1 en slot 3 de barra inferior"
+
+Write-Host "`n13. Validando Alertas sin botón OK, Métricas Reales, Switch Cloud y Eliminación de Usuarios:" -ForegroundColor Yellow
+Assert-Check ($repoJsContent -match "deleteUser\(userId\)") "Metodo deleteUser implementado en repository.js"
+Assert-Check ($adminJsContent -match "btn-delete-user") "Boton Eliminar usuario implementado en tabla RBAC de admin.js"
+Assert-Check ($adminJsContent -match "switch-slider") "Switch animado con slider y knob para Sincronizacion Cloud implementado"
+Assert-Check ($repoJsContent -match "purgeLegacyMockAnalytics") "Purga automatica de metricas mock/falsas implementada en repository.js"
+Assert-Check ($adminJsContent -match "showConfirmButton:\s*false") "Alertas SweetAlert autolimpiables sin boton OK implementadas"
+
 Write-Host "`n====================================================" -ForegroundColor Cyan
 $pct = [Math]::Round(($passedTests / $totalTests) * 100)
 Write-Host "RESULTADOS: $passedTests de $totalTests pruebas pasadas ($pct por ciento)" -ForegroundColor Cyan
 Write-Host "====================================================" -ForegroundColor Cyan
 
 if ($passedTests -eq $totalTests) {
-    Write-Host "TODAS LAS PRUEBAS PASARON EXITOSAMENTE!" -ForegroundColor Green
+    Write-Host "TODAS LAS PRUEBAS PASARON EXITOSAMENTE (100% OK)!" -ForegroundColor Green
 } else {
     Write-Host "ALGUNAS PRUEBAS FALLARON." -ForegroundColor Red
 }

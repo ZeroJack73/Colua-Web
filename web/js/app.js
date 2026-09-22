@@ -138,11 +138,76 @@ const App = {
             m.id = 'colua-global-modal';
             m.className = 'modal-backdrop';
             m.style.display = 'none';
-            m.innerHTML = '<div class="modal-card"><button class="modal-close-btn" onclick="app.closeModal()">✕</button><div id="modal-inner-content"></div></div>';
+            m.innerHTML = `
+                <div class="modal-card">
+                    <div class="modal-drag-handle" title="Desliza hacia abajo para cerrar"></div>
+                    <button class="modal-close-btn" onclick="app.closeModal()" aria-label="Cerrar">✕</button>
+                    <div id="modal-inner-content"></div>
+                </div>
+            `;
             document.body.appendChild(m);
             m.addEventListener('click', e => { 
                 if (e.target === m) this.closeModal(); 
             });
+
+            // Soporte de Gestos Táctiles Móviles / iPhone (Swipe down to dismiss)
+            const card = m.querySelector('.modal-card');
+            if (card) {
+                let startY = 0;
+                let currentY = 0;
+                let isDragging = false;
+                let startTime = 0;
+
+                card.addEventListener('touchstart', (e) => {
+                    if (card.scrollTop > 5) return;
+                    startY = e.touches[0].clientY;
+                    currentY = startY;
+                    startTime = Date.now();
+                    isDragging = true;
+                    card.style.transition = 'none';
+                }, { passive: true });
+
+                card.addEventListener('touchmove', (e) => {
+                    if (!isDragging) return;
+                    currentY = e.touches[0].clientY;
+                    const diffY = currentY - startY;
+                    if (diffY > 0 && card.scrollTop <= 0) {
+                        const translateY = Math.min(diffY, 320);
+                        const opacity = Math.max(0.4, 1 - (translateY / 400));
+                        card.style.transform = `translateY(${translateY}px)`;
+                        m.style.backgroundColor = `rgba(15, 23, 42, ${0.65 * opacity})`;
+                    } else if (diffY < 0) {
+                        isDragging = false;
+                        card.style.transform = '';
+                    }
+                }, { passive: true });
+
+                card.addEventListener('touchend', (e) => {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    const diffY = currentY - startY;
+                    const timeDiff = Date.now() - startTime;
+                    const velocity = diffY / (timeDiff || 1);
+
+                    card.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease';
+
+                    if ((diffY > 75 && card.scrollTop <= 0) || (velocity > 0.45 && diffY > 25)) {
+                        card.style.transform = 'translateY(100%)';
+                        m.style.backgroundColor = 'transparent';
+                        setTimeout(() => {
+                            this.closeModal();
+                            card.style.transform = '';
+                            m.style.backgroundColor = '';
+                            card.style.transition = '';
+                        }, 220);
+                    } else {
+                        card.style.transform = '';
+                        m.style.backgroundColor = '';
+                        setTimeout(() => { card.style.transition = ''; }, 250);
+                    }
+                }, { passive: true });
+            }
+
             this.modalEl = m;
         } else {
             this.modalEl = document.getElementById('colua-global-modal');
@@ -179,7 +244,7 @@ const App = {
                 return;
             }
 
-            // 2. Si el modal global (noticias, avisos, login, registro, perfiles, etc.) está abierto, cerrarlo
+            // 2. Si el modal global está abierto, cerrarlo
             if (this._isModalOpen) {
                 this.closeModal(true);
                 return;
@@ -196,13 +261,39 @@ const App = {
                 window.chatbotComponent.toggleChat(false, true);
                 return;
             }
-
-            // 5. Si hay una alerta SweetAlert2 abierta, cerrarla
-            if (window.Swal && typeof Swal.isVisible === 'function' && Swal.isVisible()) {
-                Swal.close();
-                return;
-            }
         });
+
+        // Soporte gesto swipe desde el borde izquierdo en iPhone / Móviles para ir atrás
+        let edgeStartX = 0;
+        let edgeStartY = 0;
+        let edgeStartTime = 0;
+        let isEdgeSwipe = false;
+
+        document.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1 && e.touches[0].clientX <= 30) {
+                edgeStartX = e.touches[0].clientX;
+                edgeStartY = e.touches[0].clientY;
+                edgeStartTime = Date.now();
+                isEdgeSwipe = true;
+            } else {
+                isEdgeSwipe = false;
+            }
+        }, { passive: true });
+
+        document.addEventListener('touchend', (e) => {
+            if (!isEdgeSwipe) return;
+            isEdgeSwipe = false;
+            const endX = e.changedTouches[0].clientX;
+            const endY = e.changedTouches[0].clientY;
+            const diffX = endX - edgeStartX;
+            const diffY = Math.abs(endY - edgeStartY);
+            const duration = Date.now() - edgeStartTime;
+
+            // Swipe horizontal desde el borde izquierdo hacia la derecha
+            if (diffX > 75 && diffY < 60 && duration < 400) {
+                window.history.back();
+            }
+        }, { passive: true });
 
         // Soporte tecla Escape en computadoras y laptops
         document.addEventListener('keydown', (e) => {
@@ -253,6 +344,13 @@ const App = {
             }
         }
 
+        const card = this.modalEl.querySelector('.modal-card');
+        if (card) {
+            card.style.transform = '';
+            card.style.transition = '';
+            card.scrollTop = 0;
+        }
+        this.modalEl.style.backgroundColor = '';
         this.modalEl.style.display = 'flex';
         document.body.style.overflow = 'hidden';
 
@@ -268,6 +366,12 @@ const App = {
         if (this.modalEl) {
             this.modalEl.style.display = 'none';
             document.body.style.overflow = '';
+            const card = this.modalEl.querySelector('.modal-card');
+            if (card) {
+                card.style.transform = '';
+                card.style.transition = '';
+            }
+            this.modalEl.style.backgroundColor = '';
         }
 
         if (this._isModalOpen) {
@@ -363,12 +467,12 @@ const App = {
                     this.closeModal();
                     if (window.Swal) {
                         Swal.fire({
-                            title: "¡Bienvenido!",
-                            text: "Sesión iniciada correctamente en COLUA Web Digital.",
+                            title: "¡Bienvenido Asociado!",
+                            text: `Has iniciado sesión correctamente como ${res.user?.nombre || 'Asociado'}.`,
                             icon: "success",
                             draggable: true,
                             confirmButtonColor: "#173789",
-                            confirmButtonText: "Continuar"
+                            confirmButtonText: "Continuar a mi Cuenta"
                         });
                     } else {
                         this.showToast('¡Bienvenido a COLUA Web Digital!', 'success');
@@ -377,21 +481,22 @@ const App = {
                     return;
                 }
 
-                // 2. Si es correo y contraseña válida
+                // 2. Si es correo y contraseña válida de prueba
                 if (email.includes('@') && password.length >= 4) {
                     const username = email.split('@')[0];
-                    window.authManager.saveUserSession({
+                    const newUser = {
                         userId: 'user_' + Date.now(),
                         nombre: username.charAt(0).toUpperCase() + username.slice(1),
                         email: email,
                         role: 'asociado',
                         tipoUsuario: 'ASOCIADO'
-                    });
+                    };
+                    window.authManager.saveUserSession(newUser);
                     this.closeModal();
                     if (window.Swal) {
                         Swal.fire({
-                            title: "¡Bienvenido!",
-                            text: "Sesión iniciada correctamente en COLUA Web Digital.",
+                            title: "¡Bienvenido Asociado!",
+                            text: "Has iniciado sesión correctamente.",
                             icon: "success",
                             draggable: true,
                             confirmButtonColor: "#173789",
@@ -400,15 +505,16 @@ const App = {
                     } else {
                         this.showToast('¡Sesión iniciada correctamente!', 'success');
                     }
-                    this._afterLoginSuccess();
+                    this._afterLoginSuccess(newUser);
                     return;
                 }
 
                 if (window.Swal) {
                     Swal.fire({
+                        title: "Credenciales Incorrectas",
+                        text: "El correo electrónico o la contraseña ingresada no son válidos. Por favor verifica tus credenciales.",
                         icon: "error",
-                        title: "Oops...",
-                        text: "Correo o contraseña incorrectos. Por favor verifica tus credenciales.",
+                        draggable: true,
                         confirmButtonColor: "#173789",
                         confirmButtonText: "Reintentar",
                         footer: '<a href="tel:77957795" style="color:#173789;font-weight:600;">¿Necesitas ayuda? PBX Central: 7795-7795</a>'
@@ -420,9 +526,10 @@ const App = {
                 console.error('[Login] Error:', err);
                 if (window.Swal) {
                     Swal.fire({
+                        title: "Error al Iniciar Sesión",
+                        text: "Ocurrió un problema al intentar iniciar sesión. Verifica tu conexión a internet.",
                         icon: "error",
-                        title: "Oops...",
-                        text: "Ocurrió un problema al intentar iniciar sesión. Verifica tu conexión.",
+                        draggable: true,
                         confirmButtonColor: "#173789"
                     });
                 } else {
@@ -561,6 +668,7 @@ const App = {
                         icon: "error",
                         title: "Oops...",
                         text: res.error || "No se pudo completar el registro. Intenta de nuevo.",
+                        draggable: true,
                         confirmButtonColor: "#173789",
                         footer: '<a href="tel:77957795" style="color:#173789;font-weight:600;">¿Problemas con tu registro? PBX: 7795-7795</a>'
                     });

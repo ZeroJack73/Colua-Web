@@ -6,9 +6,13 @@ class SidebarComponent {
 
   render() {
     const session = window.authManager?.getCurrentSession();
-    const isGuest = !session || session.user_role === 'GUEST';
+    const isGuest = window.authService ? window.authService.isGuest() : (!session || session.user_role === 'GUEST');
     const userName = session ? session.user_name : 'Invitado';
-    const userRoleText = isGuest ? 'Modo Consulta (Invitado)' : `Asociado No. ${session.user_id}`;
+    let assocId = session ? (session.associateId || '') : '';
+    if (!assocId || assocId.length > 8 || !/^\d+$/.test(assocId)) {
+      assocId = window.authService ? window.authService.generateAssociateId(session?.user_email || session?.user_id) : '0010025';
+    }
+    const userRoleText = isGuest ? 'Modo Consulta (Invitado)' : `Asociado No. ${assocId}`;
 
     return `
       <div class="drawer-overlay" id="drawer-overlay"></div>

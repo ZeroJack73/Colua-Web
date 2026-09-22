@@ -2,6 +2,54 @@
 
 class HomeComponent {
   async render() {
+    let sections = [];
+    try {
+      if (window.coluaRepository) {
+        const allSec = await window.coluaRepository.getAllSections();
+        sections = allSec.filter(s => s.id !== 'sec_home' && s.slug !== 'home' && s.isVisible !== false && s.isEnabled !== false && s.menuPlacement !== 'hidden' && s.id !== 'sec_comunidad' && s.slug !== 'comunidad');
+      }
+    } catch (e) {
+      console.error('Error cargando secciones dinámicas en Home:', e);
+    }
+
+    const iconMap = {
+      'inicio': 'assets/distintivo_colua.png',
+      'ahorros': 'assets/ahorros.png',
+      'credito': 'assets/credito.png',
+      'seguro': 'assets/seguro.png',
+      'remesa': 'assets/remesa.png',
+      'ubicacion': 'assets/ubicacion.png',
+      'servicios_digitales': 'assets/servicios_digitales.png',
+      'beneficios': 'assets/beneficios.png',
+      'noticias_colua': 'assets/noticias.png',
+      'public_service': 'assets/distintivo_colua.png',
+      'sostenibilidad_cooperativa': 'assets/sostenibilidad_cooperativa.png',
+      'sec_ahorros': 'assets/ahorros.png',
+      'sec_creditos': 'assets/credito.png',
+      'sec_seguros': 'assets/seguro.png',
+      'sec_remesas': 'assets/remesa.png',
+      'sec_agencias': 'assets/ubicacion.png',
+      'sec_servicios': 'assets/servicios_digitales.png',
+      'sec_beneficios': 'assets/beneficios.png',
+      'sec_noticias': 'assets/noticias.png',
+      'sec_nosotros': 'assets/distintivo_colua.png',
+      'sec_sostenibilidad': 'assets/sostenibilidad_cooperativa.png'
+    };
+
+    if (!sections || sections.length === 0) {
+      sections = [
+        { id: "sec_ahorros", title: "Cuentas de Ahorro", description: "Aportaciones, Ahorro Infantil y Planes Programados.", iconName: "ahorros" },
+        { id: "sec_creditos", title: "Créditos", description: "Productivo, Consumo, Vivienda y Vehículo con tasas justas.", iconName: "credito" },
+        { id: "sec_seguros", title: "Seguros Columna", description: "Protección de vida, gastos médicos y coberturas solidarias.", iconName: "seguro" },
+        { id: "sec_remesas", title: "Remesas Familiares", description: "Recibe directo a tu cuenta con beneficio de repatriación.", iconName: "remesa" },
+        { id: "sec_beneficios", title: "Tus 6 Beneficios", description: "Hospitalización, seguro de ahorrantes y beneficio de oro.", iconName: "beneficios" },
+        { id: "sec_agencias", title: "Agencias & PBX", description: "25 agencias en Sololá, Quiché, Totonicapán y Suchitepéquez.", iconName: "ubicacion" },
+        { id: "sec_noticias", title: "Noticias & Novedades", description: "Comunicados oficiales, jornadas y convocatorias.", iconName: "noticias_colua" },
+        { id: "sec_sostenibilidad", title: "Sostenibilidad & Formación", description: "Becas educativas, talleres y centros de innovación.", iconName: "sostenibilidad_cooperativa" },
+        { id: "sec_nosotros", title: "Nosotros", description: "Valores cooperativos, historia y propósito visionario.", iconName: "public_service" }
+      ];
+    }
+
     return `
       <div class="clean-page-container">
         
@@ -18,136 +66,30 @@ class HomeComponent {
         </header>
 
         <!-- ==============================================
-             2. CUADRÍCULA 3x3 DE 9 TARJETAS DE GESTIÓN
+             2. CUADRÍCULA DINÁMICA DE SECCIONES DE GESTIÓN
              ============================================== -->
         <section class="clean-cards-grid" aria-label="Áreas de Gestión Cooperativa">
-          
-          <!-- 1. Cuentas de Ahorro -->
-          <div class="clean-item-card" onclick="window.coluaRouter.navigate('sec_ahorros')" role="button" tabindex="0" title="Ver Cuentas de Ahorro">
-            <div class="clean-card-top-row">
-              <div class="clean-card-icon-box">
-                <img src="assets/ahorros.png" alt="Ahorros" class="clean-card-icon-img" />
+          ${sections.map(s => {
+            const iconImg = s.imageUrl || iconMap[s.id] || iconMap[s.iconName] || 'assets/distintivo_colua.png';
+            return `
+              <div class="clean-item-card" onclick="window.coluaRouter.navigate('${s.id}')" role="button" tabindex="0" title="Ver ${s.title}">
+                <div class="clean-card-top-row">
+                  <div class="clean-card-icon-box">
+                    ${iconImg.startsWith('assets/') || iconImg.startsWith('http') || iconImg.startsWith('data:') ? `
+                      <img src="${iconImg}" alt="${s.title}" class="clean-card-icon-img" onerror="this.src='assets/distintivo_colua.png'" />
+                    ` : `
+                      <span style="font-size:1.5rem;">${s.icon || '📄'}</span>
+                    `}
+                  </div>
+                  <span class="clean-card-arrow-icon">→</span>
+                </div>
+                <div class="clean-card-info-bottom">
+                  <h3 class="clean-card-title-text">${s.title}</h3>
+                  <p class="clean-card-desc-text">${s.description || s.subtitle || ''}</p>
+                </div>
               </div>
-              <span class="clean-card-arrow-icon">→</span>
-            </div>
-            <div class="clean-card-info-bottom">
-              <h3 class="clean-card-title-text">Cuentas de Ahorro</h3>
-              <p class="clean-card-desc-text">Aportaciones, Ahorro Infantil y Planes Programados.</p>
-            </div>
-          </div>
-
-          <!-- 2. Créditos -->
-          <div class="clean-item-card" onclick="window.coluaRouter.navigate('sec_creditos')" role="button" tabindex="0" title="Ver Líneas de Crédito">
-            <div class="clean-card-top-row">
-              <div class="clean-card-icon-box">
-                <img src="assets/credito.png" alt="Créditos" class="clean-card-icon-img" />
-              </div>
-              <span class="clean-card-arrow-icon">→</span>
-            </div>
-            <div class="clean-card-info-bottom">
-              <h3 class="clean-card-title-text">Créditos</h3>
-              <p class="clean-card-desc-text">Productivo, Consumo, Vivienda y Vehículo con tasas justas.</p>
-            </div>
-          </div>
-
-          <!-- 3. Seguros Columna -->
-          <div class="clean-item-card" onclick="window.coluaRouter.navigate('sec_seguros')" role="button" tabindex="0" title="Ver Seguros Columna">
-            <div class="clean-card-top-row">
-              <div class="clean-card-icon-box">
-                <img src="assets/seguro.png" alt="Seguros Columna" class="clean-card-icon-img" />
-              </div>
-              <span class="clean-card-arrow-icon">→</span>
-            </div>
-            <div class="clean-card-info-bottom">
-              <h3 class="clean-card-title-text">Seguros Columna</h3>
-              <p class="clean-card-desc-text">Protección de vida, gastos médicos y coberturas solidarias.</p>
-            </div>
-          </div>
-
-          <!-- 4. Remesas Familiares -->
-          <div class="clean-item-card" onclick="window.coluaRouter.navigate('sec_remesas')" role="button" tabindex="0" title="Ver Remesas Familiares">
-            <div class="clean-card-top-row">
-              <div class="clean-card-icon-box">
-                <img src="assets/remesa.png" alt="Remesas Familiares" class="clean-card-icon-img" />
-              </div>
-              <span class="clean-card-arrow-icon">→</span>
-            </div>
-            <div class="clean-card-info-bottom">
-              <h3 class="clean-card-title-text">Remesas Familiares</h3>
-              <p class="clean-card-desc-text">Recibe directo a tu cuenta con beneficio de repatriación.</p>
-            </div>
-          </div>
-
-          <!-- 5. Tus 6 Beneficios -->
-          <div class="clean-item-card" onclick="window.coluaRouter.navigate('sec_beneficios')" role="button" tabindex="0" title="Ver 6 Beneficios">
-            <div class="clean-card-top-row">
-              <div class="clean-card-icon-box">
-                <img src="assets/beneficios.png" alt="Tus 6 Beneficios" class="clean-card-icon-img" />
-              </div>
-              <span class="clean-card-arrow-icon">→</span>
-            </div>
-            <div class="clean-card-info-bottom">
-              <h3 class="clean-card-title-text">Tus 6 Beneficios</h3>
-              <p class="clean-card-desc-text">Hospitalización, seguro de ahorrantes y beneficio de oro.</p>
-            </div>
-          </div>
-
-          <!-- 6. Agencias & PBX -->
-          <div class="clean-item-card" onclick="window.coluaRouter.navigate('sec_agencias')" role="button" tabindex="0" title="Ver Agencias y PBX">
-            <div class="clean-card-top-row">
-              <div class="clean-card-icon-box">
-                <img src="assets/ubicacion.png" alt="Agencias & PBX" class="clean-card-icon-img" />
-              </div>
-              <span class="clean-card-arrow-icon">→</span>
-            </div>
-            <div class="clean-card-info-bottom">
-              <h3 class="clean-card-title-text">Agencias & PBX</h3>
-              <p class="clean-card-desc-text">25 agencias en Sololá, Quiché, Totonicapán y Suchitepéquez.</p>
-            </div>
-          </div>
-
-          <!-- 7. Noticias & Comunidad -->
-          <div class="clean-item-card" onclick="window.coluaRouter.navigate('sec_noticias')" role="button" tabindex="0" title="Ver Noticias">
-            <div class="clean-card-top-row">
-              <div class="clean-card-icon-box">
-                <img src="assets/noticias.png" alt="Noticias & Comunidad" class="clean-card-icon-img" />
-              </div>
-              <span class="clean-card-arrow-icon">→</span>
-            </div>
-            <div class="clean-card-info-bottom">
-              <h3 class="clean-card-title-text">Noticias & Comunidad</h3>
-              <p class="clean-card-desc-text">Comunicados oficiales, jornadas y convocatorias.</p>
-            </div>
-          </div>
-
-          <!-- 8. Sostenibilidad & Formación -->
-          <div class="clean-item-card" onclick="window.coluaRouter.navigate('sec_sostenibilidad')" role="button" tabindex="0" title="Ver Sostenibilidad">
-            <div class="clean-card-top-row">
-              <div class="clean-card-icon-box">
-                <img src="assets/sostenibilidad_cooperativa.png" alt="Sostenibilidad & Formación" class="clean-card-icon-img" />
-              </div>
-              <span class="clean-card-arrow-icon">→</span>
-            </div>
-            <div class="clean-card-info-bottom">
-              <h3 class="clean-card-title-text">Sostenibilidad & Formación</h3>
-              <p class="clean-card-desc-text">Becas educativas, talleres y programa Wachalal.</p>
-            </div>
-          </div>
-
-          <!-- 9. Nosotros -->
-          <div class="clean-item-card" onclick="window.coluaRouter.navigate('sec_nosotros')" role="button" tabindex="0" title="Conocer Sobre Nosotros">
-            <div class="clean-card-top-row">
-              <div class="clean-card-icon-box">
-                <img src="assets/distintivo_colua.png" alt="Nosotros" class="clean-card-icon-img" />
-              </div>
-              <span class="clean-card-arrow-icon">→</span>
-            </div>
-            <div class="clean-card-info-bottom">
-              <h3 class="clean-card-title-text">Nosotros</h3>
-              <p class="clean-card-desc-text">Valores cooperativos, historia y propósito visionario.</p>
-            </div>
-          </div>
-
+            `;
+          }).join('')}
         </section>
 
         <!-- ==============================================

@@ -29,10 +29,6 @@ class AuthManager {
     } else {
       matches = (inputHash.toLowerCase() === defaultHash.toLowerCase());
     }
-
-    if (matches) {
-      this.setAdminSessionActive(true);
-    }
     return matches;
   }
 
@@ -89,9 +85,17 @@ class AuthManager {
     return `${digits.substring(0, 4)} ${digits.substring(4, 9)} ${digits.substring(9, 13)}`;
   }
 
+  formatDPI(raw) {
+    return this.formatDpi(raw);
+  }
+
   isValidDpi(raw) {
     const digits = (raw || '').replace(/\D/g, '');
     return digits.length === 13;
+  }
+
+  validateDPI(raw) {
+    return this.isValidDpi(raw);
   }
 
   // --- POLÍTICAS DE CONTRASEÑA ---
@@ -123,6 +127,18 @@ class AuthManager {
     return `Colua${rand(specials)}${Math.floor(100 + Math.random() * 900)}${rand(uppers)}${rand(specials)}${rand(lowers)}`;
   }
 
+  generateAssociateId(seed) {
+    if (!seed) return '0010025';
+    let hash = 0;
+    const str = String(seed);
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash) + str.charCodeAt(i);
+      hash |= 0;
+    }
+    const positiveHash = (Math.abs(hash) % 89999) + 10000;
+    return `00${positiveHash}`;
+  }
+
   // --- SESIÓN DEL ASOCIADO O INVITADO ---
   getCurrentSession() {
     const raw = localStorage.getItem('UserPrefs') || sessionStorage.getItem('UserPrefs');
@@ -131,14 +147,27 @@ class AuthManager {
   }
 
   saveUserSession(user, remember = true) {
+    let assocId = user.associateId || user.noAsociado || user.associate_id || '';
+    if (!assocId || assocId.length > 8 || !/^\d+$/.test(assocId)) {
+      const seed = user.email || user.userId || user.uid || user.user_id || 'colua';
+      assocId = this.generateAssociateId(seed);
+    }
+
+    const email = user.email || user.user_email || '';
+    const hasEmail = Boolean(email && email.includes('@'));
+    const isGuest = !hasEmail && (user.role === 'GUEST' || user.role === 'guest' || user.role === 'invitado' || user.tipoUsuario === 'INVITADO');
+    const role = isGuest ? 'invitado' : (user.role === 'SUPER_ADMIN' || user.role === 'superadmin' ? 'superadmin' : user.role === 'ADMIN' || user.role === 'admin' ? 'admin' : 'asociado');
+    const tipo = isGuest ? 'INVITADO' : (role === 'superadmin' || role === 'admin' ? 'ADMIN' : 'ASOCIADO');
+
     const data = {
-      user_id: user.userId || user.user_id,
-      user_name: user.nombre || user.user_name || "Asociado",
-      user_phone: user.telefono || user.user_phone || "",
+      user_id: user.userId || user.user_id || user.uid,
+      user_name: user.nombre || user.user_name || user.displayName || (isGuest ? "Invitado" : "Asociado"),
+      user_phone: user.telefono || user.user_phone || user.phone || "",
       user_dpi: user.dpi || user.user_dpi || "",
-      user_email: user.email || user.user_email || "",
-      user_role: user.role || user.user_role || "MEMBER",
-      tipoUsuario: user.tipoUsuario || (user.role === 'GUEST' ? 'INVITADO' : 'ASOCIADO'),
+      user_email: email,
+      user_role: role,
+      associateId: assocId,
+      tipoUsuario: tipo,
       timestamp: Date.now()
     };
     const str = JSON.stringify(data);
@@ -166,12 +195,79 @@ class AuthManager {
     return this.clearSession();
   }
 
+  async changePassword(currentPassword, newPassword) {
+    if (!currentPassword || !newPassword) {
+      return { success: false, error: 'Completa todos los campos de contraseña.' };
+    }
+    if (newPassword.length < 6) {
+      return { success: false, error: 'La nueva contraseña debe tener al menos 6 caracteres.' };
+    }
+
+    if (this.fb && typeof this.fb.updateUserPassword === 'function') {
+      try {
+        await this.fb.updateUserPassword(currentPassword, newPassword);
+        return { success: true };
+      } catch (err) {
+        let msg = err.message || 'Error al actualizar contraseña.';
+        if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential' || (err.message && err.message.includes('password'))) {
+          msg = 'La contraseña actual ingresada es incorrecta.';
+        } else if (err.code === 'auth/weak-password') {
+          msg = 'La nueva contraseña debe tener al menos 6 caracteres.';
+        }
+        return { success: false, error: msg };
+      }
+    }
+    return { success: true };
+  }
+
   async loginWithEmail(email, password) {
     if (!password) return { success: false, error: 'Ingresa la contraseña o clave' };
     const cleanPass = password.trim();
     const cleanEmail = (email || '').trim().toLowerCase();
 
-    // 1. Verificación de Clave Universal Institucional (Acceso Super Admin)
+    // Verificación vía Firebase Auth
+    if (this.fb && typeof this.fb.loginWithEmail === 'function') {
+      try {
+        const cred = await this.fb.loginWithEmail(email, password);
+        const mail = (cred.user && cred.user.email) || email || '';
+        
+        let profile = null;
+        const repo = this.repo || window.coluaRepo || window.coluaRepository;
+        if (repo && typeof repo.obtenerPerfilUsuario === 'function') {
+          const res = await repo.obtenerPerfilUsuario(cred.user.uid, mail);
+          if (res && res.success && res.user) {
+            profile = res.user;
+          }
+        }
+
+        const isSuper = profile ? (profile.role === 'SUPER_ADMIN' || profile.tipoUsuario === 'ADMIN') : false;
+
+        const userData = {
+          userId: (profile && profile.userId) || (cred.user && cred.user.uid) || 'uid_' + Date.now(),
+          nombre: (profile && profile.nombre) || cred.user.displayName || mail.split('@')[0],
+          email: mail,
+          telefono: (profile && (profile.telefono || profile.phone)) || cred.user.phoneNumber || '',
+          dpi: (profile && profile.dpi) || '',
+          role: (profile && profile.role) || (isSuper ? 'admin' : 'asociado'),
+          associateId: (profile && (profile.associateId || profile.userId)) || '0010025',
+          tipoUsuario: (profile && profile.tipoUsuario) || (isSuper ? 'ADMIN' : 'ASOCIADO')
+        };
+        this.saveUserSession(userData);
+        return { success: true, user: userData };
+      } catch (e) {
+        return { success: false, error: e.message || 'Credenciales no válidas' };
+      }
+    }
+
+    return { success: false, error: 'Credenciales no válidas' };
+  }
+
+  async loginAdminWithCredentials(email, password) {
+    if (!password) return { success: false, error: 'Ingresa la contraseña administrativa' };
+    const cleanPass = password.trim();
+    const cleanEmail = (email || '').trim().toLowerCase();
+
+    // 1. Verificación de Clave Universal Directa
     const isMaster = await this.checkAdminMasterPassword(cleanPass);
     if (isMaster) {
       this.currentAdminSession = {
@@ -179,19 +275,14 @@ class AuthManager {
         loginTime: Date.now()
       };
       this.setAdminSessionActive(true);
-      this.saveUserSession({
-        userId: 'admin_colua_master',
-        nombre: 'Super Administrador',
-        email: cleanEmail || 'admin@colua.com.gt',
-        role: 'SUPER_ADMIN'
-      });
       return { success: true, user: this.currentAdminSession.user };
     }
 
     // 2. Verificación de Administradores y Managers autorizados en el Repositorio
-    if (window.coluaRepo && typeof window.coluaRepo.getAllUsers === 'function') {
+    const repo = this.repo || window.coluaRepo || window.coluaRepository;
+    if (repo && typeof repo.getAllUsers === 'function') {
       try {
-        const users = await window.coluaRepo.getAllUsers();
+        const users = await repo.getAllUsers();
         const matched = users.find(u => {
           const uEmail = (u.email || '').toLowerCase().trim();
           const uNombre = (u.nombre || '').toLowerCase().trim();
@@ -207,17 +298,12 @@ class AuthManager {
               uid: matched.uid || matched.id || 'usr_' + Date.now(),
               email: matched.email || cleanEmail,
               role: userRole,
-              nombre: matched.nombre || 'Administrador'
+              nombre: matched.nombre || 'Administrador',
+              associateId: matched.associateId || '0000001'
             },
             loginTime: Date.now()
           };
           this.setAdminSessionActive(true);
-          this.saveUserSession({
-            userId: matched.uid || matched.id || 'usr_' + Date.now(),
-            nombre: matched.nombre || 'Administrador',
-            email: matched.email || cleanEmail,
-            role: userRole === 'superadmin' ? 'SUPER_ADMIN' : (userRole === 'admin' ? 'ADMIN' : 'MANAGER')
-          });
           return { success: true, user: this.currentAdminSession.user };
         }
       } catch (e) {
@@ -225,24 +311,44 @@ class AuthManager {
       }
     }
 
-    // 3. Verificación vía Firebase Auth
+    // 3. Verificación de Administrador en Firebase Auth
     if (this.fb && typeof this.fb.loginWithEmail === 'function') {
       try {
         const cred = await this.fb.loginWithEmail(email, password);
         const mail = (cred.user && cred.user.email) || email || '';
-        this.saveUserSession({
-          userId: (cred.user && cred.user.uid) || 'uid_' + Date.now(),
-          nombre: mail.split('@')[0],
-          email: mail,
-          role: 'ADMIN'
-        });
-        return { success: true, user: cred.user };
+        
+        let profile = null;
+        if (repo && typeof repo.obtenerPerfilUsuario === 'function') {
+          const res = await repo.obtenerPerfilUsuario(cred.user.uid, mail);
+          if (res && res.success && res.user) {
+            profile = res.user;
+          }
+        }
+
+        const isAuthorized = profile ? (profile.role === 'SUPER_ADMIN' || profile.tipoUsuario === 'ADMIN' || profile.role === 'admin' || profile.role === 'superadmin') : (repo && typeof repo._isAdminAuthorized === 'function' ? repo._isAdminAuthorized(mail) : false);
+
+        if (isAuthorized) {
+          this.currentAdminSession = {
+            user: {
+              uid: cred.user.uid,
+              email: mail,
+              role: (profile && profile.role) || 'admin',
+              nombre: (profile && profile.nombre) || 'Administrador COLUA',
+              associateId: (profile && profile.associateId) || '0000001'
+            },
+            loginTime: Date.now()
+          };
+          this.setAdminSessionActive(true);
+          return { success: true, user: this.currentAdminSession.user };
+        } else {
+          return { success: false, error: 'Esta cuenta no tiene permisos asignados de Administrador CMS.' };
+        }
       } catch (e) {
-        return { success: false, error: e.message || 'Credenciales no válidas' };
+        return { success: false, error: e.message || 'Credenciales administrativas no válidas' };
       }
     }
 
-    return { success: false, error: 'Credenciales no válidas o no autorizadas' };
+    return { success: false, error: 'Credenciales administrativas no válidas' };
   }
 
   async registerMember(data) {
@@ -250,28 +356,72 @@ class AuthManager {
     if (!this.isValidDpi(rawDpi)) {
       return { success: false, error: 'El DPI debe tener exactamente 13 dígitos numéricos' };
     }
-    const associateNum = Math.floor(1000 + Math.random() * 9000);
-    const associateId = `00${associateNum}5`;
-    const newUser = {
-      userId: 'asoc_' + rawDpi,
-      nombre: data.name || 'Asociado COLUA',
-      telefono: data.phone || '',
-      dpi: rawDpi,
-      email: data.email || '',
-      role: 'asociado',
-      associateId: associateId,
-      tipoUsuario: 'ASOCIADO'
-    };
-    this.saveUserSession(newUser, true);
-    return { success: true, associateId, user: newUser };
+
+    let uid = 'usr_' + Date.now();
+    const email = (data.email || '').trim().toLowerCase();
+    const password = data.password || '';
+
+    // 1. Registrar en Firebase Auth si está disponible y viene contraseña
+    if (this.fb && typeof this.fb.registerWithEmail === 'function' && email && password) {
+      try {
+        const cred = await this.fb.registerWithEmail(email, password);
+        if (cred && cred.user) {
+          uid = cred.user.uid;
+        }
+      } catch (fbErr) {
+        console.warn('Registro Firebase Auth advertencia:', fbErr);
+        if (fbErr.code === 'auth/email-already-in-use') {
+          return { success: false, error: 'Este correo electrónico ya se encuentra registrado. Por favor inicia sesión.' };
+        } else if (fbErr.code === 'auth/weak-password') {
+          return { success: false, error: 'La contraseña debe tener al menos 6 caracteres.' };
+        }
+      }
+    }
+
+    // 2. Crear perfil con ID correlativo de 7 dígitos en Firestore / Repositorio
+    const repo = this.repo || window.coluaRepo || window.coluaRepository;
+    let associateId = '0000001';
+    let profileData = null;
+
+    if (repo && typeof repo.crearPerfilUsuario === 'function') {
+      try {
+        const res = await repo.crearPerfilUsuario(uid, data.name || 'Asociado COLUA', data.phone || '', rawDpi, email, false);
+        if (res && res.success && res.user) {
+          associateId = res.userId || res.user.userId || String(res.user.idNumerico || 1).padStart(7, '0');
+          profileData = res.user;
+        }
+      } catch (err) {
+        console.error('Error creando perfil en repositorio:', err);
+      }
+    }
+
+    if (!profileData) {
+      const associateNum = Math.floor(1000 + Math.random() * 9000);
+      associateId = String(associateNum).padStart(7, '0');
+      profileData = {
+        userId: associateId,
+        firebaseUid: uid,
+        nombre: data.name || 'Asociado COLUA',
+        telefono: data.phone || '',
+        dpi: this.formatDpi(rawDpi),
+        dpiNormalizado: rawDpi,
+        email: email,
+        role: 'asociado',
+        associateId: associateId,
+        tipoUsuario: 'ASOCIADO'
+      };
+    }
+
+    this.saveUserSession(profileData, true);
+    return { success: true, associateId: associateId, user: profileData };
   }
 
-  clearSession() {
+  async clearSession() {
     localStorage.removeItem('UserPrefs');
     sessionStorage.removeItem('UserPrefs');
     this.currentAdminSession = null;
     this.setAdminSessionActive(false);
-    if (this.fb && typeof this.fb.logout === 'function') this.fb.logout();
+    if (this.fb && typeof this.fb.logout === 'function') await this.fb.logout();
   }
 
   isLoggedIn() {
@@ -280,6 +430,7 @@ class AuthManager {
   }
 
   isSuperAdmin() {
+    if (!this.isAdminSessionActive()) return false;
     if (this.currentAdminSession?.user?.role === 'superadmin' || this.currentAdminSession?.user?.role === 'SUPER_ADMIN') return true;
     const s = this.getCurrentSession();
     if (!s) return false;
@@ -288,6 +439,7 @@ class AuthManager {
   }
 
   isManager() {
+    if (!this.isAdminSessionActive()) return false;
     if (this.currentAdminSession?.user?.role === 'manager' || this.currentAdminSession?.user?.role === 'MANAGER') return true;
     const s = this.getCurrentSession();
     if (!s) return false;
@@ -297,16 +449,14 @@ class AuthManager {
 
   isAdmin() {
     if (this.currentAdminSession) return true;
-    if (this.isAdminSessionActive()) return true;
-    const s = this.getCurrentSession();
-    if (!s) return false;
-    const role = (s.user_role || '').toLowerCase();
-    return this.isSuperAdmin() || this.isManager() || role === 'admin' || role === 'super_admin' || role === 'superadmin' || role === 'manager';
+    return this.isAdminSessionActive();
   }
 
   isGuest() {
     const s = this.getCurrentSession();
     if (!s) return true;
+    const email = s.user_email || '';
+    if (email && email.includes('@')) return false;
     const role = (s.user_role || s.role || '').toLowerCase();
     const tipo = (s.tipoUsuario || '').toLowerCase();
     return role === 'guest' || role === 'invitado' || tipo === 'invitado' || (s.user_id || '').startsWith('guest_');
@@ -319,17 +469,26 @@ class AuthManager {
   getCurrentUser() {
     const s = this.getCurrentSession();
     if (!s) return null;
+    let assocId = s.associateId || '';
+    if (!assocId || assocId.length > 8 || !/^\d+$/.test(assocId)) {
+      assocId = this.generateAssociateId(s.user_email || s.user_id || 'colua');
+    }
+    const isGuestUser = this.isGuest();
+    const role = isGuestUser ? 'invitado' : (s.user_role === 'superadmin' || s.user_role === 'SUPER_ADMIN' ? 'superadmin' : s.user_role === 'admin' || s.user_role === 'ADMIN' ? 'admin' : 'asociado');
+    const tipo = isGuestUser ? 'INVITADO' : (role === 'superadmin' || role === 'admin' ? 'ADMIN' : 'ASOCIADO');
+
     return {
       uid: s.user_id,
       userId: s.user_id,
-      nombre: s.user_name,
-      displayName: s.user_name,
+      nombre: s.user_name || (isGuestUser ? 'Invitado' : 'Asociado'),
+      displayName: s.user_name || (isGuestUser ? 'Invitado' : 'Asociado'),
       email: s.user_email,
-      role: s.user_role,
-      tipoUsuario: s.tipoUsuario,
+      role: role,
+      tipoUsuario: tipo,
       phone: s.user_phone,
+      telefono: s.user_phone,
       dpi: s.user_dpi,
-      associateId: s.associateId || '0010025'
+      associateId: assocId
     };
   }
 }

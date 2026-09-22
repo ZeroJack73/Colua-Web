@@ -19,6 +19,11 @@ class Router {
 
         this.currentRoute = hash;
 
+        // Registrar analítica de visitas
+        if (window.coluaRepo && window.coluaRepo.trackPageView) {
+            window.coluaRepo.trackPageView(hash);
+        }
+
         // Cerrar sidebar
         if (window.sidebarComponent && window.sidebarComponent.close) {
             window.sidebarComponent.close();

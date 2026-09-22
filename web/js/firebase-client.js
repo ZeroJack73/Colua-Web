@@ -48,6 +48,17 @@ class FirebaseClient {
     return await this.auth.sendPasswordResetEmail(email.trim());
   }
 
+  async updateUserPassword(currentPassword, newPassword) {
+    if (!this.auth || !this.auth.currentUser) throw new Error('No hay sesión activa para cambiar la contraseña.');
+    const user = this.auth.currentUser;
+    const email = user.email;
+    if (email && currentPassword && typeof firebase !== 'undefined' && firebase.auth && firebase.auth.EmailAuthProvider) {
+      const credential = firebase.auth.EmailAuthProvider.credential(email, currentPassword);
+      await user.reauthenticateWithCredential(credential);
+    }
+    return await user.updatePassword(newPassword);
+  }
+
   async logout() {
     if (!this.auth) return;
     return await this.auth.signOut();
