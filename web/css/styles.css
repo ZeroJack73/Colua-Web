@@ -6455,3 +6455,38 @@ body {
   line-height: 1.45;
   margin: 0;
 }
+
+/* CARNÉ DIGITAL & VALIDACIÓN DE BENEFICIOS */
+#card-qr-box {
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+#card-qr-box:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+}
+
+#download-card-btn:hover {
+  background: rgba(255, 255, 255, 0.28) !important;
+  transform: translateY(-1px);
+}
+
+#verify-card-btn:hover {
+  background: rgba(89, 184, 164, 0.4) !important;
+  transform: translateY(-1px);
+}
+
+@keyframes pulseCheck {
+  0% {
+    transform: scale(0.96);
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 35px rgba(16, 185, 129, 0.75);
+  }
+  100% {
+    transform: scale(0.96);
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+  }
+}
+

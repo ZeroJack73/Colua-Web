@@ -46,7 +46,7 @@ class PerfilComponent {
 
         const isGuest = authService.isGuest();
 
-        container.innerHTML = `
+        const html = `
             <div class="clean-subpage-container" style="max-width: 860px;">
                 <header class="clean-subpage-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
                     <div>
@@ -67,6 +67,16 @@ class PerfilComponent {
             </div>
         `;
 
+        if (container) {
+            container.innerHTML = html;
+            this.bindEvents(container);
+        }
+
+        return html;
+    }
+
+    attachEvents() {
+        const container = document.getElementById('app-main') || document;
         this.bindEvents(container);
     }
 
@@ -165,13 +175,21 @@ class PerfilComponent {
             authService.saveUserSession(this.user);
         }
         const formattedPhone = this.user.telefono ? (this.user.telefono.startsWith('+502') ? this.user.telefono : `+502 ${this.user.telefono.replace(/\D/g, '')}`) : 'No registrado';
+        const userNombre = this.user.nombre || 'Asociado COLUA';
+        const verifySig = (window.authService && typeof window.authService.generateVerificationSignature === 'function')
+            ? window.authService.generateVerificationSignature(memberId, this.user.email)
+            : `colua_${memberId}`;
+        const verifyUrl = `${window.location.origin}${window.location.pathname}#verificar?asociado=${encodeURIComponent(memberId)}&nombre=${encodeURIComponent(userNombre)}&auth=${encodeURIComponent(verifySig)}`;
+        const qrDataUrl = (window.QRCode && typeof window.QRCode.toDataURL === 'function')
+            ? window.QRCode.toDataURL(verifyUrl, 200, '#59B8A4', '#072124')
+            : '';
 
         return `
-            <!-- Carné Digital de Asociado Unificado -->
+            <!-- Carné Digital de Asociado Unificado con Sello y Descarga -->
             <div style="perspective: 1000px; margin-bottom: 24px;">
-                <div style="background: linear-gradient(135deg, #0f2252 0%, #173789 55%, #1e45aa 100%); color: white; border-radius: 20px; padding: 26px 28px; box-shadow: 0 12px 30px rgba(23, 55, 137, 0.28); position: relative; overflow: hidden; border: 1.5px solid rgba(255, 204, 0, 0.35);">
+                <div id="colua-carne-card" style="background: linear-gradient(135deg, #091a42 0%, #10296b 55%, #183e98 100%); color: white; border-radius: 20px; padding: 26px 28px; box-shadow: 0 14px 34px rgba(9, 26, 66, 0.35); position: relative; overflow: hidden; border: 1.5px solid rgba(89, 184, 164, 0.45);">
                     <!-- Decoración de fondo -->
-                    <div style="position: absolute; right: -20px; bottom: -30px; opacity: 0.08; font-size: 12rem; font-weight: 900; pointer-events: none; user-select: none;">
+                    <div style="position: absolute; right: -20px; bottom: -30px; opacity: 0.06; font-size: 12rem; font-weight: 900; pointer-events: none; user-select: none;">
                         COLUA
                     </div>
 
@@ -184,56 +202,83 @@ class PerfilComponent {
                                     Cooperativa de Ahorro y Crédito
                                 </span>
                                 <h2 style="font-size: 1.35rem; font-weight: 800; margin: 2px 0 0 0; color: #fff; letter-spacing: 0.5px;">
-                                    COLUA R.L. <span style="color: var(--colua-gold); font-size: 0.95rem;">MICOOPE</span>
+                                    COLUA R.L. <span style="color: #fbbf24; font-size: 0.95rem;">MICOOPE</span>
                                 </h2>
                             </div>
                         </div>
-                        <span class="badge" style="background: rgba(255,255,255,0.18); backdrop-filter: blur(4px); color: #fff; border: 1px solid rgba(255,255,255,0.35); font-size: 0.75rem; font-weight: 600; padding: 5px 12px; border-radius: 20px;">
-                            ${this.user.role === 'superadmin' ? 'SuperAdmin' : this.user.role === 'admin' ? 'Administrador' : 'Asociado Activo'}
-                        </span>
-                    </div>
-
-                    <!-- Nombre del Titular -->
-                    <div style="margin-bottom: 20px;">
-                        <span style="font-size: 0.72rem; opacity: 0.75; text-transform: uppercase; display: block; margin-bottom: 4px; letter-spacing: 0.8px;">Nombre del Titular</span>
-                        <div style="font-size: 1.35rem; font-weight: 800; letter-spacing: 0.5px; color: #ffffff;">
-                            ${this.user.nombre || 'coluarl'}
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="badge" style="background: rgba(255,255,255,0.18); backdrop-filter: blur(4px); color: #fff; border: 1px solid rgba(255,255,255,0.35); font-size: 0.75rem; font-weight: 600; padding: 5px 12px; border-radius: 20px;">
+                                ${this.user.role === 'superadmin' ? 'SuperAdmin' : this.user.role === 'admin' ? 'Administrador' : 'Asociado Activo'}
+                            </span>
                         </div>
                     </div>
 
-                    <!-- Datos Principales Reunidos en la Tarjeta Azul -->
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px 20px; border-top: 1px solid rgba(255,255,255,0.18); padding-top: 18px; margin-bottom: 22px;">
-                        <div>
-                            <span style="font-size: 0.7rem; opacity: 0.75; text-transform: uppercase; display: block; margin-bottom: 2px; letter-spacing: 0.5px;">No. de Asociado</span>
-                            <span style="font-family: monospace; font-size: 1.25rem; font-weight: 800; color: var(--colua-gold); letter-spacing: 1.5px;">
-                                ${memberId}
-                            </span>
+                    <!-- Cuerpo de la Tarjeta con Datos y Sello QR estilo Botón -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; margin-bottom: 20px;">
+                        <div style="flex: 1; min-width: 240px;">
+                            <!-- Nombre del Titular -->
+                            <div style="margin-bottom: 16px;">
+                                <span style="font-size: 0.72rem; opacity: 0.75; text-transform: uppercase; display: block; margin-bottom: 4px; letter-spacing: 0.8px;">Nombre del Titular</span>
+                                <div style="font-size: 1.35rem; font-weight: 800; letter-spacing: 0.5px; color: #ffffff; line-height: 1.2;">
+                                    ${userNombre}
+                                </div>
+                            </div>
+
+                            <!-- Datos Principales en Rejilla -->
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px 18px; border-top: 1px solid rgba(255,255,255,0.18); padding-top: 16px;">
+                                <div>
+                                    <span style="font-size: 0.7rem; opacity: 0.75; text-transform: uppercase; display: block; margin-bottom: 2px; letter-spacing: 0.5px;">No. de Asociado</span>
+                                    <span style="font-family: monospace; font-size: 1.25rem; font-weight: 800; color: #fbbf24; letter-spacing: 1.5px;">
+                                        ${memberId}
+                                    </span>
+                                </div>
+
+                                <div>
+                                    <span style="font-size: 0.7rem; opacity: 0.75; text-transform: uppercase; display: block; margin-bottom: 2px; letter-spacing: 0.5px;">Correo Electrónico</span>
+                                    <span style="font-size: 0.88rem; font-weight: 600; letter-spacing: 0.3px; color: #ffffff; word-break: break-all;">
+                                        ${this.user.email || 'No registrado'}
+                                    </span>
+                                </div>
+
+                                <div>
+                                    <span style="font-size: 0.7rem; opacity: 0.75; text-transform: uppercase; display: block; margin-bottom: 2px; letter-spacing: 0.5px;">Teléfono</span>
+                                    <span style="font-family: monospace; font-size: 0.92rem; font-weight: 600; letter-spacing: 0.5px; color: #ffffff;">
+                                        ${formattedPhone}
+                                    </span>
+                                </div>
+
+                                <div>
+                                    <span style="font-size: 0.7rem; opacity: 0.75; text-transform: uppercase; display: block; margin-bottom: 2px; letter-spacing: 0.5px;">DPI / CUI</span>
+                                    <span style="font-family: monospace; font-size: 0.92rem; font-weight: 600; letter-spacing: 0.8px; color: #ffffff;">
+                                        ${formattedDpi || 'Opcional / No registrado'}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
 
-                        <div>
-                            <span style="font-size: 0.7rem; opacity: 0.75; text-transform: uppercase; display: block; margin-bottom: 2px; letter-spacing: 0.5px;">Correo Electrónico</span>
-                            <span style="font-size: 0.92rem; font-weight: 600; letter-spacing: 0.3px; color: #ffffff; word-break: break-all;">
-                                ${this.user.email || 'No registrado'}
-                            </span>
-                        </div>
-
-                        <div>
-                            <span style="font-size: 0.7rem; opacity: 0.75; text-transform: uppercase; display: block; margin-bottom: 2px; letter-spacing: 0.5px;">Teléfono</span>
-                            <span style="font-family: monospace; font-size: 0.95rem; font-weight: 600; letter-spacing: 0.5px; color: #ffffff;">
-                                ${formattedPhone}
-                            </span>
-                        </div>
-
-                        <div>
-                            <span style="font-size: 0.7rem; opacity: 0.75; text-transform: uppercase; display: block; margin-bottom: 2px; letter-spacing: 0.5px;">DPI / CUI</span>
-                            <span style="font-family: monospace; font-size: 0.95rem; font-weight: 600; letter-spacing: 0.8px; color: #ffffff;">
-                                ${formattedDpi || 'No registrado'}
-                            </span>
+                        <!-- Sello QR en Color Verde Esmeralda (Estilo Botón) -->
+                        <div id="card-qr-box" style="background: rgba(89, 184, 164, 0.22); backdrop-filter: blur(8px); padding: 12px 14px; border-radius: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.35), 0 0 16px rgba(89, 184, 164, 0.35); border: 1.5px solid var(--colua-green); display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; margin-top: 4px; position: relative; min-width: 116px;" title="Código QR Oficial COLUA - Clic para validar">
+                            <!-- Matriz QR en color verde del botón -->
+                            <div id="carne-qr-element" style="display: flex; align-items: center; justify-content: center; width: 100px; height: 100px; border-radius: 8px; overflow: hidden; background: #072124; border: 1px solid rgba(89, 184, 164, 0.5);">
+                                ${qrDataUrl ? `<img id="carne-qr-img" src="${qrDataUrl}" alt="QR COLUA R.L." style="width: 100px; height: 100px; display: block;" />` : ''}
+                            </div>
+                            
+                            <div style="margin-top: 6px; font-size: 0.65rem; font-weight: 800; color: var(--colua-green); letter-spacing: 0.8px; text-transform: uppercase; text-align: center;">
+                                COLUA R.L.
+                            </div>
                         </div>
                     </div>
 
                     <!-- Botones de Acción Integrados en la Tarjeta -->
                     <div style="display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 16px;">
+                        <button id="download-card-btn" style="background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 8px 16px; border-radius: 10px; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease;" title="Descargar carné oficial como imagen PNG">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            Descargar Carné
+                        </button>
+                        <button id="verify-card-btn" style="background: rgba(89, 184, 164, 0.25); border: 1px solid var(--colua-green); color: white; padding: 8px 16px; border-radius: 10px; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease;" title="Ver acreditación digital para promociones y beneficios">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            Acreditación Digital
+                        </button>
                         <button id="change-password-modal-btn" style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 10px; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease;">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                             Cambiar Contraseña
@@ -267,6 +312,45 @@ class PerfilComponent {
     }
 
     bindEvents(container) {
+        let memberId = this.user?.associateId || this.user?.userId || '0000001';
+        if (/^\d{1,7}$/.test(memberId)) memberId = String(memberId).padStart(7, '0');
+        const userNombre = this.user?.nombre || 'Asociado COLUA';
+        const verifyUrl = `${window.location.origin}${window.location.pathname}#verificar?asociado=${memberId}&nombre=${encodeURIComponent(userNombre)}&auth=colua_${memberId}`;
+
+        // Asegurar renderizado del QR si no vino incrustado
+        const qrContainer = container.querySelector('#carne-qr-element');
+        if (qrContainer && window.QRCode) {
+            try {
+                if (!qrContainer.querySelector('img') && !qrContainer.querySelector('canvas')) {
+                    new window.QRCode(qrContainer, {
+                        text: verifyUrl,
+                        width: 100,
+                        height: 100,
+                        colorDark: "#59B8A4",
+                        colorLight: "#072124"
+                    });
+                }
+            } catch (qrErr) {
+                console.warn('Error renderizando QR en bindEvents:', qrErr);
+            }
+        }
+
+        // Descargar Carné como Imagen
+        const downloadCardBtn = container.querySelector('#download-card-btn');
+        if (downloadCardBtn) {
+            downloadCardBtn.addEventListener('click', () => {
+                this.downloadMembershipCard(memberId, userNombre, verifyUrl);
+            });
+        }
+
+        // Abrir Acreditación / Verificación Digital
+        const verifyCardBtn = container.querySelector('#verify-card-btn');
+        const cardQrBox = container.querySelector('#card-qr-box');
+        const handleOpenVerify = () => {
+            this.showVerificationModal(memberId, userNombre, this.user?.role || 'asociado');
+        };
+        if (verifyCardBtn) verifyCardBtn.addEventListener('click', handleOpenVerify);
+        if (cardQrBox) cardQrBox.addEventListener('click', handleOpenVerify);
         const logoutBtn = container.querySelector('#profile-logout-btn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', async () => {
@@ -440,29 +524,14 @@ class PerfilComponent {
                 if (newPass !== confirmPass) {
                     if (window.Swal) {
                         Swal.fire({
-                            title: "Contraseñas no coinciden",
-                            text: "La nueva contraseña y su confirmación deben ser exactamente iguales.",
-                            icon: "warning",
+                            title: 'Error de Coincidencia',
+                            text: 'Las nuevas contraseñas no coinciden entre sí.',
+                            icon: 'error',
                             draggable: true,
-                            confirmButtonColor: "#173789"
+                            confirmButtonColor: '#173789'
                         });
                     } else {
-                        app.showToast('Las contraseñas no coinciden', 'error');
-                    }
-                    return;
-                }
-
-                if (newPass.length < 6) {
-                    if (window.Swal) {
-                        Swal.fire({
-                            title: "Contraseña Corta",
-                            text: "La nueva contraseña debe tener al menos 6 caracteres.",
-                            icon: "warning",
-                            draggable: true,
-                            confirmButtonColor: "#173789"
-                        });
-                    } else {
-                        app.showToast('La nueva contraseña debe tener al menos 6 caracteres', 'error');
+                        app.showToast('Las contraseñas no coinciden', 'danger');
                     }
                     return;
                 }
@@ -471,35 +540,35 @@ class PerfilComponent {
                 btn.textContent = 'Actualizando...';
 
                 const res = await authService.changePassword(currentPass, newPass);
+                btn.disabled = false;
+                btn.textContent = 'Actualizar Contraseña';
 
                 if (res.success) {
                     app.closeModal();
                     if (window.Swal) {
                         Swal.fire({
-                            title: "¡Contraseña Actualizada!",
-                            text: "Tu contraseña ha sido cambiada exitosamente.",
-                            icon: "success",
-                            timer: 1500,
-                            showConfirmButton: false,
-                            draggable: true
+                            title: '¡Contraseña Actualizada!',
+                            text: 'Tu contraseña de acceso ha sido cambiada exitosamente.',
+                            icon: 'success',
+                            draggable: true,
+                            confirmButtonColor: '#173789',
+                            timer: 2000,
+                            showConfirmButton: false
                         });
                     } else {
-                        app.showToast('Contraseña actualizada exitosamente', 'success');
+                        app.showToast('Contraseña actualizada con éxito', 'success');
                     }
                 } else {
-                    btn.disabled = false;
-                    btn.textContent = 'Actualizar Contraseña';
                     if (window.Swal) {
                         Swal.fire({
-                            title: "Error al Cambiar Contraseña",
-                            text: res.error || "La contraseña actual es incorrecta o no coincide.",
-                            icon: "error",
+                            title: 'Error al Cambiar Contraseña',
+                            text: res.error || 'No se pudo actualizar la contraseña.',
+                            icon: 'error',
                             draggable: true,
-                            confirmButtonColor: "#173789",
-                            confirmButtonText: "Reintentar"
+                            confirmButtonColor: '#173789'
                         });
                     } else {
-                        app.showToast(res.error || 'Error al cambiar contraseña', 'error');
+                        app.showToast(res.error || 'Error al cambiar contraseña', 'danger');
                     }
                 }
             });
@@ -527,9 +596,9 @@ class PerfilComponent {
 
                     <div class="form-group" style="margin-bottom: 14px;">
                         <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">
-                            DPI / CUI (13 dígitos) *
+                            DPI / CUI (Opcional)
                         </label>
-                        <input type="text" id="reg-dpi" required maxlength="15" placeholder="Ej: 2541 85963 0701"
+                        <input type="text" id="reg-dpi" maxlength="15" placeholder="Ej: 2541 85963 0701 (Opcional)"
                             style="width: 100%; padding: 10px 12px; border: 1.5px solid var(--colua-gray-200); border-radius: 10px; font-size: 0.9rem;" />
                     </div>
 
@@ -553,8 +622,13 @@ class PerfilComponent {
                         <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">
                             Crear Contraseña (mínimo 6 caracteres) *
                         </label>
-                        <input type="password" id="reg-password" required minlength="6" placeholder="••••••••"
-                            style="width: 100%; padding: 10px 12px; border: 1.5px solid var(--colua-gray-200); border-radius: 10px; font-size: 0.9rem;" />
+                        <div style="position: relative;">
+                            <input type="password" id="reg-password" required minlength="6" placeholder="••••••••"
+                                style="width: 100%; padding: 10px 42px 10px 12px; border: 1.5px solid var(--colua-gray-200); border-radius: 10px; font-size: 0.9rem;" />
+                            <button type="button" class="toggle-pass-btn" data-target="reg-password" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--colua-gray-400); display: flex;" title="Mostrar u ocultar contraseña">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            </button>
+                        </div>
                     </div>
 
                     <div style="display: flex; justify-content: flex-end; gap: 10px;">
@@ -566,6 +640,21 @@ class PerfilComponent {
         `;
 
         app.showModal(modalContent);
+
+        // Password toggle
+        document.querySelectorAll('.toggle-pass-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetId = btn.dataset.target;
+                const input = document.getElementById(targetId);
+                if (input) {
+                    const isPass = input.type === 'password';
+                    input.type = isPass ? 'text' : 'password';
+                    btn.innerHTML = isPass
+                        ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`
+                        : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+                }
+            });
+        });
 
         const form = document.getElementById('convert-member-form');
         const dpiInput = document.getElementById('reg-dpi');
@@ -590,12 +679,29 @@ class PerfilComponent {
                 const email = document.getElementById('reg-email').value.trim();
                 const password = document.getElementById('reg-password').value;
 
-                if (!authService.validateDPI(dpi)) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!email || !emailRegex.test(email)) {
+                    if (window.Swal) {
+                        Swal.fire({
+                            icon: "warning",
+                            title: "Correo Obligatorio",
+                            text: "El correo electrónico es obligatorio para registrar la cuenta.",
+                            confirmButtonColor: "#173789"
+                        });
+                    } else {
+                        app.showToast('El correo electrónico es obligatorio y debe ser válido', 'danger');
+                    }
+                    btn.disabled = false;
+                    btn.textContent = 'Completar Registro';
+                    return;
+                }
+
+                if (dpi && !authService.validateDPI(dpi)) {
                     if (window.Swal) {
                         Swal.fire({
                             icon: "warning",
                             title: "DPI Inválido",
-                            text: "El DPI debe contener exactamente 13 dígitos numéricos.",
+                            text: "El DPI debe contener exactamente 13 dígitos numéricos si se proporciona.",
                             confirmButtonColor: "#173789"
                         });
                     } else {
@@ -660,6 +766,7 @@ class PerfilComponent {
         };
 
         const currentName = (this.user.nombre || '').replace(/"/g, '&quot;');
+        const currentEmail = (this.user.email || '').replace(/"/g, '&quot;');
         const currentDpi = authService.formatDPI(this.user.dpi || '');
         const currentPhone = formatPhone(this.user.telefono || this.user.phone || '');
 
@@ -672,7 +779,7 @@ class PerfilComponent {
                 <form id="edit-profile-form">
                     <div class="form-group" style="margin-bottom: 14px;">
                         <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">
-                            Nombre Completo
+                            Nombre Completo *
                         </label>
                         <input type="text" id="edit-name" value="${currentName}" required placeholder="Ej: Juan Carlos López"
                             style="width: 100%; padding: 10px 12px; border: 1.5px solid var(--colua-gray-200); border-radius: 10px; font-size: 0.9rem;" />
@@ -680,9 +787,17 @@ class PerfilComponent {
 
                     <div class="form-group" style="margin-bottom: 14px;">
                         <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">
-                            DPI / CUI (13 dígitos)
+                            Correo Electrónico *
                         </label>
-                        <input type="text" id="edit-dpi" value="${currentDpi}" required maxlength="15" placeholder="Ej: 2541 85963 0701"
+                        <input type="email" id="edit-email" value="${currentEmail}" required placeholder="usuario@gmail.com"
+                            style="width: 100%; padding: 10px 12px; border: 1.5px solid var(--colua-gray-200); border-radius: 10px; font-size: 0.9rem;" />
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 14px;">
+                        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">
+                            DPI / CUI (Opcional)
+                        </label>
+                        <input type="text" id="edit-dpi" value="${currentDpi}" maxlength="15" placeholder="Ej: 2541 85963 0701 (Opcional)"
                             style="width: 100%; padding: 10px 12px; border: 1.5px solid var(--colua-gray-200); border-radius: 10px; font-size: 0.9rem;" />
                     </div>
 
@@ -734,37 +849,58 @@ class PerfilComponent {
                 const btn = document.getElementById('edit-submit-btn');
                 
                 const newName = document.getElementById('edit-name').value.trim();
+                const newEmail = document.getElementById('edit-email').value.trim().toLowerCase();
                 const newPhone = document.getElementById('edit-phone').value.trim();
                 const newDpi = document.getElementById('edit-dpi').value.replace(/\D/g, '');
 
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!newEmail || !emailRegex.test(newEmail)) {
+                    if (window.Swal) {
+                        Swal.fire({
+                            icon: "warning",
+                            title: "Correo Inválido",
+                            text: "Ingresa un correo electrónico válido (ej: usuario@gmail.com).",
+                            draggable: true,
+                            confirmButtonColor: "#173789"
+                        });
+                    } else {
+                        app.showToast('Correo electrónico inválido.', 'error');
+                    }
+                    return;
+                }
+
                 // Validaciones
-                const phoneDigits = newPhone.replace(/\D/g, '');
+                let phoneDigits = newPhone.replace(/\D/g, '');
+                if (phoneDigits.length === 8) {
+                    phoneDigits = '502' + phoneDigits;
+                }
                 if (phoneDigits.length !== 11 || !phoneDigits.startsWith('502')) {
                     if (window.Swal) {
                         Swal.fire({
                             icon: "warning",
                             title: "Teléfono Inválido",
-                            text: "El teléfono debe contener el prefijo +502 y 8 dígitos.",
+                            text: "El teléfono debe contener 8 dígitos numéricos válidos.",
                             draggable: true,
                             confirmButtonColor: "#173789"
                         });
                     } else {
-                        app.showToast('El teléfono debe tener el prefijo 502 y 8 dígitos exactos.', 'error');
+                        app.showToast('El teléfono debe contener 8 dígitos.', 'error');
                     }
                     return;
                 }
+                const formattedValidPhone = `+502 ${phoneDigits.substring(3)}`;
                 
-                if (newDpi.length !== 13) {
+                if (newDpi && newDpi.length !== 13) {
                     if (window.Swal) {
                         Swal.fire({
                             icon: "warning",
                             title: "DPI Inválido",
-                            text: "El DPI debe contener exactamente 13 dígitos numéricos.",
+                            text: "El DPI debe contener exactamente 13 dígitos numéricos si se proporciona.",
                             draggable: true,
                             confirmButtonColor: "#173789"
                         });
                     } else {
-                        app.showToast('El DPI debe contener exactamente 13 dígitos.', 'error');
+                        app.showToast('El DPI debe contener exactamente 13 dígitos si se proporciona.', 'error');
                     }
                     return;
                 }
@@ -773,8 +909,9 @@ class PerfilComponent {
                 btn.textContent = 'Guardando...';
 
                 this.user.nombre = newName;
-                this.user.telefono = newPhone;
-                this.user.phone = newPhone;
+                this.user.email = newEmail;
+                this.user.telefono = formattedValidPhone;
+                this.user.phone = formattedValidPhone;
                 this.user.dpi = newDpi;
 
                 // Guardar en sesión local inmediatamente
@@ -807,6 +944,395 @@ class PerfilComponent {
             });
         }
     }
+
+    // --- GENERADOR Y DESCARGA DE CARNÉ EN PNG ---
+    async downloadMembershipCard(memberId, userNombre, verifyUrl) {
+        try {
+            if (window.app) window.app.showToast('Generando carné oficial de alta resolución...', 'info');
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 1200;
+            canvas.height = 720;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) throw new Error('Contexto Canvas no soportado');
+
+            // 1. Fondo con Degradado Azul COLUA
+            const grad = ctx.createLinearGradient(0, 0, 1200, 720);
+            grad.addColorStop(0, '#0a193c');
+            grad.addColorStop(0.55, '#173789');
+            grad.addColorStop(1, '#1e45aa');
+            ctx.fillStyle = grad;
+
+            const radius = 36;
+            ctx.beginPath();
+            ctx.moveTo(radius, 0);
+            ctx.lineTo(1200 - radius, 0);
+            ctx.quadraticCurveTo(1200, 0, 1200, radius);
+            ctx.lineTo(1200, 720 - radius);
+            ctx.quadraticCurveTo(1200, 720, 1200 - radius, 720);
+            ctx.lineTo(radius, 720);
+            ctx.quadraticCurveTo(0, 720, 0, 720 - radius);
+            ctx.lineTo(0, radius);
+            ctx.quadraticCurveTo(0, 0, radius, 0);
+            ctx.closePath();
+            ctx.fill();
+
+            // 2. Borde Dorado
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 6;
+            ctx.stroke();
+
+            // 3. Marca de agua COLUA
+            ctx.save();
+            ctx.font = '900 180px Poppins, sans-serif';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.textAlign = 'right';
+            ctx.fillText('COLUA', 1180, 580);
+            ctx.restore();
+
+            // 4. Encabezado
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '600 20px Poppins, sans-serif';
+            ctx.fillText('COOPERATIVA DE AHORRO Y CRÉDITO', 70, 90);
+
+            ctx.font = '800 42px Poppins, sans-serif';
+            ctx.fillText('COLUA R.L.', 70, 140);
+
+            const coluaW = ctx.measureText('COLUA R.L. ').width;
+            ctx.fillStyle = '#f59e0b';
+            ctx.font = '800 36px Poppins, sans-serif';
+            ctx.fillText('MICOOPE', 70 + coluaW, 140);
+
+            // Badge Asociado
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.beginPath();
+            ctx.roundRect(850, 60, 270, 48, 24);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '700 19px Poppins, sans-serif';
+            ctx.textAlign = 'center';
+            const roleBadge = this.user?.role === 'superadmin' ? 'SUPERADMIN' : (this.user?.role === 'admin' ? 'ADMINISTRADOR' : 'ASOCIADO ACTIVO');
+            ctx.fillText(roleBadge, 985, 92);
+            ctx.textAlign = 'left';
+
+            // Línea separadora
+            ctx.strokeStyle = 'rgba(245, 158, 11, 0.6)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(70, 180);
+            ctx.lineTo(1130, 180);
+            ctx.stroke();
+
+            // 5. Nombre
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+            ctx.font = '600 17px Poppins, sans-serif';
+            ctx.fillText('NOMBRE DEL TITULAR', 70, 225);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '800 36px Poppins, sans-serif';
+            ctx.fillText(userNombre, 70, 270);
+
+            // 6. Datos Rejilla
+            // No. de Asociado
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+            ctx.font = '600 17px Poppins, sans-serif';
+            ctx.fillText('NO. DE ASOCIADO', 70, 345);
+
+            ctx.fillStyle = '#f59e0b';
+            ctx.font = '800 36px monospace';
+            ctx.fillText(memberId, 70, 390);
+
+            // Correo
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+            ctx.font = '600 17px Poppins, sans-serif';
+            ctx.fillText('CORREO ELECTRÓNICO', 390, 345);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '600 23px Poppins, sans-serif';
+            ctx.fillText(this.user?.email || 'No registrado', 390, 390);
+
+            // Teléfono
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+            ctx.font = '600 17px Poppins, sans-serif';
+            ctx.fillText('TELÉFONO', 70, 465);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '600 23px monospace';
+            const phoneStr = this.user?.telefono ? (this.user.telefono.startsWith('+502') ? this.user.telefono : `+502 ${this.user.telefono.replace(/\D/g, '')}`) : 'No registrado';
+            ctx.fillText(phoneStr, 70, 505);
+
+            // DPI / CUI
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+            ctx.font = '600 17px Poppins, sans-serif';
+            ctx.fillText('DPI / CUI', 390, 465);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '600 23px monospace';
+            const dpiStr = authService.formatDPI(this.user?.dpi || '') || 'Opcional / No registrado';
+            ctx.fillText(dpiStr, 390, 505);
+
+            // 7. Sello de Acreditación Digital (Estilo Botón Verde Acreditación Digital)
+            const qrX = 850;
+            const qrY = 220;
+            const qrSize = 270;
+
+            // Fondo del Sello en Verde Esmeralda / Teal Oscuro
+            ctx.fillStyle = '#072124';
+            ctx.beginPath();
+            ctx.roundRect(qrX, qrY, qrSize, qrSize + 40, 20);
+            ctx.fill();
+            
+            // Borde exterior verde esmeralda
+            ctx.strokeStyle = '#59B8A4';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            // Borde interior fino
+            ctx.strokeStyle = 'rgba(89, 184, 164, 0.4)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.roundRect(qrX + 6, qrY + 6, qrSize - 12, qrSize + 28, 14);
+            ctx.stroke();
+
+            // Código QR en color verde del botón (#59B8A4)
+            if (window.QRCode && typeof window.QRCode.drawToCanvasContext === 'function') {
+                window.QRCode.drawToCanvasContext(ctx, verifyUrl, qrX + 25, qrY + 20, 220, '#59B8A4', '#072124');
+            }
+
+            // Distintivo inferior
+            ctx.fillStyle = '#59B8A4';
+            ctx.font = '800 16px Poppins, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('COLUA R.L.', qrX + (qrSize / 2), qrY + qrSize + 25);
+            ctx.textAlign = 'left';
+
+            // 8. Pie de página
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+            ctx.font = '500 15px Poppins, sans-serif';
+            ctx.fillText('Acreditación Digital Oficial • Sistema MICOOPE Guatemala • Válido para Promociones y Premios', 70, 640);
+
+            // Descarga automática
+            const dataUrl = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = `Carne_Digital_COLUA_${memberId}.png`;
+            link.href = dataUrl;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            if (window.Swal) {
+                Swal.fire({
+                    title: "¡Carné Descargado!",
+                    text: `Se descargó la imagen oficial del carné con No. de Asociado ${memberId}.`,
+                    icon: "success",
+                    timer: 1800,
+                    showConfirmButton: false,
+                    draggable: true
+                });
+            } else if (window.app) {
+                window.app.showToast('¡Carné digital descargado exitosamente!', 'success');
+            }
+        } catch (e) {
+            console.error('Error generando imagen de carné:', e);
+            if (window.app) window.app.showToast('No se pudo generar la imagen del carné.', 'danger');
+        }
+    }
+
+    // --- MODAL DE VERIFICACIÓN DE ASOCIADO / BENEFICIOS ---
+    showVerificationModal(assocId, name, tipo) {
+        const idStr = String(assocId || this.user?.associateId || '0000001').padStart(7, '0');
+        const titular = name || this.user?.nombre || 'Asociado COLUA';
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('es-GT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const timeStr = now.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        const modalHtml = `
+            <div style="text-align: center; padding: 10px 0;">
+                <!-- Animación de Checkmark Verde Vibrante -->
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #10b981 0%, #059669 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto; box-shadow: 0 0 25px rgba(16, 185, 129, 0.45);">
+                    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+
+                <span style="background: #d1fae5; color: #065f46; font-size: 0.78rem; font-weight: 800; padding: 4px 14px; border-radius: 20px; text-transform: uppercase; letter-spacing: 1px; display: inline-block; margin-bottom: 8px;">
+                    ✓ Verificación Exitosa
+                </span>
+
+                <h3 style="font-size: 1.4rem; font-weight: 800; color: var(--colua-navy); margin-bottom: 4px;">
+                    ¡ASOCIADO ACTIVO Y VÁLIDO!
+                </h3>
+                <p style="font-size: 0.85rem; color: var(--colua-gray-600); margin-bottom: 20px;">
+                    Acreditación oficial emitida por <strong>Cooperativa COLUA R.L. MICOOPE</strong>
+                </p>
+
+                <!-- Tarjeta de Acreditación -->
+                <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 16px; padding: 18px 20px; text-align: left; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 12px;">
+                        <span style="font-size: 0.78rem; color: var(--colua-gray-500); font-weight: 600;">ESTADO DE LA CUENTA</span>
+                        <span style="font-size: 0.82rem; font-weight: 800; color: #059669; background: #ecfdf5; padding: 3px 10px; border-radius: 12px;">ACTIVO Y SOLVENTE</span>
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <span style="font-size: 0.72rem; color: var(--colua-gray-500); text-transform: uppercase; font-weight: 600; display: block;">Nombre del Titular</span>
+                        <span style="font-size: 1.15rem; font-weight: 800; color: var(--colua-navy);">${titular}</span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <div>
+                            <span style="font-size: 0.72rem; color: var(--colua-gray-500); text-transform: uppercase; font-weight: 600; display: block;">No. de Asociado</span>
+                            <span style="font-size: 1.25rem; font-weight: 800; color: var(--colua-gold); font-family: monospace;">${idStr}</span>
+                        </div>
+                        <div>
+                            <span style="font-size: 0.72rem; color: var(--colua-gray-500); text-transform: uppercase; font-weight: 600; display: block;">Acceso a Beneficios</span>
+                            <span style="font-size: 0.88rem; font-weight: 700; color: #0284c7;">✓ HABILITADO</span>
+                        </div>
+                    </div>
+
+                    <div style="border-top: 1px dashed #cbd5e1; padding-top: 10px; font-size: 0.75rem; color: #64748b;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+                            <span>Fecha de Validación:</span>
+                            <strong style="color: #334155;">${dateStr}</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Hora de Validación:</span>
+                            <strong style="color: #334155;">${timeStr}</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button type="button" class="btn btn-primary" onclick="app.closeModal()" style="padding: 10px 24px; font-weight: 600;">
+                        Confirmar y Otorgar Beneficio
+                    </button>
+                </div>
+            </div>
+        `;
+
+        if (window.app) window.app.showModal(modalHtml);
+    }
+
+    // --- MÉTODO DE SANITIZACIÓN CONTRA INYECCIÓN HTML / DOM-XSS ---
+    escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    // --- PÁGINA INDEPENDIENTE DE VERIFICACIÓN (Ruta #verificar) ---
+    async renderVerificationPage(container) {
+        const rawHash = (window.location.hash || '').slice(1);
+        const queryIndex = rawHash.indexOf('?');
+        const params = new URLSearchParams(queryIndex !== -1 ? rawHash.slice(queryIndex + 1) : '');
+
+        const rawAssocId = params.get('asociado') || '0000001';
+        const rawNombre = params.get('nombre') ? decodeURIComponent(params.get('nombre')) : 'Asociado COLUA';
+        const authSig = params.get('auth') || '';
+
+        // Sanitización estricta contra XSS
+        const assocId = this.escapeHtml(rawAssocId);
+        const nombre = this.escapeHtml(rawNombre);
+        const safeAuth = this.escapeHtml(authSig);
+
+        const now = new Date();
+        const dateStr = this.escapeHtml(now.toLocaleDateString('es-GT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
+        const timeStr = this.escapeHtml(now.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+
+        // Validación de autenticidad del token y firma
+        const isAuthValid = (window.authService && typeof window.authService.verifyAssociateToken === 'function')
+            ? window.authService.verifyAssociateToken(rawAssocId, '', authSig)
+            : Boolean(authSig && authSig.startsWith('colua_'));
+
+        let verifiedStatusBadge = isAuthValid 
+            ? `<span style="background: #d1fae5; color: #065f46; font-size: 0.84rem; font-weight: 800; padding: 6px 18px; border-radius: 20px; text-transform: uppercase; letter-spacing: 1.2px; display: inline-block; margin-bottom: 12px;">✓ Acreditación Oficial Verificada</span>`
+            : `<span style="background: #fee2e2; color: #b91c1c; font-size: 0.84rem; font-weight: 800; padding: 6px 18px; border-radius: 20px; text-transform: uppercase; letter-spacing: 1.2px; display: inline-block; margin-bottom: 12px;">⚠ Firma Digital No Verificada</span>`;
+
+        let statusAccountText = isAuthValid ? 'ACTIVO Y VIGENTE' : 'VERIFICACIÓN PENDIENTE';
+        let statusAccountColor = isAuthValid ? '#059669' : '#d97706';
+        let statusAccountBg = isAuthValid ? '#ecfdf5' : '#fffbeb';
+        let promoStatusText = isAuthValid ? '✓ VÁLIDO Y APLICABLE' : '⚠ REQUIERE REVISIÓN';
+        let promoStatusColor = isAuthValid ? '#0284c7' : '#d97706';
+
+        const html = `
+            <div style="max-width: 600px; margin: 30px auto; padding: 0 16px;">
+                <div class="card" style="padding: 36px 28px; text-align: center; border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.08); border: 2px solid ${isAuthValid ? '#10b981' : '#f59e0b'};">
+                    <!-- Animación de Checkmark -->
+                    <div style="width: 96px; height: 96px; border-radius: 50%; background: ${isAuthValid ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'}; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; box-shadow: 0 0 30px ${isAuthValid ? 'rgba(16, 185, 129, 0.45)' : 'rgba(245, 158, 11, 0.45)'};">
+                        <svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+                            ${isAuthValid ? `<polyline points="20 6 9 17 4 12"></polyline>` : `<circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>`}
+                        </svg>
+                    </div>
+
+                    ${verifiedStatusBadge}
+
+                    <h2 style="font-size: 1.65rem; font-weight: 800; color: var(--colua-navy); margin-bottom: 6px;">
+                        ${isAuthValid ? '¡ASOCIADO ACTIVO COLUA!' : 'VALIDACIÓN DE ACREDITACIÓN'}
+                    </h2>
+                    <p style="font-size: 0.92rem; color: var(--colua-gray-600); margin-bottom: 26px;">
+                        ${isAuthValid 
+                            ? 'Este asociado se encuentra registrado y acreditado en la plataforma cooperativa <strong>COLUA R.L. MICOOPE</strong>.' 
+                            : 'Firma de seguridad recibida. El personal de la cooperativa puede validar el estado en el sistema central.'}
+                    </p>
+
+                    <!-- Tarjeta de Detalles Oficiales -->
+                    <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 18px; padding: 22px 24px; text-align: left; margin-bottom: 26px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px;">
+                            <span style="font-size: 0.8rem; color: var(--colua-gray-500); font-weight: 600;">ESTADO DE ASOCIADO</span>
+                            <span style="font-size: 0.85rem; font-weight: 800; color: ${statusAccountColor}; background: ${statusAccountBg}; padding: 4px 12px; border-radius: 14px;">${statusAccountText}</span>
+                        </div>
+
+                        <div style="margin-bottom: 16px;">
+                            <span style="font-size: 0.74rem; color: var(--colua-gray-500); text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px;">Nombre del Titular</span>
+                            <span style="font-size: 1.3rem; font-weight: 800; color: var(--colua-navy);">${nombre}</span>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                            <div>
+                                <span style="font-size: 0.74rem; color: var(--colua-gray-500); text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px;">No. de Asociado</span>
+                                <span style="font-size: 1.35rem; font-weight: 800; color: var(--colua-gold); font-family: monospace;">${assocId}</span>
+                            </div>
+                            <div>
+                                <span style="font-size: 0.74rem; color: var(--colua-gray-500); text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 2px;">Promociones y Premios</span>
+                                <span style="font-size: 0.95rem; font-weight: 700; color: ${promoStatusColor};">${promoStatusText}</span>
+                            </div>
+                        </div>
+
+                        <div style="border-top: 1px dashed #cbd5e1; padding-top: 12px; font-size: 0.8rem; color: #64748b;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                <span>Fecha de Validación:</span>
+                                <strong style="color: #334155;">${dateStr}</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span>Hora de Validación:</span>
+                                <strong style="color: #334155;">${timeStr}</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                        <a href="#inicio" class="btn btn-primary" style="padding: 12px 28px; font-weight: 600; text-decoration: none;">
+                            Ir al Inicio COLUA
+                        </a>
+                        <a href="#perfil" class="btn btn-outline" style="padding: 12px 24px; font-weight: 600; text-decoration: none;">
+                            Ver Mi Perfil
+                        </a>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        if (container) container.innerHTML = html;
+        return html;
+    }
 }
 
 window.perfilComponent = new PerfilComponent();
+

@@ -1,27 +1,80 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Permitir lectura pública de todo el contenido informativo (Ahorros, Créditos, Agencias, etc.)
-    match /sections/{document=**} { allow read: if true; }
-    match /content_items/{document=**} { allow read: if true; }
-    match /content_blocks/{document=**} { allow read: if true; }
-    match /agencias/{document=**} { allow read: if true; }
-    match /navigation_items/{document=**} { allow read: if true; }
-    match /categories/{document=**} { allow read: if true; }
-    match /global_config/{document=**} { allow read: if true; }
-
-    // Permitir lectura y escritura en usuarios y systemCounters para usuarios autenticados (incluyendo anónimos)
-    match /usuarios/{userId=**} {
-      allow read, write: if request.auth != null;
+    // Función auxiliar para verificar si el usuario es administrador
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.admin == true ||
+        request.auth.token.role == 'admin' ||
+        request.auth.token.role == 'superadmin' ||
+        (exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.tipoUsuario == 'ADMIN')
+      );
     }
+
+    // 1. Contenido informativo público (Solo lectura general, escritura restringida a administradores)
+    match /sections/{document=**} { 
+      allow read: if true; 
+      allow write: if isAdmin();
+    }
+    match /content_items/{document=**} { 
+      allow read: if true; 
+      allow write: if isAdmin();
+    }
+    match /content_blocks/{document=**} { 
+      allow read: if true; 
+      allow write: if isAdmin();
+    }
+    match /agencias/{document=**} { 
+      allow read: if true; 
+      allow write: if isAdmin();
+    }
+    match /navigation_items/{document=**} { 
+      allow read: if true; 
+      allow write: if isAdmin();
+    }
+    match /categories/{document=**} { 
+      allow read: if true; 
+      allow write: if isAdmin();
+    }
+    match /global_config/{document=**} { 
+      allow read: if true; 
+      allow write: if isAdmin();
+    }
+
+    // 2. Colección de usuarios: Protección contra IDOR/BOLA
+    match /usuarios/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && (
+        request.auth.uid == userId ||
+        (resource != null && resource.data.firebaseUid == request.auth.uid) ||
+        isAdmin()
+      );
+
+      // Subcolección de dispositivos del usuario
+      match /dispositivos/{dispId} {
+        allow read, write: if request.auth != null && (
+          request.auth.uid == userId ||
+          isAdmin()
+        );
+      }
+    }
+
+    // 3. Contadores de sistema y auditoría
     match /systemCounters/{document=**} {
       allow read, write: if request.auth != null;
     }
+    match /audit_logs/{document=**} {
+      allow read: if isAdmin();
+      allow create: if request.auth != null;
+      allow update, delete: if false; // Inmutable para preservar integridad
+    }
 
-    // Solo el administrador autenticado puede realizar cambios en otros documentos
+    // 4. Regla por defecto para otros documentos
     match /{document=**} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.token.admin == true;
+      allow write: if isAdmin();
     }
   }
 }

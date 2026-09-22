@@ -428,8 +428,13 @@ const App = {
                     <label style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:4px;color:var(--colua-gray-700);">
                         Contraseña
                     </label>
-                    <input type="password" id="login-password" required placeholder="••••••••"
-                        style="width:100%;padding:10px 12px;border:1.5px solid var(--colua-gray-200);border-radius:10px;font-size:0.9rem;font-family:inherit;box-sizing:border-box;" />
+                    <div style="position:relative;display:flex;align-items:center;">
+                        <input type="password" id="login-password" required placeholder="••••••••"
+                            style="width:100%;padding:10px 42px 10px 12px;border:1.5px solid var(--colua-gray-200);border-radius:10px;font-size:0.9rem;font-family:inherit;box-sizing:border-box;" />
+                        <button type="button" id="toggle-login-pass" style="position:absolute;right:10px;background:none;border:none;cursor:pointer;color:#64748b;padding:4px;display:flex;align-items:center;justify-content:center;" title="Mostrar u ocultar contraseña">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;font-weight:600;font-size:0.95rem;">
@@ -449,6 +454,17 @@ const App = {
 
         const emailInput = document.getElementById('login-email');
         const passInput = document.getElementById('login-password');
+        const toggleLoginPass = document.getElementById('toggle-login-pass');
+
+        if (toggleLoginPass && passInput) {
+            toggleLoginPass.addEventListener('click', () => {
+                const isPass = passInput.type === 'password';
+                passInput.type = isPass ? 'text' : 'password';
+                toggleLoginPass.innerHTML = isPass
+                    ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`
+                    : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+            });
+        }
 
         // Botón Registrarse
         document.getElementById('btn-to-register')?.addEventListener('click', () => {
@@ -470,9 +486,9 @@ const App = {
                             title: "¡Bienvenido Asociado!",
                             text: `Has iniciado sesión correctamente como ${res.user?.nombre || 'Asociado'}.`,
                             icon: "success",
-                            draggable: true,
-                            confirmButtonColor: "#173789",
-                            confirmButtonText: "Continuar a mi Cuenta"
+                            timer: 1500,
+                            showConfirmButton: false,
+                            draggable: true
                         });
                     } else {
                         this.showToast('¡Bienvenido a COLUA Web Digital!', 'success');
@@ -498,9 +514,9 @@ const App = {
                             title: "¡Bienvenido Asociado!",
                             text: "Has iniciado sesión correctamente.",
                             icon: "success",
-                            draggable: true,
-                            confirmButtonColor: "#173789",
-                            confirmButtonText: "Continuar"
+                            timer: 1500,
+                            showConfirmButton: false,
+                            draggable: true
                         });
                     } else {
                         this.showToast('¡Sesión iniciada correctamente!', 'success');
@@ -562,9 +578,9 @@ const App = {
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
                     <div>
                         <label style="display:block;font-size:0.82rem;font-weight:600;margin-bottom:4px;color:var(--colua-gray-700);">
-                            DPI (13 dígitos) *
+                            DPI (Opcional)
                         </label>
-                        <input type="text" id="reg-dpi" required maxlength="15" placeholder="2541 85963 0701"
+                        <input type="text" id="reg-dpi" maxlength="15" placeholder="2541 85963 0701"
                             style="width:100%;padding:9px 12px;border:1.5px solid var(--colua-gray-200);border-radius:10px;font-size:0.88rem;font-family:inherit;box-sizing:border-box;" />
                     </div>
                     <div>
@@ -588,8 +604,13 @@ const App = {
                     <label style="display:block;font-size:0.82rem;font-weight:600;margin-bottom:4px;color:var(--colua-gray-700);">
                         Contraseña *
                     </label>
-                    <input type="password" id="reg-password" required minlength="6" placeholder="Mínimo 6 caracteres"
-                        style="width:100%;padding:9px 12px;border:1.5px solid var(--colua-gray-200);border-radius:10px;font-size:0.88rem;font-family:inherit;box-sizing:border-box;" />
+                    <div style="position:relative;display:flex;align-items:center;">
+                        <input type="password" id="reg-password" required minlength="6" placeholder="Mínimo 6 caracteres"
+                            style="width:100%;padding:9px 42px 9px 12px;border:1.5px solid var(--colua-gray-200);border-radius:10px;font-size:0.88rem;font-family:inherit;box-sizing:border-box;" />
+                        <button type="button" id="toggle-reg-pass" style="position:absolute;right:10px;background:none;border:none;cursor:pointer;color:#64748b;padding:4px;display:flex;align-items:center;justify-content:center;" title="Mostrar u ocultar contraseña">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </button>
+                    </div>
                 </div>
 
                 <button type="submit" id="reg-submit-btn" class="btn btn-primary" style="width:100%;padding:11px;font-weight:600;font-size:0.95rem;">
@@ -614,6 +635,19 @@ const App = {
             });
         }
 
+        // Toggle Password
+        const regPassInput = document.getElementById('reg-password');
+        const toggleRegPass = document.getElementById('toggle-reg-pass');
+        if (toggleRegPass && regPassInput) {
+            toggleRegPass.addEventListener('click', () => {
+                const isPass = regPassInput.type === 'password';
+                regPassInput.type = isPass ? 'text' : 'password';
+                toggleRegPass.innerHTML = isPass
+                    ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`
+                    : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+            });
+        }
+
         // Volver a login
         document.getElementById('btn-to-login')?.addEventListener('click', () => {
             this.showLoginModal();
@@ -631,16 +665,32 @@ const App = {
             const email = document.getElementById('reg-email')?.value.trim() || '';
             const password = document.getElementById('reg-password')?.value || '';
 
-            if (!window.authService.validateDPI(dpi)) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email || !emailRegex.test(email)) {
+                if (window.Swal) {
+                    Swal.fire({
+                        icon: "warning",
+                        title: "Correo Obligatorio",
+                        text: "El correo electrónico es obligatorio para registrar tu cuenta en la base de datos.",
+                        confirmButtonColor: "#173789"
+                    });
+                } else {
+                    this.showToast('El correo electrónico es obligatorio y debe ser válido', 'danger');
+                }
+                if (btn) { btn.disabled = false; btn.textContent = 'Crear Cuenta'; }
+                return;
+            }
+
+            if (dpi && !window.authService.validateDPI(dpi)) {
                 if (window.Swal) {
                     Swal.fire({
                         icon: "warning",
                         title: "DPI Inválido",
-                        text: "El DPI debe contener exactamente 13 dígitos numéricos.",
+                        text: "El DPI debe contener exactamente 13 dígitos numéricos si se proporciona.",
                         confirmButtonColor: "#173789"
                     });
                 } else {
-                    this.showToast('El DPI debe contener 13 dígitos numéricos', 'danger');
+                    this.showToast('El DPI debe contener 13 dígitos numéricos si se proporciona', 'danger');
                 }
                 if (btn) { btn.disabled = false; btn.textContent = 'Crear Cuenta'; }
                 return;
@@ -654,9 +704,9 @@ const App = {
                         title: "¡Registro Exitoso!",
                         text: `Bienvenido a COLUA MICOOPE. Tu No. de Asociado oficial asignado es ${res.associateId}`,
                         icon: "success",
-                        draggable: true,
-                        confirmButtonColor: "#173789",
-                        confirmButtonText: "Continuar a mi Cuenta"
+                        timer: 1800,
+                        showConfirmButton: false,
+                        draggable: true
                     });
                 } else {
                     this.showToast(`¡Registro exitoso! Tu No. de Asociado es ${res.associateId}`, 'success');

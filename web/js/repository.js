@@ -1310,19 +1310,20 @@ class ColuaRepository {
       }
     }
 
-    const cleanDpiDigits = rawDpi.replace(/\D/g, '');
+    const cleanDpiDigits = (rawDpi || '').replace(/\D/g, '');
     const formattedDpi = cleanDpiDigits.length === 13
       ? `${cleanDpiDigits.substring(0, 4)} ${cleanDpiDigits.substring(4, 9)} ${cleanDpiDigits.substring(9, 13)}`
-      : rawDpi;
-    const cleanPhone = telefono.replace(/\D/g, '');
+      : (cleanDpiDigits || '');
+    const cleanPhone = (telefono || '').replace(/\D/g, '');
     const phoneDigits = cleanPhone.startsWith('502') ? cleanPhone.substring(3) : cleanPhone;
-    const isAdminEmail = this._isAdminAuthorized(email);
+    const cleanEmail = (email || '').toLowerCase().trim();
+    const isAdminEmail = this._isAdminAuthorized(cleanEmail);
 
     // Esquema Canónico Estricto (Idéntico a Android)
     const profileData = {
       dpi: formattedDpi,
       dpiNormalizado: cleanDpiDigits,
-      email: email.toLowerCase().trim(),
+      email: cleanEmail,
       estadoCuenta: "ACTIVA",
       fechaRegistro: new Date(),
       firebaseUid: uid,
@@ -1496,81 +1497,60 @@ class ColuaRepository {
   // --- GESTIÓN DE USUARIOS Y ROLES (RBAC) ---
   async getAllUsers() {
     const db = this.getLocalDb();
-    if (!db.usuarios || db.usuarios.length === 0) {
-      db.usuarios = [
-        {
-          uid: 'superadmin_master',
-          id: 'superadmin_master',
-          nombre: 'Super Administrador COLUA',
-          email: 'admin@colua.com.gt',
-          role: 'superadmin',
-          tipoUsuario: 'ADMIN',
-          dpi: '0000 00000 0000',
-          associateId: '0000001'
-        },
-        {
-          uid: 'mgr_content_01',
-          id: 'mgr_content_01',
-          nombre: 'Manager de Contenidos y Medios',
-          email: 'manager@colua.com.gt',
-          role: 'manager',
-          tipoUsuario: 'ADMIN',
-          dpi: '1111 22222 3333',
-          associateId: '0000002'
-        },
-        {
-          uid: 'asoc_demo_01',
-          id: 'asoc_demo_01',
-          nombre: 'Asociado Demostrativo',
-          email: 'asociado@colua.com.gt',
-          role: 'asociado',
-          tipoUsuario: 'ASOCIADO',
-          dpi: '2541 85963 0701',
-          associateId: '0010025'
-        }
-      ];
-      this.saveLocalDb(db);
-    }
-
-    let usersList = [...db.usuarios];
+    let usersList = db.usuarios || [];
 
     if (this.fb && this.fb.db) {
       try {
-        const snap = await this._withTimeout(this.fb.collection('usuarios').get(), 3000);
-        if (!snap.empty) {
-          const remoteDocs = snap.docs.map(d => ({
-            docId: d.id,
-            uid: d.id,
-            id: d.id,
-            ...d.data()
-          }));
-          const usersMap = new Map();
-          remoteDocs.forEach(u => {
-            const key = u.docId || u.id || u.uid || u.firebaseUid || u.email;
-            usersMap.set(key, u);
+        const snap = await this._withTimeout(this.fb.collection('usuarios').get(), 4000);
+        if (snap && !snap.empty) {
+          const remoteDocs = snap.docs.map(d => {
+            const data = d.data() || {};
+            const cleanDpi = data.dpi || data.dpiNormalizado || '';
+            const numId = data.idNumerico !== undefined && data.idNumerico !== null
+              ? String(data.idNumerico).padStart(7, '0')
+              : (data.userId || data.associateId || (/^\d{1,7}$/.test(d.id) ? String(d.id).padStart(7, '0') : '0000001'));
+            
+            const roleStr = (data.tipoUsuario || data.role || 'ASOCIADO').toUpperCase();
+            const isElevated = roleStr === 'ADMIN' || data.role === 'superadmin' || data.role === 'admin' || data.role === 'manager';
+            const roleKey = isElevated ? (data.role || 'admin') : 'asociado';
+
+            return {
+              ...data,
+              docId: d.id,
+              uid: d.id,
+              id: d.id,
+              firebaseUid: data.firebaseUid || d.id,
+              nombre: data.nombre || data.displayName || (data.email ? data.email.split('@')[0] : 'Asociado COLUA'),
+              email: data.email || 'Sin correo',
+              telefono: data.telefono || data.telefonoCompleto || data.phone || '',
+              dpi: cleanDpi,
+              associateId: numId,
+              tipoUsuario: isElevated ? 'ADMIN' : 'ASOCIADO',
+              role: roleKey
+            };
           });
-          db.usuarios.forEach(u => {
-            const key = u.docId || u.id || u.uid || u.firebaseUid || u.email;
-            if (usersMap.has(key)) {
-              usersMap.set(key, { ...usersMap.get(key), ...u });
-            } else {
-              usersMap.set(key, u);
-            }
-          });
-          usersList = Array.from(usersMap.values());
+
+          usersList = remoteDocs;
           db.usuarios = usersList;
           this.saveLocalDb(db);
+          return usersList;
+        } else if (snap && snap.empty) {
+          // Si Firestore está vacío, reflejar vacío
+          usersList = [];
+          db.usuarios = [];
+          this.saveLocalDb(db);
+          return [];
         }
       } catch (e) {
         console.warn('Firestore usuarios fallback local:', e);
       }
     }
 
-    return usersList.map((u, idx) => {
+    return (usersList || []).map((u, idx) => {
       const roleStr = (u.tipoUsuario || u.role || 'ASOCIADO').toUpperCase();
       const roleKey = roleStr.toLowerCase();
       const formattedAssociateId = u.associateId || (u.idNumerico ? String(u.idNumerico).padStart(7, '0') : (u.docId || `000000${idx + 1}`));
-      const primaryDocId = u.docId || formattedAssociateId || u.id || u.uid || `usr_${idx}`;
+      const primaryDocId = u.docId || u.uid || u.id || formattedAssociateId;
 
       return {
         ...u,
@@ -1630,6 +1610,94 @@ class ColuaRepository {
     return { success: true };
   }
 
+  // --- EDICIÓN COMPLETA DE USUARIO Y RESTABLECIMIENTO DE CLAVE (ADMIN) ---
+  async updateUserFullProfile(userId, data) {
+    const db = this.getLocalDb();
+    if (!db.usuarios) db.usuarios = [];
+    let target = db.usuarios.find(u => 
+      u.uid === userId || 
+      u.id === userId || 
+      u.docId === userId || 
+      u.userId === userId || 
+      u.firebaseUid === userId ||
+      u.associateId === userId ||
+      u.email === userId ||
+      (u.idNumerico && String(u.idNumerico).padStart(7, '0') === userId)
+    );
+
+    const cleanDpi = (data.dpi || '').replace(/\D/g, '');
+    const formattedDpi = cleanDpi.length === 13 ? `${cleanDpi.substring(0, 4)} ${cleanDpi.substring(4, 9)} ${cleanDpi.substring(9, 13)}` : (data.dpi || '');
+    const cleanPhone = (data.telefono || data.phone || '').replace(/\D/g, '');
+    const phoneDigits = cleanPhone.startsWith('502') ? cleanPhone.substring(3) : cleanPhone;
+    const phoneWithPrefix = phoneDigits ? `+502 ${phoneDigits}` : '';
+    const cleanEmail = (data.email || '').toLowerCase().trim();
+    const roleStr = (data.role || data.tipoUsuario || 'ASOCIADO').toUpperCase();
+    const isElevated = roleStr === 'ADMIN' || roleStr === 'SUPERADMIN' || roleStr === 'MANAGER';
+    const tipoStr = isElevated ? 'ADMIN' : 'ASOCIADO';
+
+    const updatedUser = {
+      ...(target || {}),
+      nombre: (data.nombre || target?.nombre || 'Usuario').trim(),
+      email: cleanEmail || target?.email || '',
+      dpi: formattedDpi,
+      dpiNormalizado: cleanDpi,
+      telefono: phoneWithPrefix,
+      phone: phoneWithPrefix,
+      role: roleStr.toLowerCase(),
+      tipoUsuario: tipoStr,
+      updatedAt: Date.now()
+    };
+
+    if (data.password && data.password.length >= 6) {
+      updatedUser.password = data.password;
+    }
+
+    if (target) {
+      Object.assign(target, updatedUser);
+    } else {
+      updatedUser.uid = userId;
+      updatedUser.docId = userId;
+      db.usuarios.push(updatedUser);
+    }
+    this.saveLocalDb(db);
+
+    // Actualizar en Firestore
+    if (this.fb && this.fb.db) {
+      try {
+        const canonicalDoc = {
+          dpi: formattedDpi,
+          dpiNormalizado: cleanDpi,
+          email: cleanEmail,
+          nombre: updatedUser.nombre,
+          telefono: phoneDigits,
+          telefonoCompleto: phoneDigits ? `+502${phoneDigits}` : '',
+          tipoUsuario: tipoStr,
+          role: roleStr.toLowerCase(),
+          ultimaActividad: new Date()
+        };
+
+        const docId = target?.docId || userId;
+        await this.fb.collection('usuarios').doc(docId).set(canonicalDoc, { merge: true });
+
+        if (target?.firebaseUid && target.firebaseUid !== docId) {
+          try {
+            await this.fb.collection('usuarios').doc(target.firebaseUid).set(canonicalDoc, { merge: true });
+          } catch (e) {}
+        }
+      } catch (err) {
+        console.warn('Error actualizando perfil completo en Firestore:', err);
+      }
+    }
+
+    await this.logAudit({
+      action: 'EDICION_USUARIO_ADMIN',
+      performedBy: window.authService?.getCurrentUser()?.nombre || 'Super Administrador',
+      details: `Usuario "${updatedUser.nombre}" (${userId}) editado por el Administrador. Rol: ${tipoStr}${data.password ? ' (Contraseña restablecida)' : ''}`
+    });
+
+    return { success: true, user: updatedUser };
+  }
+
   async deleteUser(userId) {
     const db = this.getLocalDb();
     if (!db.usuarios) db.usuarios = [];
@@ -1670,6 +1738,11 @@ class ColuaRepository {
 
         for (const dId of docsToDelete) {
           try {
+            // Eliminar subcolección dispositivos para no dejar documentos fantasma en Firestore
+            const dispSnap = await this.fb.collection('usuarios').doc(dId).collection('dispositivos').get();
+            for (const dispDoc of dispSnap.docs) {
+              await dispDoc.ref.delete();
+            }
             await this.fb.collection('usuarios').doc(dId).delete();
           } catch (e) {}
         }
@@ -1690,6 +1763,12 @@ class ColuaRepository {
         for (const res of results) {
           if (res.status === 'fulfilled' && res.value && !res.value.empty) {
             for (const docSnap of res.value.docs) {
+              try {
+                const dispSnap = await docSnap.ref.collection('dispositivos').get();
+                for (const dispDoc of dispSnap.docs) {
+                  await dispDoc.ref.delete();
+                }
+              } catch (e) {}
               await docSnap.ref.delete();
             }
           }
@@ -1703,6 +1782,71 @@ class ColuaRepository {
       action: 'ELIMINAR_USUARIO',
       performedBy: window.authService?.getCurrentUser()?.nombre || 'Super Administrador',
       details: `Usuario "${userName}" (${userId}) eliminado del sistema.`
+    });
+
+    return { success: true };
+  }
+
+  // --- REINICIAR CONTADOR DE ASOCIADOS ---
+  async resetUserCounter(newNumber = 0) {
+    if (this.fb && this.fb.db) {
+      try {
+        await this.fb.collection('systemCounters').doc('users').set({ 
+          lastAssignedNumber: newNumber,
+          updatedAt: new Date()
+        }, { merge: true });
+      } catch (e) {
+        console.warn('Error reiniciando contador en Firestore:', e);
+      }
+    }
+    return { success: true };
+  }
+
+  // --- PURGAR USUARIOS DE PRUEBA Y REINICIAR CONTADOR ---
+  async purgeAllTestUsersAndResetCounter() {
+    const db = this.getLocalDb();
+    db.usuarios = [];
+    this.saveLocalDb(db);
+
+    if (this.fb && this.fb.db) {
+      try {
+        // Purgar posibles docs de prueba del 0000001 al 0000050 y sus subcolecciones
+        for (let i = 1; i <= 50; i++) {
+          const docId = String(i).padStart(7, '0');
+          try {
+            const dispSnap = await this.fb.collection('usuarios').doc(docId).collection('dispositivos').get();
+            for (const dispDoc of dispSnap.docs) {
+              await dispDoc.ref.delete();
+            }
+            await this.fb.collection('usuarios').doc(docId).delete();
+          } catch (e) {}
+        }
+
+        // Purgar todos los documentos restantes en la colección usuarios
+        try {
+          const allUsersSnap = await this.fb.collection('usuarios').get();
+          for (const uDoc of allUsersSnap.docs) {
+            try {
+              const dispSnap = await uDoc.ref.collection('dispositivos').get();
+              for (const dispDoc of dispSnap.docs) {
+                await dispDoc.ref.delete();
+              }
+            } catch (e) {}
+            await uDoc.ref.delete();
+          }
+        } catch (e) {}
+
+        // Reiniciar contador de Firestore a 0
+        await this.resetUserCounter(0);
+      } catch (e) {
+        console.warn('Error purgando usuarios en Firestore:', e);
+      }
+    }
+
+    await this.logAudit({
+      action: 'REINICIAR_CONTADOR_ASOCIADOS',
+      performedBy: window.authService?.getCurrentUser()?.nombre || 'Super Administrador',
+      details: 'Se purgó la lista de usuarios y se reinició el contador correlativo a 0000001.'
     });
 
     return { success: true };

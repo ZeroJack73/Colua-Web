@@ -14,7 +14,8 @@ class Router {
     }
 
     async handleRouting() {
-        let hash = (window.location.hash || '').slice(1).trim().toLowerCase();
+        let rawHash = (window.location.hash || '').slice(1).trim();
+        let hash = rawHash.split('?')[0].trim().toLowerCase();
         if (!hash || hash === '/' || hash === '') hash = 'inicio';
 
         this.currentRoute = hash;
@@ -76,6 +77,14 @@ class Router {
                 case 'carne':
                     if (window.perfilComponent) {
                         html = await window.perfilComponent.render(this.container);
+                        component = window.perfilComponent;
+                    }
+                    break;
+                case 'verificar':
+                case 'validar':
+                case 'verify':
+                    if (window.perfilComponent && typeof window.perfilComponent.renderVerificationPage === 'function') {
+                        html = await window.perfilComponent.renderVerificationPage(this.container);
                         component = window.perfilComponent;
                     }
                     break;

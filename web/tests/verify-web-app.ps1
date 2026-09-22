@@ -25,6 +25,7 @@ $requiredFiles = @(
     "sw.js",
     "css\styles.css",
     "js\config.js",
+    "js\qr-generator.js",
     "js\firebase-client.js",
     "js\supabase-client.js",
     "js\repository.js",
@@ -77,8 +78,8 @@ Assert-Check ($manifestJson.theme_color -eq "#173789") "Color de tema #173789"
 Assert-Check ($manifestJson.display -eq "standalone") "Modo de visualizacion standalone"
 Assert-Check ($manifestJson.icons.Count -gt 0) "Iconos PWA definidos"
 
-# 4. Validar Logica de Seguridad y DPI
-Write-Host "`n4. Validando logica de validacion de DPI y Hashing:" -ForegroundColor Yellow
+# 4. Validar Logica de Seguridad, DPI Opcional (Menores) y Email Obligatorio
+Write-Host "`n4. Validando logica de validacion de DPI (Opcional) y Email (Obligatorio):" -ForegroundColor Yellow
 
 function Test-DPI($dpi) {
     if (-not $dpi) { return $false }
@@ -86,9 +87,19 @@ function Test-DPI($dpi) {
     return ($clean.Length -eq 13)
 }
 
+function Test-RegistrationFields($email, $dpi) {
+    $isEmailValid = ($email -and ($email -match '^[^@\s]+@[^@\s]+\.[^@\s]+$'))
+    $isDpiValid = (-not $dpi) -or (Test-DPI $dpi)
+    return ($isEmailValid -and $isDpiValid)
+}
+
 Assert-Check (Test-DPI "2541859630701") "DPI 13 digitos es valido"
 Assert-Check (-not (Test-DPI "12345")) "DPI menor a 13 digitos es invalido"
 Assert-Check (-not (Test-DPI "254185963070199")) "DPI mayor a 13 digitos es invalido"
+Assert-Check (Test-RegistrationFields "usuario@gmail.com" "") "Registro valido con email y sin DPI (menor de edad)"
+Assert-Check (Test-RegistrationFields "asociado@colua.gt" "2541859630701") "Registro valido con email y DPI de 13 digitos"
+Assert-Check (-not (Test-RegistrationFields "" "2541859630701")) "Registro rechazado si falta el correo electronico"
+Assert-Check (-not (Test-RegistrationFields "asociado@gmail.com" "12345")) "Registro rechazado con DPI incompleto cuando se ingresa"
 
 # SHA-256 de "1234"
 $sha256 = [System.Security.Cryptography.SHA256]::Create()
@@ -205,6 +216,23 @@ Assert-Check ($adminJsContent -match "btn-delete-user") "Boton Eliminar usuario 
 Assert-Check ($adminJsContent -match "switch-slider") "Switch animado con slider y knob para Sincronizacion Cloud implementado"
 Assert-Check ($repoJsContent -match "purgeLegacyMockAnalytics") "Purga automatica de metricas mock/falsas implementada en repository.js"
 Assert-Check ($adminJsContent -match "showConfirmButton:\s*false") "Alertas SweetAlert autolimpiables sin boton OK implementadas"
+
+Write-Host "`n14. Validando Carné Digital, QR de Beneficios, Descarga PNG, Ojito de Contraseña y DPI Opcional:" -ForegroundColor Yellow
+$appJsContent = Get-Content (Join-Path $webDir "js\app.js") -Raw
+$perfilJsContent = Get-Content (Join-Path $webDir "js\components\perfil.js") -Raw
+$routerJsContent = Get-Content (Join-Path $webDir "js\router.js") -Raw
+$qrJsContent = Get-Content (Join-Path $webDir "js\qr-generator.js") -Raw
+
+Assert-Check ($perfilJsContent -match "downloadMembershipCard") "Metodo de descarga de carne digital como imagen PNG implementado"
+Assert-Check ($perfilJsContent -match "showVerificationModal") "Modal de verificacion con animacion checkmark para beneficios implementado"
+Assert-Check ($perfilJsContent -match "renderVerificationPage") "Pagina independiente de validacion de asociados implementada"
+Assert-Check ($routerJsContent -match "case 'verificar'") "Ruta #verificar soportada en el enrutador SPA"
+Assert-Check ($perfilJsContent -match "carne-qr-element") "Contenedor de codigo QR institucional integrado en carné"
+Assert-Check ($appJsContent -match "toggle-login-pass") "Icono de ojito para mostrar/ocultar contraseña en login implementado"
+Assert-Check ($appJsContent -match "toggle-reg-pass") "Icono de ojito para mostrar/ocultar contraseña en registro implementado"
+Assert-Check ($appJsContent -match "DPI \(Opcional\)") "Etiqueta limpia 'DPI (Opcional)' en modal de registro de app.js"
+Assert-Check ($perfilJsContent -match "DPI / CUI \(Opcional\)") "Etiqueta limpia 'DPI / CUI (Opcional)' en perfil.js"
+Assert-Check ($qrJsContent -match "QRCode\.drawToCanvasContext") "Helper de renderizado directo de QR a Canvas implementado"
 
 Write-Host "`n====================================================" -ForegroundColor Cyan
 $pct = [Math]::Round(($passedTests / $totalTests) * 100)

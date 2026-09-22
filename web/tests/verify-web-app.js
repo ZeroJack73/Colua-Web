@@ -88,13 +88,20 @@ try {
     assert(false, `Error leyendo manifest.json: ${e.message}`);
 }
 
-// 4. Validar Lógica de Seguridad y DPI
-console.log('\n🔒 4. Validando lógica de validación de DPI y Hashing:');
+// 4. Validar Lógica de Seguridad, DPI Opcional (Menores) y Email Obligatorio
+console.log('\n🔒 4. Validando lógica de validación de DPI (Opcional) y Email (Obligatorio):');
 
 function validateDPI(dpi) {
     if (!dpi) return false;
     const clean = dpi.toString().replace(/\D/g, '');
     return clean.length === 13;
+}
+
+function validateRegistrationFields(email, dpi) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const isEmailValid = Boolean(email && emailRegex.test(email));
+    const isDpiValid = !dpi || validateDPI(dpi); // DPI opcional para menores
+    return { valid: isEmailValid && isDpiValid, isEmailValid, isDpiValid };
 }
 
 function formatDPI(dpi) {
@@ -108,6 +115,14 @@ assert(validateDPI('2541859630701'), 'DPI 13 dígitos es válido');
 assert(!validateDPI('12345'), 'DPI menor a 13 dígitos es inválido');
 assert(!validateDPI('254185963070199'), 'DPI mayor a 13 dígitos es inválido');
 assert(formatDPI('2541859630701') === '2541 85963 0701', 'Formato DPI 4-5-4 correcto');
+
+// Validar reglas de negocio: Email obligatorio, DPI opcional para menores
+assert(validateRegistrationFields('usuario@gmail.com', '').valid, 'Registro válido con correo y DPI omitido (menor de edad)');
+assert(validateRegistrationFields('menor.edad@colua.gt', null).valid, 'Registro válido con correo y DPI nulo (menor de edad)');
+assert(validateRegistrationFields('socio@colua.gt', '2541859630701').valid, 'Registro válido con correo y DPI completo de 13 dígitos');
+assert(!validateRegistrationFields('', '2541859630701').valid, 'Registro rechazado si falta el correo electrónico');
+assert(!validateRegistrationFields('correo-invalido', '2541859630701').valid, 'Registro rechazado con formato inválido de correo');
+assert(!validateRegistrationFields('socio@gmail.com', '12345').valid, 'Registro rechazado con DPI incompleto cuando se proporciona');
 
 // Validar hash clave maestra "1234"
 const masterPass = '1234';

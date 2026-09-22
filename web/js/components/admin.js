@@ -2359,12 +2359,19 @@ class AdminComponent {
                     </h2>
                     <span id="rbac-user-count-label" style="font-size: 0.84rem; color: var(--colua-gray-500);">${this.users.length} cuentas registradas en el sistema</span>
                 </div>
-                <div style="flex: 1; max-width: 520px; min-width: 280px; position: relative; display: flex; align-items: center;">
-                    <span style="position: absolute; left: 14px; display: flex; align-items: center; pointer-events: none; color: var(--colua-gray-400);">
-                        ${ADMIN_ICONS.search}
-                    </span>
-                    <input type="text" id="user-rbac-search" value="${this.userSearchFilter || ''}" placeholder="Buscar por nombre, correo, DPI o No. Asociado..." 
-                        style="width: 100%; padding: 11px 18px 11px 40px; border: 1.5px solid var(--colua-gray-300); border-radius: 12px; font-size: 0.92rem; box-shadow: var(--shadow-sm); outline: none; background: white; transition: all 0.2s ease;" />
+                <div style="display: flex; gap: 10px; align-items: center; flex: 1; max-width: 680px; justify-content: flex-end; flex-wrap: wrap;">
+                    ${isSuper ? `
+                        <button id="btn-reset-user-counter" class="btn" style="background: rgba(239, 68, 68, 0.08); border: 1.5px solid #f87171; color: #dc2626; padding: 9px 14px; border-radius: 10px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease;" title="Reinicia el contador correlativo para que el próximo asociado inicie en 0000001">
+                            ${ADMIN_ICONS.refresh} Reiniciar a 0000001
+                        </button>
+                    ` : ''}
+                    <div style="flex: 1; min-width: 260px; position: relative; display: flex; align-items: center;">
+                        <span style="position: absolute; left: 14px; display: flex; align-items: center; pointer-events: none; color: var(--colua-gray-400);">
+                            ${ADMIN_ICONS.search}
+                        </span>
+                        <input type="text" id="user-rbac-search" value="${this.userSearchFilter || ''}" placeholder="Buscar por nombre, correo, DPI o No. Asociado..." 
+                            style="width: 100%; padding: 11px 18px 11px 40px; border: 1.5px solid var(--colua-gray-300); border-radius: 12px; font-size: 0.92rem; box-shadow: var(--shadow-sm); outline: none; background: white; transition: all 0.2s ease;" />
+                    </div>
                 </div>
             </div>
 
@@ -2518,6 +2525,48 @@ class AdminComponent {
             });
         }
 
+        // Botón Reiniciar Contador a 0000001
+        const resetCounterBtn = container.querySelector('#btn-reset-user-counter');
+        if (resetCounterBtn) {
+            resetCounterBtn.addEventListener('click', async () => {
+                const res = await Swal.fire({
+                    title: '¿Reiniciar Contador a 0000001?',
+                    text: 'Esta acción purgará los registros de prueba residuales y reiniciará el contador correlativo oficial para que el próximo registro comience exactamente en 0000001.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: 'Sí, reiniciar a 0000001',
+                    cancelButtonText: 'Cancelar'
+                });
+
+                if (res.isConfirmed) {
+                    Swal.fire({
+                        title: 'Reiniciando...',
+                        text: 'Purgando referencias y restableciendo contador en Firestore...',
+                        allowOutsideClick: false,
+                        didOpen: () => Swal.showLoading()
+                    });
+
+                    await coluaRepo.purgeAllTestUsersAndResetCounter();
+
+                    this.users = await coluaRepo.getAllUsers();
+                    this.updateUserTable(container, isSuper);
+
+                    const countLabel = container.querySelector('#rbac-user-count-label');
+                    if (countLabel) countLabel.textContent = `${this.users.length} cuentas registradas en el sistema`;
+
+                    Swal.fire({
+                        title: '¡Contador Reiniciado!',
+                        text: 'El contador correlativo ha quedado en 0. Tu próximo registro recibirá el No. de Asociado 0000001.',
+                        icon: 'success',
+                        draggable: true,
+                        confirmButtonColor: '#173789'
+                    });
+                }
+            });
+        }
+
         // Controles de Paginación
         const prevBtn = container.querySelector('#rbac-prev-page');
         const nextBtn = container.querySelector('#rbac-next-page');
@@ -2644,8 +2693,11 @@ class AdminComponent {
                                     <option value="MANAGER" ${role === 'manager' ? 'selected' : ''}>Manager</option>
                                     <option value="ADMIN" ${role === 'admin' || role === 'superadmin' ? 'selected' : ''}>Administrador</option>
                                 </select>
+                                <button class="btn-edit-user" data-uid="${u.docId || u.id || u.uid || u.firebaseUid || u.associateId}" style="padding: 5px 10px; background: rgba(23, 55, 137, 0.08); color: var(--colua-navy); border: 1px solid rgba(23, 55, 137, 0.25); border-radius: 6px; font-size: 0.78rem; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight: 600; transition: all 0.2s ease;" title="Editar datos y restablecer contraseña">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg> Editar
+                                </button>
                                 <button class="btn-delete-user" data-uid="${u.docId || u.id || u.uid || u.firebaseUid || u.associateId}" data-name="${(u.nombre || u.email || 'este usuario').replace(/"/g, '&quot;')}" style="padding: 5px 10px; background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; border-radius: 6px; font-size: 0.78rem; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight: 600; transition: all 0.2s ease;" onmouseover="this.style.background='#fecaca'" onmouseout="this.style.background='#fee2e2'" title="Eliminar usuario">
-                                    <i class="fas fa-trash-alt"></i> Eliminar
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Eliminar
                                 </button>
                             </div>
                         ` : `
@@ -2674,6 +2726,19 @@ class AdminComponent {
                 this.users = await coluaRepo.getAllUsers();
                 const container = document.getElementById('admin-tab-users') || document;
                 this.updateUserTable(container, true);
+            });
+        });
+
+        // Evento Editar Usuario / Restablecer Clave
+        document.querySelectorAll('.btn-edit-user').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const uid = btn.dataset.uid;
+                const user = this.users.find(u => 
+                    u.docId === uid || u.uid === uid || u.id === uid || u.firebaseUid === uid || u.associateId === uid
+                );
+                if (user) {
+                    this.showEditUserModal(user);
+                }
             });
         });
 
@@ -2709,6 +2774,132 @@ class AdminComponent {
                 }
             });
         });
+    }
+
+    showEditUserModal(user) {
+        const uName = (user.nombre || '').replace(/"/g, '&quot;');
+        const uEmail = (user.email || '').replace(/"/g, '&quot;');
+        const uPhone = (user.telefono || user.phone || '').replace(/"/g, '&quot;');
+        const uDpi = (user.dpi || '').replace(/"/g, '&quot;');
+        const uRole = (user.tipoUsuario || user.role || 'ASOCIADO').toUpperCase();
+        const uid = user.docId || user.uid || user.id || user.firebaseUid;
+
+        const modalHtml = `
+            <div style="text-align: left;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+                    <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(23, 55, 137, 0.1); color: var(--colua-navy); display: flex; align-items: center; justify-content: center;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 1.2rem; font-weight: 700; color: var(--colua-navy); margin: 0;">Editar Usuario / Restablecer Clave</h3>
+                        <p style="font-size: 0.8rem; color: var(--colua-gray-500); margin: 2px 0 0 0;">ID Asociado: <strong>${user.associateId || user.userId || '0000001'}</strong></p>
+                    </div>
+                </div>
+
+                <form id="form-admin-edit-user">
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">Nombre Completo *</label>
+                        <input type="text" id="admin-edit-user-name" value="${uName}" required style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.88rem;" />
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                        <div>
+                            <label style="display: block; font-size: 0.82rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">Correo Electrónico (Gmail) *</label>
+                            <input type="email" id="admin-edit-user-email" value="${uEmail}" required style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.88rem;" />
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.82rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">Teléfono</label>
+                            <input type="tel" id="admin-edit-user-phone" value="${uPhone}" placeholder="+502 00000000" style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.88rem;" />
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+                        <div>
+                            <label style="display: block; font-size: 0.82rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">DPI / CUI (Opcional)</label>
+                            <input type="text" id="admin-edit-user-dpi" value="${uDpi}" maxlength="15" placeholder="0000 00000 0000" style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.88rem;" />
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.82rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">Rol en el Sistema</label>
+                            <select id="admin-edit-user-role" style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.88rem; background: white;">
+                                <option value="INVITADO" ${uRole === 'INVITADO' ? 'selected' : ''}>Invitado</option>
+                                <option value="ASOCIADO" ${uRole === 'ASOCIADO' || uRole === 'SOCIO' ? 'selected' : ''}>Asociado</option>
+                                <option value="MANAGER" ${uRole === 'MANAGER' ? 'selected' : ''}>Manager</option>
+                                <option value="ADMIN" ${uRole === 'ADMIN' || uRole === 'SUPERADMIN' ? 'selected' : ''}>Administrador</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Restablecer Contraseña -->
+                    <div style="background: rgba(23, 55, 137, 0.04); border: 1.5px dashed rgba(23, 55, 137, 0.3); border-radius: 10px; padding: 12px; margin-bottom: 18px;">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--colua-navy); margin-bottom: 3px;">
+                            Restablecer Contraseña (Opcional)
+                        </label>
+                        <p style="font-size: 0.75rem; color: var(--colua-gray-500); margin: 0 0 8px 0;">
+                            Úsalo si el administrador o asociado olvidó su clave o perdió acceso a su correo. Deja en blanco si no deseas cambiarla.
+                        </p>
+                        <input type="password" id="admin-edit-user-password" minlength="6" placeholder="Nueva contraseña (mínimo 6 caracteres)" style="width: 100%; padding: 8px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.88rem; background: white;" />
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                        <button type="button" class="btn btn-outline" onclick="app.closeModal()">Cancelar</button>
+                        <button type="submit" id="btn-save-admin-edit-user" class="btn btn-primary" style="font-weight: 600;">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        `;
+
+        app.showModal(modalHtml);
+
+        const form = document.getElementById('form-admin-edit-user');
+        if (form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const saveBtn = document.getElementById('btn-save-admin-edit-user');
+                if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Guardando...'; }
+
+                const nombre = document.getElementById('admin-edit-user-name').value.trim();
+                const email = document.getElementById('admin-edit-user-email').value.trim();
+                const phone = document.getElementById('admin-edit-user-phone').value.trim();
+                const dpi = document.getElementById('admin-edit-user-dpi').value.trim();
+                const role = document.getElementById('admin-edit-user-role').value;
+                const password = document.getElementById('admin-edit-user-password').value;
+
+                const res = await coluaRepo.updateUserFullProfile(uid, {
+                    nombre,
+                    email,
+                    phone,
+                    telefono: phone,
+                    dpi,
+                    role,
+                    tipoUsuario: role,
+                    password: password || undefined
+                });
+
+                if (res.success) {
+                    app.closeModal();
+                    Swal.fire({
+                        title: "¡Usuario Actualizado!",
+                        text: `Los datos del usuario "${nombre}" han sido actualizados exitosamente${password ? ' y su contraseña fue restablecida' : ''}.`,
+                        icon: "success",
+                        timer: 2000,
+                        showConfirmButton: false,
+                        draggable: true
+                    });
+                    this.users = await coluaRepo.getAllUsers();
+                    const container = document.getElementById('admin-tab-users') || document;
+                    this.updateUserTable(container, true);
+                } else {
+                    Swal.fire({
+                        title: "Error al Actualizar",
+                        text: res.error || 'No se pudieron guardar los cambios del usuario.',
+                        icon: "error",
+                        draggable: true,
+                        confirmButtonColor: "#173789"
+                    });
+                    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Guardar Cambios'; }
+                }
+            });
+        }
     }
 
     // ==========================================

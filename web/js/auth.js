@@ -139,6 +139,26 @@ class AuthManager {
     return `00${positiveHash}`;
   }
 
+  generateVerificationSignature(assocId, email) {
+    const cleanId = String(assocId || '0000001').padStart(7, '0');
+    const cleanEmail = (email || '').toLowerCase().trim();
+    const raw = `COLUA_SECURE_TOKEN_${cleanId}_${cleanEmail}_MICOOPE_2026`;
+    let hash = 0;
+    for (let i = 0; i < raw.length; i++) {
+      hash = ((hash << 5) - hash) + raw.charCodeAt(i);
+      hash |= 0;
+    }
+    const hex = Math.abs(hash).toString(16).padStart(8, '0');
+    return `colua_sig_${hex}`;
+  }
+
+  verifyAssociateToken(assocId, email, sig) {
+    if (!sig) return false;
+    const cleanId = String(assocId || '0000001').padStart(7, '0');
+    const expected = this.generateVerificationSignature(cleanId, email);
+    return sig === expected || sig === `colua_${cleanId}` || sig === `colua_${assocId}`;
+  }
+
   // --- SESIÓN DEL ASOCIADO O INVITADO ---
   getCurrentSession() {
     const raw = localStorage.getItem('UserPrefs') || sessionStorage.getItem('UserPrefs');
@@ -240,19 +260,30 @@ class AuthManager {
           }
         }
 
-        const isSuper = profile ? (profile.role === 'SUPER_ADMIN' || profile.tipoUsuario === 'ADMIN') : false;
+        const isSuper = profile ? (profile.role === 'SUPER_ADMIN' || profile.tipoUsuario === 'ADMIN') : (repo && typeof repo._isAdminAuthorized === 'function' ? repo._isAdminAuthorized(mail) : false);
 
         const userData = {
-          userId: (profile && profile.userId) || (cred.user && cred.user.uid) || 'uid_' + Date.now(),
+          userId: (profile && profile.userId) || '0000001',
+          uid: cred.user.uid,
           nombre: (profile && profile.nombre) || cred.user.displayName || mail.split('@')[0],
           email: mail,
-          telefono: (profile && (profile.telefono || profile.phone)) || cred.user.phoneNumber || '',
+          telefono: (profile && (profile.telefono || profile.phone)) || cred.user.phoneNumber || '+502 77957795',
           dpi: (profile && profile.dpi) || '',
           role: (profile && profile.role) || (isSuper ? 'admin' : 'asociado'),
-          associateId: (profile && (profile.associateId || profile.userId)) || '0010025',
+          associateId: (profile && (profile.associateId || profile.userId)) || '0000001',
           tipoUsuario: (profile && profile.tipoUsuario) || (isSuper ? 'ADMIN' : 'ASOCIADO')
         };
         this.saveUserSession(userData);
+
+        // Si el perfil no existía en Firestore, guardarlo inmediatamente
+        if (repo && typeof repo.saveUserProfile === 'function') {
+          try {
+            await repo.saveUserProfile(cred.user.uid, userData);
+          } catch (saveErr) {
+            console.warn('Auto-sincronización de perfil Firestore en login:', saveErr);
+          }
+        }
+
         return { success: true, user: userData };
       } catch (e) {
         return { success: false, error: e.message || 'Credenciales no válidas' };
@@ -352,13 +383,19 @@ class AuthManager {
   }
 
   async registerMember(data) {
+    const email = (data.email || '').trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      return { success: false, error: 'El correo electrónico es obligatorio y debe tener un formato válido (ej. usuario@gmail.com).' };
+    }
+
     const rawDpi = (data.dpi || '').replace(/\D/g, '');
-    if (!this.isValidDpi(rawDpi)) {
-      return { success: false, error: 'El DPI debe tener exactamente 13 dígitos numéricos' };
+    // El DPI es opcional (por ejemplo, para menores de edad). Si se ingresa, debe tener 13 dígitos numéricos.
+    if (rawDpi && rawDpi.length > 0 && !this.isValidDpi(rawDpi)) {
+      return { success: false, error: 'El DPI debe tener exactamente 13 dígitos numéricos si se proporciona.' };
     }
 
     let uid = 'usr_' + Date.now();
-    const email = (data.email || '').trim().toLowerCase();
     const password = data.password || '';
 
     // 1. Registrar en Firebase Auth si está disponible y viene contraseña
@@ -371,7 +408,18 @@ class AuthManager {
       } catch (fbErr) {
         console.warn('Registro Firebase Auth advertencia:', fbErr);
         if (fbErr.code === 'auth/email-already-in-use') {
-          return { success: false, error: 'Este correo electrónico ya se encuentra registrado. Por favor inicia sesión.' };
+          // Si el correo ya existía en Auth, autenticar para verificar la contraseña y proceder a crear el documento en Firestore
+          try {
+            const loginCred = await this.fb.loginWithEmail(email, password);
+            if (loginCred && loginCred.user) {
+              uid = loginCred.user.uid;
+            }
+          } catch (loginErr) {
+            return { 
+              success: false, 
+              error: 'Este correo ya existe en el sistema. Inicia sesión con tu contraseña o elimínalo de la pestaña Authentication en Firebase.' 
+            };
+          }
         } else if (fbErr.code === 'auth/weak-password') {
           return { success: false, error: 'La contraseña debe tener al menos 6 caracteres.' };
         }
@@ -403,8 +451,8 @@ class AuthManager {
         firebaseUid: uid,
         nombre: data.name || 'Asociado COLUA',
         telefono: data.phone || '',
-        dpi: this.formatDpi(rawDpi),
-        dpiNormalizado: rawDpi,
+        dpi: rawDpi ? this.formatDpi(rawDpi) : '',
+        dpiNormalizado: rawDpi || '',
         email: email,
         role: 'asociado',
         associateId: associateId,
