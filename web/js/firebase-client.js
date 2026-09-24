@@ -1,56 +1,91 @@
 // Conector e Inicializador del SDK de Firebase
 class FirebaseClient {
   constructor() {
-    this.app = null;
-    this.auth = null;
-    this.db = null;
+    this._app = null;
+    this._auth = null;
+    this._db = null;
     this.isInitialized = false;
     this.init();
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('DOMContentLoaded', () => this.init());
+      window.addEventListener('load', () => this.init());
+    }
   }
 
   init() {
     try {
-      if (typeof firebase === 'undefined') {
-        console.warn('SDK de Firebase no disponible aún.');
-        return;
+      if (typeof firebase === 'undefined' || !window.COLUA_CONFIG || !window.COLUA_CONFIG.firebase) {
+        return false;
       }
-      if (!firebase.apps.length) {
-        this.app = firebase.initializeApp(window.COLUA_CONFIG.firebase);
-      } else {
-        this.app = firebase.app();
+      if (!this._app) {
+        if (!firebase.apps || !firebase.apps.length) {
+          this._app = firebase.initializeApp(window.COLUA_CONFIG.firebase);
+        } else {
+          this._app = firebase.app();
+        }
       }
-      this.auth = firebase.auth();
-      this.db   = firebase.firestore();
-      this.isInitialized = true;
+      if (!this._auth && typeof firebase.auth === 'function') {
+        this._auth = firebase.auth();
+      }
+      if (!this._db && typeof firebase.firestore === 'function') {
+        this._db = firebase.firestore();
+      }
+      this.isInitialized = !!(this._app && this._db);
+      return this.isInitialized;
     } catch (e) {
-      console.error('Error al inicializar Firebase:', e);
+      console.warn('[FirebaseClient] Advertencia de inicialización:', e.message || e);
+      return false;
     }
   }
 
+  get app() {
+    if (!this._app) this.init();
+    return this._app;
+  }
+  set app(v) { this._app = v; }
+
+  get auth() {
+    if (!this._auth) this.init();
+    return this._auth;
+  }
+  set auth(v) { this._auth = v; }
+
+  get db() {
+    if (!this._db) this.init();
+    return this._db;
+  }
+  set db(v) { this._db = v; }
+
   // --- MÉTODOS DE AUTENTICACIÓN ---
   async loginWithEmail(email, password) {
-    if (!this.auth) throw new Error('Firebase Auth no disponible.');
-    return await this.auth.signInWithEmailAndPassword(email.trim(), password);
+    const auth = this.auth;
+    if (!auth) throw new Error('Firebase Auth no disponible.');
+    return await auth.signInWithEmailAndPassword(email.trim(), password);
   }
 
   async registerWithEmail(email, password) {
-    if (!this.auth) throw new Error('Firebase Auth no disponible.');
-    return await this.auth.createUserWithEmailAndPassword(email.trim(), password);
+    const auth = this.auth;
+    if (!auth) throw new Error('Firebase Auth no disponible.');
+    return await auth.createUserWithEmailAndPassword(email.trim(), password);
   }
 
   async loginAnonymously() {
-    if (!this.auth) throw new Error('Firebase Auth no disponible.');
-    return await this.auth.signInAnonymously();
+    const auth = this.auth;
+    if (!auth) throw new Error('Firebase Auth no disponible.');
+    return await auth.signInAnonymously();
   }
 
   async sendPasswordReset(email) {
-    if (!this.auth) throw new Error('Firebase Auth no disponible.');
-    return await this.auth.sendPasswordResetEmail(email.trim());
+    const auth = this.auth;
+    if (!auth) throw new Error('Firebase Auth no disponible.');
+    return await auth.sendPasswordResetEmail(email.trim());
   }
 
   async updateUserPassword(currentPassword, newPassword) {
-    if (!this.auth || !this.auth.currentUser) throw new Error('No hay sesión activa para cambiar la contraseña.');
-    const user = this.auth.currentUser;
+    const auth = this.auth;
+    if (!auth || !auth.currentUser) throw new Error('No hay sesión activa para cambiar la contraseña.');
+    const user = auth.currentUser;
     const email = user.email;
     if (email && currentPassword && typeof firebase !== 'undefined' && firebase.auth && firebase.auth.EmailAuthProvider) {
       const credential = firebase.auth.EmailAuthProvider.credential(email, currentPassword);
@@ -60,28 +95,33 @@ class FirebaseClient {
   }
 
   async logout() {
-    if (!this.auth) return;
-    return await this.auth.signOut();
+    const auth = this.auth;
+    if (!auth) return;
+    return await auth.signOut();
   }
 
   getCurrentUser() {
-    return this.auth ? this.auth.currentUser : null;
+    const auth = this.auth;
+    return auth ? auth.currentUser : null;
   }
 
   onAuthStateChanged(callback) {
-    if (!this.auth) return () => {};
-    return this.auth.onAuthStateChanged(callback);
+    const auth = this.auth;
+    if (!auth) return () => {};
+    return auth.onAuthStateChanged(callback);
   }
 
   // --- HELPERS DE FIRESTORE ---
   collection(name) {
-    if (!this.db) throw new Error('Firestore no disponible.');
-    return this.db.collection(name);
+    const db = this.db;
+    if (!db) throw new Error('Firestore no disponible.');
+    return db.collection(name);
   }
 
   async runTransaction(updateFunction) {
-    if (!this.db) throw new Error('Firestore no disponible.');
-    return await this.db.runTransaction(updateFunction);
+    const db = this.db;
+    if (!db) throw new Error('Firestore no disponible.');
+    return await db.runTransaction(updateFunction);
   }
 
   serverTimestamp() {

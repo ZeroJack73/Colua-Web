@@ -58,6 +58,18 @@ class Router {
                         component = window.homeComponent;
                     }
                     break;
+                case 'asociate':
+                case 'como-asociarte':
+                case 'form_asociate':
+                case 'solicitud':
+                    if (window.app && window.app.showDynamicFormModal) {
+                        window.app.showDynamicFormModal('form_asociate');
+                    }
+                    if (window.homeComponent) {
+                        html = await window.homeComponent.render(this.container);
+                        component = window.homeComponent;
+                    }
+                    break;
                 case 'noticias':
                 case 'news':
                 case 'sec_noticias':

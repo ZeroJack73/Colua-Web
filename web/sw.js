@@ -1,4 +1,4 @@
-const CACHE_NAME = 'colua-web-digital-v5.2.3';
+const CACHE_NAME = 'colua-web-digital-v5.4.7';
 const STATIC_ASSETS = [
   './',
   './index.html',

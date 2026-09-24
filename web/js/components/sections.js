@@ -23,6 +23,16 @@ class SectionsComponent {
     const text = buttonText || defaultText;
     const action = (buttonAction || defaultAction || '').trim();
 
+    if (action.startsWith('form:') || action === 'modal:form' || action === 'form_asociate' || action === 'form_lead') {
+      const fId = action.replace('form:', '').trim() || 'form_asociate';
+      return `
+        <button type="button" onclick="app.showDynamicFormModal('${fId}')" class="clean-btn-card-action" style="cursor: pointer; border: none; width: 100%; text-align: center; display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: var(--colua-navy); color: white; font-weight: 700;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M9 14l2 2 4-4"></path></svg>
+          <span>${text || 'Enviar Solicitud / Consultas'}</span>
+        </button>
+      `;
+    }
+
     if (!action || action === 'info' || action === 'modal' || action.startsWith('modal:') || action === '#info') {
       return `
         <button type="button" onclick="app.showItemInfoModal('${itemId}')" class="clean-btn-card-action" style="cursor: pointer; border: none; width: 100%; text-align: center; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">

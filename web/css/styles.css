@@ -3984,38 +3984,345 @@ body {
   border-color: #173789;
 }
 
-/* Simulador Minimalista */
+/* ==========================================================================
+   SIMULADOR FINANCIERO RESPONSIVE & MOBILE-FIRST
+   ========================================================================== */
 .clean-simulator-wrapper {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 18px;
   padding: 2rem;
-  margin-top: 2rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
+  margin-top: 2.5rem;
+  margin-bottom: 2.5rem;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
+
+.clean-sim-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-bottom: 1.75rem;
+}
+
+.clean-sim-title-group {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.clean-sim-tag {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #173789;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.clean-sim-title {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 0.25rem 0;
+  line-height: 1.25;
+}
+
+.clean-sim-subtitle {
+  font-size: 0.88rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.45;
+}
+
 .clean-sim-tabs {
   display: flex;
-  gap: 0.5rem;
-  border-bottom: 1px solid #e2e8f0;
-  padding-bottom: 1rem;
-  margin-bottom: 1.5rem;
-}
-.clean-sim-tab-btn {
-  background: transparent;
-  border: none;
-  color: #64748b;
-  font-family: inherit;
-  font-size: 0.95rem;
-  font-weight: 600;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.clean-sim-tab-btn.active {
+  gap: 6px;
   background: #f1f5f9;
+  padding: 4px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.clean-sim-tab-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: #64748b;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.clean-sim-tab-btn.active {
+  background: #ffffff;
   color: #0f172a;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+.clean-sim-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.25rem;
+  align-items: flex-start;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.clean-sim-form-col {
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.clean-sim-field-group {
+  margin-bottom: 1.35rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.clean-sim-field-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4rem;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.clean-sim-field-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.clean-sim-badge-rate {
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: #15803d;
+  background: #dcfce7;
+  padding: 3px 9px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.clean-sim-select {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  background: #ffffff;
+  color: #0f172a;
+  font-weight: 600;
+  outline: none;
+  box-sizing: border-box;
+  max-width: 100%;
+  text-overflow: ellipsis;
+}
+
+.clean-sim-amount-input-box {
+  position: relative;
+  margin-bottom: 0.75rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.clean-sim-amount-symbol {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: 800;
+  color: #173789;
+  font-size: 1.1rem;
+  pointer-events: none;
+}
+
+.clean-sim-amount-input {
+  width: 100%;
+  padding: 0.7rem 0.85rem 0.7rem 2.2rem;
+  border: 2px solid #2563eb;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  outline: none;
+  background: #f8faff;
+  box-sizing: border-box;
+}
+
+.clean-sim-minmax-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.clean-sim-minmax-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.clean-sim-minmax-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #64748b;
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.clean-sim-minmax-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.clean-sim-minmax-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-weight: 700;
+  color: #334155;
+  font-size: 0.84rem;
+  padding: 0;
+  outline: none;
+}
+
+.clean-sim-result-card {
+  background: linear-gradient(145deg, #f8fafc 0%, #edf2f7 100%);
+  border: 2px solid #cbd5e1;
+  border-radius: 16px;
+  padding: 1.75rem;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.clean-sim-result-card.ahorro {
+  background: linear-gradient(145deg, #f0fdf4 0%, #e6f7f2 100%);
+  border-color: #a7f3d0;
+}
+
+.clean-sim-quote-amount {
+  font-size: clamp(1.8rem, 6vw, 2.35rem);
+  font-weight: 900;
+  color: #173789;
+  margin: 0.25rem 0 1rem 0;
+  letter-spacing: -0.5px;
+  line-height: 1.15;
+}
+
+.clean-sim-details-list {
+  font-size: 0.84rem;
+  color: #475569;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  text-align: left;
+  border-top: 1.5px solid #cbd5e1;
+  padding-top: 0.9rem;
+  margin-bottom: 1.4rem;
+}
+
+.clean-sim-details-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Adaptabilidad Móvil para Simulador */
+@media (max-width: 768px) {
+  .clean-simulator-wrapper {
+    padding: 1.25rem 1rem !important;
+    margin-top: 1.5rem !important;
+    margin-bottom: 1.5rem !important;
+    border-radius: 14px !important;
+  }
+
+  .clean-sim-header-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.9rem !important;
+    margin-bottom: 1.25rem !important;
+  }
+
+  .clean-sim-title {
+    font-size: 1.25rem !important;
+  }
+
+  .clean-sim-tabs {
+    width: 100% !important;
+    display: flex !important;
+    padding: 3px !important;
+    box-sizing: border-box !important;
+  }
+
+  .clean-sim-tab-btn {
+    flex: 1 1 0 !important;
+    text-align: center !important;
+    padding: 8px 6px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .clean-sim-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1.5rem !important;
+    width: 100% !important;
+  }
+
+  .clean-sim-result-card {
+    padding: 1.25rem 1rem !important;
+    border-radius: 14px !important;
+  }
+
+  .clean-sim-details-list {
+    font-size: 0.8rem !important;
+    gap: 0.4rem !important;
+  }
+
+  .clean-sim-quote-amount {
+    font-size: 1.95rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .clean-simulator-wrapper {
+    padding: 1rem 0.75rem !important;
+  }
+
+  .clean-sim-field-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 4px !important;
+  }
+
+  .clean-sim-minmax-grid {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+  }
+
+  .clean-sim-quote-amount {
+    font-size: 1.75rem !important;
+  }
 }
 
 /* ==========================================================================
@@ -6501,6 +6808,162 @@ body {
   100% {
     transform: scale(0.96);
     box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+  }
+}
+
+/* ==========================================================================
+   SIMULADOR FINANCIERO RESPONSIVE (MÓVIL Y ESCRITORIO)
+   ========================================================================== */
+.clean-simulator-wrapper {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 2rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+  margin-top: 2.5rem;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.clean-sim-header-row {
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.clean-sim-tabs {
+  display: flex;
+  gap: 6px;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 12px;
+}
+
+.clean-sim-tab-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+.clean-sim-tab-btn.active {
+  background: #ffffff;
+  color: #173789;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.clean-sim-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 2.25rem;
+  align-items: flex-start;
+}
+
+.clean-sim-form-col {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.clean-sim-result-card {
+  border-radius: 16px;
+  padding: 1.75rem;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.clean-sim-result-card.credito {
+  background: linear-gradient(145deg, #f8fafc 0%, #edf2f7 100%);
+  border: 2px solid #cbd5e1;
+}
+
+.clean-sim-result-card.ahorro {
+  background: linear-gradient(145deg, #f0fdf4 0%, #e6f7f2 100%);
+  border: 2px solid #a7f3d0;
+}
+
+.clean-sim-quote-amount {
+  font-size: clamp(1.85rem, 6vw, 2.35rem);
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  margin: 0.25rem 0 1rem 0;
+  word-break: break-word;
+}
+
+.clean-sim-minmax-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.clean-sim-details-list {
+  font-size: 0.84rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  text-align: left;
+  padding-top: 0.9rem;
+  margin-bottom: 1.4rem;
+}
+
+.clean-sim-details-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+@media (max-width: 860px) {
+  .clean-simulator-wrapper {
+    padding: 1.35rem 1.1rem;
+    border-radius: 14px;
+    margin-top: 1.5rem;
+  }
+  .clean-sim-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  .clean-sim-tabs {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .clean-sim-tab-btn {
+    text-align: center;
+    padding: 9px 8px;
+    font-size: 0.8rem;
+  }
+  .clean-sim-result-card {
+    padding: 1.25rem 1rem;
+  }
+  .clean-sim-minmax-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .clean-sim-details-list {
+    font-size: 0.8rem;
+    gap: 0.4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .clean-simulator-wrapper {
+    padding: 1.1rem 0.85rem;
+  }
+  .clean-sim-minmax-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
   }
 }
 

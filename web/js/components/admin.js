@@ -29,7 +29,8 @@ const ADMIN_ICONS = {
     document: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>`,
     cloud: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>`,
     building: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="9" y1="22" x2="9" y2="22.01"></line><line x1="15" y1="22" x2="15" y2="22.01"></line><line x1="9" y1="6" x2="9" y2="6.01"></line><line x1="15" y1="6" x2="15" y2="6.01"></line><line x1="9" y1="10" x2="9" y2="10.01"></line><line x1="15" y1="10" x2="15" y2="10.01"></line><line x1="9" y1="14" x2="9" y2="14.01"></line><line x1="15" y1="14" x2="15" y2="14.01"></line><line x1="9" y1="18" x2="9" y2="18.01"></line><line x1="15" y1="18" x2="15" y2="18.01"></line></svg>`,
-    news: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m2 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg>`
+    news: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m2 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg>`,
+    forms: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M9 14l2 2 4-4"></path></svg>`
 };
 
 // Catálogo Rápido de Assets e Íconos Oficiales (assets/)
@@ -167,6 +168,9 @@ class AdminComponent {
                         </button>
                         <button class="cms-tab-btn ${this.activeTab === 'canvas' ? 'active' : ''}" data-tab="canvas" style="display: inline-flex; align-items: center; gap: 6px;">
                             ${ADMIN_ICONS.canvas} <span>Editor Canvas</span>
+                        </button>
+                        <button class="cms-tab-btn ${this.activeTab === 'formularios' ? 'active' : ''}" data-tab="formularios" style="display: inline-flex; align-items: center; gap: 6px;">
+                            ${ADMIN_ICONS.forms} <span>Formularios & Leads</span>
                         </button>
                         <button class="cms-tab-btn ${this.activeTab === 'stats' ? 'active' : ''}" data-tab="stats" style="display: inline-flex; align-items: center; gap: 6px;">
                             ${ADMIN_ICONS.chart} <span>Estadísticas</span>
@@ -489,6 +493,9 @@ class AdminComponent {
                     break;
                 case 'canvas':
                     await this.renderTabCanvas(contentEl);
+                    break;
+                case 'formularios':
+                    await this.renderTabFormularios(contentEl);
                     break;
                 case 'stats':
                     await this.renderTabStats(contentEl);
@@ -957,6 +964,506 @@ class AdminComponent {
                 draggable: true
             });
             await this.loadTabContent();
+        });
+    }
+
+    // ==========================================
+    // TAB: FORMULARIOS Y CAPTACIÓN DE LEADS
+    // ==========================================
+    async renderTabFormularios(container) {
+        const leads = await coluaRepo.getFormSubmissions();
+        const forms = await coluaRepo.getForms();
+
+        const totalLeads = leads.length;
+        const pendingLeads = leads.filter(l => !l.estado || l.estado === 'Pendiente').length;
+        const contactedLeads = leads.filter(l => l.estado === 'Contactado').length;
+        const affiliatedLeads = leads.filter(l => l.estado === 'Afiliado / Coordinado' || l.estado === 'Afiliado').length;
+
+        container.innerHTML = `
+            <div style="max-width: 1400px; margin: 0 auto;">
+                <!-- Encabezado -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--colua-navy); margin: 0 0 4px 0; display: inline-flex; align-items: center; gap: 8px;">
+                            ${ADMIN_ICONS.forms} <span>Gestor de Formularios y Captación de Asociados (Leads)</span>
+                        </h2>
+                        <p style="font-size: 0.85rem; color: var(--colua-gray-600); margin: 0;">
+                            Bandeja de solicitudes de nuevos asociados, contacto directo por WhatsApp y configuración de formularios interactivos.
+                        </p>
+                    </div>
+                    <button id="btn-create-new-form" class="btn btn-primary" style="font-size: 0.85rem; padding: 8px 16px; display: inline-flex; align-items: center; gap: 6px;">
+                        ${ADMIN_ICONS.plus} <span>Crear Nuevo Formulario</span>
+                    </button>
+                </div>
+
+                <!-- Métricas de Captación -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                    <div class="card" style="background: white; border-radius: 12px; padding: 18px; border-left: 4px solid var(--colua-navy); box-shadow: var(--shadow-sm);">
+                        <span style="font-size: 0.78rem; font-weight: 700; color: var(--colua-gray-600); text-transform: uppercase; letter-spacing: 0.5px;">Total Solicitudes</span>
+                        <div style="font-size: 1.8rem; font-weight: 800; color: var(--colua-navy); margin-top: 4px;">${totalLeads}</div>
+                        <span style="font-size: 0.75rem; color: var(--colua-gray-500);">Todas las captaciones registradas</span>
+                    </div>
+
+                    <div class="card" style="background: white; border-radius: 12px; padding: 18px; border-left: 4px solid #f59e0b; box-shadow: var(--shadow-sm);">
+                        <span style="font-size: 0.78rem; font-weight: 700; color: #b45309; text-transform: uppercase; letter-spacing: 0.5px;">Pendientes de Contacto</span>
+                        <div style="font-size: 1.8rem; font-weight: 800; color: #d97706; margin-top: 4px;">${pendingLeads}</div>
+                        <span style="font-size: 0.75rem; color: var(--colua-gray-500);">Requieren llamada o WhatsApp</span>
+                    </div>
+
+                    <div class="card" style="background: white; border-radius: 12px; padding: 18px; border-left: 4px solid #0284c7; box-shadow: var(--shadow-sm);">
+                        <span style="font-size: 0.78rem; font-weight: 700; color: #0369a1; text-transform: uppercase; letter-spacing: 0.5px;">Contactados / En Gestión</span>
+                        <div style="font-size: 1.8rem; font-weight: 800; color: #0284c7; margin-top: 4px;">${contactedLeads}</div>
+                        <span style="font-size: 0.75rem; color: var(--colua-gray-500);">En proceso de coordinación</span>
+                    </div>
+
+                    <div class="card" style="background: white; border-radius: 12px; padding: 18px; border-left: 4px solid #10b981; box-shadow: var(--shadow-sm);">
+                        <span style="font-size: 0.78rem; font-weight: 700; color: #047857; text-transform: uppercase; letter-spacing: 0.5px;">Afiliados / Coordinados</span>
+                        <div style="font-size: 1.8rem; font-weight: 800; color: #10b981; margin-top: 4px;">${affiliatedLeads}</div>
+                        <span style="font-size: 0.75rem; color: var(--colua-gray-500);">Aportación y libreta lista</span>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 1: BANDEJA DE SOLICITUDES / LEADS -->
+                <div class="card" style="background: white; border-radius: 14px; padding: 22px; box-shadow: var(--shadow-sm); margin-bottom: 28px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px;">
+                        <div>
+                            <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--colua-navy); margin: 0 0 2px 0;">
+                                Bandeja de Solicitudes Recibidas (${totalLeads})
+                            </h3>
+                            <span style="font-size: 0.8rem; color: var(--colua-gray-500);">Contacta de inmediato a los prospectos para concretar su asociación cooperativa</span>
+                        </div>
+                        ${leads.length > 0 ? `
+                            <button type="button" id="btn-export-leads-csv" class="btn btn-outline" style="padding: 7px 14px; font-size: 0.82rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; border-color: #10b981; color: #047857;">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                <span>📥 Exportar a Excel (.CSV)</span>
+                            </button>
+                        ` : ''}
+                    </div>
+
+                    ${leads.length === 0 ? `
+                        <div style="text-align: center; padding: 40px 20px; background: #f8fafc; border-radius: 10px; border: 1.5px dashed #cbd5e1;">
+                            <div style="width: 48px; height: 48px; border-radius: 50%; background: #eff6ff; color: var(--colua-navy); display: flex; align-items: center; justify-content: center; margin: 0 auto 12px auto;">
+                                ${ADMIN_ICONS.forms}
+                            </div>
+                            <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--colua-navy); margin-bottom: 4px;">No hay solicitudes pendientes</h4>
+                            <p style="font-size: 0.84rem; color: var(--colua-gray-500); margin: 0;">Cuando un usuario envíe el formulario de "¿Cómo Asociarte?", aparecerá aquí en tiempo real.</p>
+                        </div>
+                    ` : `
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.86rem; text-align: left;">
+                                <thead>
+                                    <tr style="background: #f8fafc; border-bottom: 1.5px solid #e2e8f0; color: var(--colua-gray-700);">
+                                        <th style="padding: 10px 14px; font-weight: 700;">Fecha / Hora</th>
+                                        <th style="padding: 10px 14px; font-weight: 700;">Solicitante</th>
+                                        <th style="padding: 10px 14px; font-weight: 700;">Contacto Directo</th>
+                                        <th style="padding: 10px 14px; font-weight: 700;">Agencia / Pago</th>
+                                        <th style="padding: 10px 14px; font-weight: 700;">Estado</th>
+                                        <th style="padding: 10px 14px; font-weight: 700; text-align: center;">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${leads.map(lead => {
+                                        const cleanPhone = (lead.telefono || '').replace(/[^0-9]/g, '');
+                                        const waPhone = cleanPhone.startsWith('502') ? cleanPhone : '502' + cleanPhone;
+                                        const waText = encodeURIComponent(`Hola ${lead.nombre}, te saludamos de COLUA MICOOPE respecto a tu solicitud de afiliación cooperativa en línea. ¿En qué momento podemos coordinar tus requisitos y aportación inicial?`);
+                                        const waLink = `https://wa.me/${waPhone}?text=${waText}`;
+
+                                        const statusBg = lead.estado === 'Afiliado / Coordinado' || lead.estado === 'Afiliado' 
+                                            ? '#dcfce7; color: #15803d; border-color: #86efac;' 
+                                            : (lead.estado === 'Contactado' 
+                                                ? '#e0f2fe; color: #0369a1; border-color: #7dd3fc;' 
+                                                : (lead.estado === 'Descartado' 
+                                                    ? '#f1f5f9; color: #64748b; border-color: #cbd5e1;' 
+                                                    : '#fef3c7; color: #b45309; border-color: #fcd34d;'));
+
+                                        return `
+                                            <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s ease;">
+                                                <td style="padding: 12px 14px; white-space: nowrap; color: #64748b; font-size: 0.82rem;">
+                                                    <strong>${lead.fechaStr ? lead.fechaStr.split(',')[0] : (lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : 'Reciente')}</strong>
+                                                    <div style="font-size: 0.74rem; color: #94a3b8;">${lead.fechaStr && lead.fechaStr.includes(',') ? lead.fechaStr.split(',')[1] : ''}</div>
+                                                </td>
+                                                <td style="padding: 12px 14px;">
+                                                    <div style="font-weight: 700; color: var(--colua-navy); font-size: 0.9rem;">${lead.nombre}</div>
+                                                    ${lead.dpi ? `<div style="font-size: 0.76rem; color: #64748b;">DPI: ${lead.dpi}</div>` : ''}
+                                                </td>
+                                                <td style="padding: 12px 14px;">
+                                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                                        <strong style="color: #0f172a;">${lead.telefono}</strong>
+                                                        ${cleanPhone ? `
+                                                            <a href="${waLink}" target="_blank" class="btn" style="padding: 3px 8px; font-size: 0.72rem; background: #25D366; color: white; border-radius: 6px; text-decoration: none; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;" title="Chatear por WhatsApp">
+                                                                <span>💬 WhatsApp</span>
+                                                            </a>
+                                                        ` : ''}
+                                                    </div>
+                                                    <a href="mailto:${lead.email}" style="font-size: 0.78rem; color: var(--colua-navy); text-decoration: none;">${lead.email}</a>
+                                                </td>
+                                                <td style="padding: 12px 14px;">
+                                                    <div style="font-weight: 600; color: #1e293b;">${lead.agenciaPreferida || 'Central'}</div>
+                                                    <div style="font-size: 0.75rem; color: #64748b;">${lead.metodoPago || 'Efectivo / Agencia'}</div>
+                                                </td>
+                                                <td style="padding: 12px 14px;">
+                                                    <select class="lead-status-dropdown" data-id="${lead.id}" style="padding: 5px 8px; font-size: 0.78rem; font-weight: 700; border-radius: 8px; border: 1.5px solid; background: ${statusBg} cursor: pointer;">
+                                                        <option value="Pendiente" ${(!lead.estado || lead.estado === 'Pendiente') ? 'selected' : ''}>⏳ Pendiente</option>
+                                                        <option value="Contactado" ${lead.estado === 'Contactado' ? 'selected' : ''}>💬 Contactado</option>
+                                                        <option value="Afiliado / Coordinado" ${(lead.estado === 'Afiliado / Coordinado' || lead.estado === 'Afiliado') ? 'selected' : ''}>✅ Afiliado / Coordinado</option>
+                                                        <option value="Descartado" ${lead.estado === 'Descartado' ? 'selected' : ''}>✕ Descartado</option>
+                                                    </select>
+                                                </td>
+                                                <td style="padding: 12px 14px; text-align: center; white-space: nowrap;">
+                                                    <div style="display: inline-flex; gap: 6px;">
+                                                        <button class="btn btn-outline btn-lead-detail" data-id="${lead.id}" style="padding: 5px 8px; font-size: 0.76rem; color: var(--colua-navy);" title="Ver Detalle Completo">
+                                                            🔍 Detalle
+                                                        </button>
+                                                        <button class="btn btn-outline btn-lead-delete" data-id="${lead.id}" style="padding: 5px 8px; font-size: 0.76rem; color: #ef4444; border-color: #fca5a5;" title="Eliminar Solicitud">
+                                                            🗑️
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `}
+                </div>
+
+                <!-- SECCIÓN 2: FORMULARIOS CONFIGURADOS -->
+                <div class="card" style="background: white; border-radius: 14px; padding: 22px; box-shadow: var(--shadow-sm);">
+                    <div style="margin-bottom: 18px;">
+                        <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--colua-navy); margin: 0 0 2px 0;">
+                            Formularios Dinámicos Disponibles (${forms.length})
+                        </h3>
+                        <span style="font-size: 0.8rem; color: var(--colua-gray-500);">Configura los requisitos, preguntas y campos para cada proceso de captación</span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
+                        ${forms.map(form => `
+                            <div style="border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 18px; background: #f8fafc; display: flex; flex-direction: column; justify-content: space-between;">
+                                <div>
+                                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                                        <span class="badge" style="background: rgba(23, 55, 137, 0.1); color: var(--colua-navy); font-size: 0.72rem; font-weight: 800;">
+                                            ID: ${form.id}
+                                        </span>
+                                        <span class="badge" style="background: #dcfce7; color: #15803d; font-size: 0.72rem; font-weight: 700;">
+                                            ${form.isEnabled !== false ? 'Activo' : 'Inactivo'}
+                                        </span>
+                                    </div>
+                                    <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--colua-navy); margin: 0 0 6px 0;">
+                                        ${form.title}
+                                    </h4>
+                                    <p style="font-size: 0.82rem; color: #475569; margin: 0 0 12px 0; line-height: 1.4;">
+                                        ${form.subtitle || 'Sin descripción'}
+                                    </p>
+
+                                    <!-- Requisitos Configurados -->
+                                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-bottom: 12px;">
+                                        <div style="font-size: 0.76rem; font-weight: 700; color: #0369a1; text-transform: uppercase; margin-bottom: 4px;">
+                                            Requisitos (${form.requirements?.length || 0}):
+                                        </div>
+                                        <ul style="margin: 0; padding-left: 16px; font-size: 0.78rem; color: #334155;">
+                                            ${(form.requirements || []).slice(0, 3).map(r => `<li>${r}</li>`).join('')}
+                                        </ul>
+                                    </div>
+
+                                    <div style="font-size: 0.78rem; color: #64748b; margin-bottom: 14px;">
+                                        Campos interactivos: <strong>${form.fields?.length || 0} campos</strong>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; gap: 8px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+                                    <button class="btn btn-outline btn-edit-form" data-id="${form.id}" style="flex: 1; padding: 7px 12px; font-size: 0.8rem; font-weight: 600;">
+                                        ✏️ Editar Formulario
+                                    </button>
+                                    <button class="btn btn-primary btn-preview-form" data-id="${form.id}" style="padding: 7px 12px; font-size: 0.8rem; font-weight: 600; background: var(--colua-navy);">
+                                        👁️ Probar
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Eventos: Cambiar estado de lead
+        container.querySelectorAll('.lead-status-dropdown').forEach(dropdown => {
+            dropdown.addEventListener('change', async () => {
+                const id = dropdown.dataset.id;
+                const newStatus = dropdown.value;
+                await coluaRepo.updateSubmissionStatus(id, newStatus);
+                app.showToast(`Estado de solicitud actualizado a "${newStatus}"`, 'success');
+                await this.renderTabFormularios(container);
+            });
+        });
+
+        // Eventos: Ver Detalle de Lead
+        container.querySelectorAll('.btn-lead-detail').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const lead = leads.find(l => l.id === btn.dataset.id);
+                if (lead) this.showLeadDetailModal(lead);
+            });
+        });
+
+        // Eventos: Eliminar Lead
+        container.querySelectorAll('.btn-lead-delete').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                let confirmed = false;
+                if (window.Swal) {
+                    const res = await Swal.fire({
+                        title: "¿Eliminar solicitud?",
+                        text: "Esta acción no se puede deshacer.",
+                        icon: "warning",
+                        showCancelButton: true,
+                        confirmButtonColor: "#ef4444",
+                        cancelButtonColor: "#64748b",
+                        confirmButtonText: "Sí, Eliminar",
+                        cancelButtonText: "Cancelar"
+                    });
+                    confirmed = res.isConfirmed;
+                } else {
+                    confirmed = confirm('¿Eliminar esta solicitud?');
+                }
+
+                if (confirmed) {
+                    await coluaRepo.deleteSubmission(btn.dataset.id);
+                    app.showToast('Solicitud eliminada.', 'info');
+                    await this.renderTabFormularios(container);
+                }
+            });
+        });
+
+        // Eventos: Crear / Editar Formulario
+        container.querySelector('#btn-create-new-form')?.addEventListener('click', () => {
+            this.showEditFormModal();
+        });
+
+        container.querySelectorAll('.btn-edit-form').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const form = forms.find(f => f.id === btn.dataset.id);
+                if (form) this.showEditFormModal(form);
+            });
+        });
+
+        // Eventos: Exportar a Excel CSV
+        container.querySelector('#btn-export-leads-csv')?.addEventListener('click', () => {
+            this.exportLeadsToCsv(leads);
+        });
+
+        // Eventos: Probar Formulario en Vivo
+        container.querySelectorAll('.btn-preview-form').forEach(btn => {
+            btn.addEventListener('click', () => {
+                app.showDynamicFormModal(btn.dataset.id);
+            });
+        });
+    }
+
+    exportLeadsToCsv(leads) {
+        if (!leads || leads.length === 0) {
+            app.showToast('No hay solicitudes para exportar.', 'warning');
+            return;
+        }
+
+        const headers = ['Fecha y Hora', 'Formulario', 'Nombre Solicitante', 'Teléfono', 'Email', 'Estado', 'Agencia / Pago', 'Respuestas Detalladas'];
+        const rows = leads.map(l => {
+            const fecha = `"${(l.fechaStr || new Date(l.createdAt || Date.now()).toLocaleString()).replace(/"/g, '""')}"`;
+            const formTitle = `"${(l.formTitle || '¿Cómo Asociarte?').replace(/"/g, '""')}"`;
+            const nombre = `"${(l.nombre || '').replace(/"/g, '""')}"`;
+            const tel = `"${(l.telefono || '').replace(/"/g, '""')}"`;
+            const email = `"${(l.email || '').replace(/"/g, '""')}"`;
+            const estado = `"${(l.estado || 'Pendiente').replace(/"/g, '""')}"`;
+            const agencia = `"${(l.agenciaPreferida || l.metodoPago || '').replace(/"/g, '""')}"`;
+            
+            let respuestasStr = '';
+            if (l.respuestas && typeof l.respuestas === 'object') {
+                respuestasStr = Object.entries(l.respuestas).map(([k, v]) => {
+                    const cleanV = typeof v === 'string' && v.startsWith('data:image') ? '[Foto adjuntada]' : v;
+                    return `${k}: ${cleanV}`;
+                }).join(' | ');
+            } else if (l.comentarios) {
+                respuestasStr = l.comentarios;
+            }
+            const respuestas = `"${respuestasStr.replace(/"/g, '""')}"`;
+
+            return [fecha, formTitle, nombre, tel, email, estado, agencia, respuestas].join(',');
+        });
+
+        const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `COLUA_Respuestas_Formularios_${new Date().toISOString().slice(0,10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        app.showToast('Archivo Excel (.CSV) descargado con éxito', 'success');
+    }
+
+    showLeadDetailModal(lead) {
+        const cleanPhone = (lead.telefono || '').replace(/[^0-9]/g, '');
+        const waPhone = cleanPhone.startsWith('502') ? cleanPhone : '502' + cleanPhone;
+        const waText = encodeURIComponent(`Hola ${lead.nombre}, te saludamos de COLUA MICOOPE respecto a tu solicitud de afiliación...`);
+        const waLink = `https://wa.me/${waPhone}?text=${waText}`;
+
+        const modalHtml = `
+            <div style="max-width: 500px; width: 100%; text-align: left;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 12px;">
+                    <div style="width: 44px; height: 44px; border-radius: 50%; background: #eff6ff; color: var(--colua-navy); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                        👤
+                    </div>
+                    <div>
+                        <span class="badge" style="background: var(--colua-navy); color: white; font-size: 0.7rem;">SOLICITUD DE ASOCIACIÓN</span>
+                        <h3 style="font-size: 1.2rem; font-weight: 800; color: var(--colua-navy); margin: 2px 0 0 0;">${lead.nombre}</h3>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 10px; background: #f8fafc; border-radius: 10px; padding: 14px; border: 1px solid #e2e8f0; font-size: 0.88rem; margin-bottom: 16px; max-height: 60vh; overflow-y: auto;">
+                    <div><strong>Formulario:</strong> ${lead.formTitle || '¿Cómo Asociarte?'}</div>
+                    <div><strong>Fecha:</strong> ${lead.fechaStr || new Date(lead.createdAt || Date.now()).toLocaleString()}</div>
+                    <div><strong>Teléfono / WhatsApp:</strong> <a href="${waLink}" target="_blank" style="color: #059669; font-weight: 700; text-decoration: none;">${lead.telefono} (Abrir WhatsApp)</a></div>
+                    <div><strong>Correo Electrónico:</strong> <a href="mailto:${lead.email}" style="color: var(--colua-navy);">${lead.email}</a></div>
+                    <div><strong>Estado Actual:</strong> <span class="badge" style="background: #dbeafe; color: #1e40af; font-size: 0.78rem;">${lead.estado || 'Pendiente'}</span></div>
+                    
+                    ${lead.respuestas && Object.keys(lead.respuestas).length > 0 ? `
+                        <div style="border-top: 1px solid #e2e8f0; padding-top: 10px; margin-top: 4px;">
+                            <strong style="color: var(--colua-navy); display: block; margin-bottom: 8px;">Respuestas y Documentos Recibidos:</strong>
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                ${Object.entries(lead.respuestas).map(([label, val]) => {
+                                    const isImg = typeof val === 'string' && val.startsWith('data:image');
+                                    return `
+                                        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 10px;">
+                                            <div style="font-weight: 700; font-size: 0.78rem; color: #475569; margin-bottom: 2px;">${label}</div>
+                                            ${isImg ? `
+                                                <div style="margin-top: 6px;">
+                                                    <a href="${val}" target="_blank" title="Clic para ampliar foto" style="display: inline-block;">
+                                                        <img src="${val}" alt="${label}" style="max-height: 120px; max-width: 100%; border-radius: 6px; border: 1px solid #cbd5e1; object-fit: contain; cursor: zoom-in;" />
+                                                    </a>
+                                                    <span style="display: block; font-size: 0.7rem; color: #0284c7; margin-top: 2px;">(Clic en la foto para ver en tamaño completo)</span>
+                                                </div>
+                                            ` : `
+                                                <div style="font-size: 0.85rem; color: #0f172a;">${val || 'No especificado'}</div>
+                                            `}
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    ` : (lead.comentarios ? `<div><strong>Comentarios:</strong><p style="margin: 4px 0 0 0; background: white; padding: 8px; border-radius: 6px; border: 1px solid #e2e8f0; font-style: italic;">${lead.comentarios}</p></div>` : '')}
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                    <a href="${waLink}" target="_blank" class="btn" style="background: #25D366; color: white; padding: 8px 16px; font-weight: 700; text-decoration: none; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; font-size: 0.86rem;">
+                        <span>💬 Chatear por WhatsApp</span>
+                    </a>
+                    <button type="button" class="btn btn-outline" onclick="app.closeModal()" style="padding: 8px 16px;">Cerrar</button>
+                </div>
+            </div>
+        `;
+        app.showModal(modalHtml);
+    }
+
+    showEditFormModal(form = null) {
+        const isNew = !form;
+        const currentData = form || {
+            id: 'form_' + Math.random().toString(36).substring(2, 8),
+            title: 'Nuevo Formulario de Captación',
+            subtitle: 'Completa tus datos para coordinar con un asesor.',
+            buttonText: 'Enviar Solicitud',
+            requirements: [
+                'DPI vigente original o copia legible',
+                'Recibo de luz, agua o teléfono reciente',
+                'Aportación inicial mínima de Q 100.00'
+            ],
+            fields: [
+                { id: 'nombre', label: 'Nombre y Apellido', type: 'text', required: true, placeholder: 'Ej: Juan Gómez' },
+                { id: 'telefono', label: 'Teléfono / WhatsApp', type: 'tel', required: true, placeholder: 'Ej: 5555-1234' },
+                { id: 'email', label: 'Correo Electrónico', type: 'email', required: true, placeholder: 'Ej: correo@gmail.com' }
+            ],
+            isEnabled: true
+        };
+
+        const requirementsText = (currentData.requirements || []).join('\n');
+
+        const modalHtml = `
+            <div style="max-width: 540px; width: 100%; text-align: left;">
+                <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--colua-navy); margin-bottom: 6px;">
+                    ${isNew ? 'Crear Nuevo Formulario' : 'Editar Formulario Dinámico'}
+                </h3>
+                <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 16px;">
+                    Configura el título, instrucciones y la lista de requisitos que verá el usuario.
+                </p>
+
+                <form id="form-config-edit">
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--colua-gray-800); margin-bottom: 4px;">Título del Formulario *</label>
+                        <input type="text" id="cfg-form-title" value="${currentData.title}" required style="width: 100%; padding: 8px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.88rem;" />
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--colua-gray-800); margin-bottom: 4px;">Instrucciones o Subtítulo</label>
+                        <input type="text" id="cfg-form-subtitle" value="${currentData.subtitle || ''}" style="width: 100%; padding: 8px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.88rem;" />
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--colua-gray-800); margin-bottom: 4px;">
+                            Lista de Requisitos (Un requisito por línea)
+                        </label>
+                        <textarea id="cfg-form-requirements" rows="4" style="width: 100%; padding: 8px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.84rem; font-family: inherit; resize: vertical;">${requirementsText}</textarea>
+                        <span style="font-size: 0.72rem; color: #64748b;">Escribe cada requisito en una nueva línea (aparecerán con viñetas en el formulario).</span>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 14px;">
+                        <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--colua-gray-800); margin-bottom: 4px;">Texto del Botón de Envío</label>
+                        <input type="text" id="cfg-form-btn" value="${currentData.buttonText || 'Enviar Solicitud'}" style="width: 100%; padding: 8px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.88rem;" />
+                    </div>
+
+                    <div style="margin-bottom: 18px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 600; color: var(--colua-gray-800); cursor: pointer;">
+                            <input type="checkbox" id="cfg-form-enabled" ${currentData.isEnabled !== false ? 'checked' : ''} style="width: 16px; height: 16px;" />
+                            <span>Formulario habilitado y visible en la aplicación</span>
+                        </label>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
+                        <button type="button" class="btn btn-outline" onclick="app.closeModal()" style="padding: 8px 16px;">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" style="padding: 8px 20px; font-weight: 700;">Guardar Formulario</button>
+                    </div>
+                </form>
+            </div>
+        `;
+
+        app.showModal(modalHtml);
+
+        document.getElementById('form-config-edit')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const reqsRaw = document.getElementById('cfg-form-requirements').value.trim();
+            const reqs = reqsRaw ? reqsRaw.split('\n').map(r => r.trim()).filter(Boolean) : [];
+
+            const updated = {
+                ...currentData,
+                title: document.getElementById('cfg-form-title').value.trim(),
+                subtitle: document.getElementById('cfg-form-subtitle').value.trim(),
+                buttonText: document.getElementById('cfg-form-btn').value.trim(),
+                requirements: reqs,
+                isEnabled: document.getElementById('cfg-form-enabled').checked,
+                updatedAt: Date.now()
+            };
+
+            await coluaRepo.saveForm(updated);
+            app.closeModal();
+
+            Swal.fire({
+                title: "¡Formulario Guardado!",
+                text: `El formulario "${updated.title}" ha sido guardado exitosamente.`,
+                icon: "success",
+                timer: 1500,
+                showConfirmButton: false,
+                draggable: true
+            });
+
+            const contentEl = document.getElementById('cms-tab-content');
+            if (contentEl) await this.renderTabFormularios(contentEl);
         });
     }
 
@@ -1554,6 +2061,16 @@ class AdminComponent {
                 iconBg: '#faf5ff',
                 iconColor: '#9333ea',
                 iconSvg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>`
+            },
+            {
+                id: 'form_lead',
+                title: 'Formulario / Consultas y Preguntas',
+                badge: 'INTERACTIVO',
+                subtitle: 'Envío directo de mensajes, preguntas y solicitudes al admin',
+                category: 'interaction',
+                iconBg: '#eff6ff',
+                iconColor: '#1d4ed8',
+                iconSvg: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M9 14l2 2 4-4"></path></svg>`
             }
         ];
 
@@ -1585,6 +2102,7 @@ class AdminComponent {
                 <!-- Filtros por Categoría -->
                 <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 16px;" id="elem-type-pill-filters">
                     <button class="elem-filter-pill active" data-cat="all" style="padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; border: 1.5px solid #0f172a; background: #0f172a; color: white; cursor: pointer; white-space: nowrap;">Todos</button>
+                    <button class="elem-filter-pill" data-cat="interaction" style="padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; border: 1.5px solid #e2e8f0; background: #f8fafc; color: #475569; cursor: pointer; white-space: nowrap;">Formularios</button>
                     <button class="elem-filter-pill" data-cat="basic" style="padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; border: 1.5px solid #e2e8f0; background: #f8fafc; color: #475569; cursor: pointer; white-space: nowrap;">Básicos</button>
                     <button class="elem-filter-pill" data-cat="media" style="padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; border: 1.5px solid #e2e8f0; background: #f8fafc; color: #475569; cursor: pointer; white-space: nowrap;">Multimedia</button>
                     <button class="elem-filter-pill" data-cat="structure" style="padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; border: 1.5px solid #e2e8f0; background: #f8fafc; color: #475569; cursor: pointer; white-space: nowrap;">Estructura</button>
@@ -1675,200 +2193,359 @@ class AdminComponent {
 
     showEditItemModal(item, chosenTypeId = 'card') {
         const isNew = !item;
+        const activeType = item?.type || chosenTypeId;
+
+        const defaultQuestions = [
+            { id: 'q_1', question: 'Nombre y Apellido', type: 'text', required: true, placeholder: 'Ej: Juan Gómez' },
+            { id: 'q_2', question: 'Teléfono / WhatsApp', type: 'tel', required: true, placeholder: 'Ej: 5555-1234' },
+            { id: 'q_3', question: '¿Cuál es tu consulta o solicitud?', type: 'textarea', required: true, placeholder: 'Escribe aquí tu duda, respuesta o mensaje...' }
+        ];
+
         const currentData = item || {
             id: 'item_' + Date.now(),
             sectionId: this.selectedSectionId,
-            type: chosenTypeId,
-            title: '',
-            subtitle: '',
-            description: '',
-            imageUrl: '',
+            type: activeType,
+            title: activeType === 'form_lead' ? 'Formulario de Consultas y Solicitud' : (activeType === 'image' ? 'Imagen Institucional' : (activeType === 'text' ? 'Título o Mensaje Informativo' : (activeType === 'button' ? 'Botón de Acción' : ''))),
+            subtitle: activeType === 'form_lead' ? 'Envía tus datos o preguntas directamente a la administración' : '',
+            description: activeType === 'form_lead' ? 'Completa los campos para que un asesor o administrador atienda tu solicitud a la brevedad.' : '',
+            imageUrl: activeType === 'image' ? 'assets/colua_edificio.png' : (activeType === 'form_lead' ? 'assets/distintivo_colua.png' : ''),
             icon: '',
-            buttonText: '',
-            buttonAction: '',
+            buttonText: activeType === 'form_lead' ? 'Enviar Respuestas al Admin' : (activeType === 'button' ? 'Contactar con Asesor' : ''),
+            buttonAction: activeType === 'form_lead' ? 'form:form_asociate' : (activeType === 'button' ? 'tel:77957795' : ''),
+            leadWhatsapp: '50277957795',
+            formQuestions: defaultQuestions,
+            benefitItems: ['DPI vigente', 'Recibo de luz o agua reciente', 'Aportación mínima de Q50.00'],
+            textHierarchy: 'h2',
+            textAlign: 'left',
             orderIndex: this.selectedContentItems.length + 1,
             isEnabled: true,
             isDraft: false
         };
 
+        if (activeType === 'form_lead' && (!currentData.formQuestions || currentData.formQuestions.length === 0)) {
+            currentData.formQuestions = defaultQuestions;
+        }
+
         const typeLabels = {
-            'financial_product': 'Tarjeta de Producto Financiero',
-            'text': 'Bloque de Texto',
+            'form_lead': 'Formulario / Consultas & Preguntas',
             'image': 'Elemento de Imagen',
-            'icon': 'Elemento de Ícono',
+            'text': 'Bloque de Texto',
             'button': 'Botón de Acción',
+            'financial_product': 'Tarjeta de Producto Financiero',
+            'benefit_list': 'Lista de Beneficios / Requisitos',
             'card': 'Tarjeta de Contenido',
-            'benefit_list': 'Lista de Beneficios',
             'banner': 'Banner Promocional',
             'strategic_axis': 'Eje Estratégico'
         };
 
-        const activeTypeName = typeLabels[currentData.type || chosenTypeId] || 'Tarjeta de Contenido';
+        const activeTypeName = typeLabels[activeType] || 'Elemento';
+
+        // Renderizado especializado por tipo de elemento
+        let typeSpecificHtml = '';
+
+        if (activeType === 'form_lead') {
+            // === 1. EDITOR ESPECIALIZADO: FORMULARIO Y PREGUNTAS ===
+            const allAvailableSections = (this.allSectionsList || []).filter(s => s.id !== 'sec_comunidad');
+            const currentSecId = currentData.sectionId || this.selectedSectionId || 'sec_home';
+
+            typeSpecificHtml = `
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--colua-navy); margin-bottom: 4px;">Título del Formulario *</label>
+                    <input type="text" id="item-title" value="${currentData.title}" required placeholder="Ej: ¿Cómo Asociarte a COLUA? / Solicitud en Línea" style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.9rem;" />
+                </div>
+
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--colua-gray-700); margin-bottom: 4px;">Pantalla / Sección donde se mostrará este Formulario:</label>
+                    <select id="item-section-target" style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.88rem; background: white; font-weight: 600; color: var(--colua-navy);">
+                        <option value="sec_home" ${currentSecId === 'sec_home' ? 'selected' : ''}>🏠 Inicio (Página Principal)</option>
+                        <option value="sec_ahorros" ${currentSecId === 'sec_ahorros' ? 'selected' : ''}>💰 Ahorros & Cuentas</option>
+                        <option value="sec_creditos" ${currentSecId === 'sec_creditos' ? 'selected' : ''}>💳 Créditos & Préstamos</option>
+                        <option value="sec_seguros" ${currentSecId === 'sec_seguros' ? 'selected' : ''}>🛡️ Seguros & Protección</option>
+                        <option value="sec_remesas" ${currentSecId === 'sec_remesas' ? 'selected' : ''}>🌎 Remesas Familiares</option>
+                        <option value="sec_servicios" ${currentSecId === 'sec_servicios' ? 'selected' : ''}>📱 Servicios Digitales</option>
+                        <option value="sec_beneficios" ${currentSecId === 'sec_beneficios' ? 'selected' : ''}>👑 Tus 6 Beneficios</option>
+                        <option value="sec_noticias" ${currentSecId === 'sec_noticias' ? 'selected' : ''}>📰 Noticias & Novedades</option>
+                        <option value="sec_sostenibilidad" ${currentSecId === 'sec_sostenibilidad' ? 'selected' : ''}>🌱 Sostenibilidad Cooperativa</option>
+                        <option value="sec_nosotros" ${currentSecId === 'sec_nosotros' ? 'selected' : ''}>🏛️ Nosotros & Identidad</option>
+                        ${allAvailableSections.filter(s => !['sec_home','sec_ahorros','sec_creditos','sec_seguros','sec_remesas','sec_servicios','sec_beneficios','sec_noticias','sec_sostenibilidad','sec_nosotros'].includes(s.id)).map(s => `
+                            <option value="${s.id}" ${currentSecId === s.id ? 'selected' : ''}>📁 ${s.title || s.id}</option>
+                        `).join('')}
+                    </select>
+                    <span style="font-size: 0.74rem; color: #64748b; display: block; margin-top: 3px;">Puedes replicar o mover este formulario a cualquier pantalla de la web.</span>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--colua-gray-700); margin-bottom: 4px;">Instrucciones / Subtítulo para el Usuario</label>
+                    <input type="text" id="item-subtitle" value="${currentData.subtitle || ''}" placeholder="Ej: Completa tus datos para coordinar tus requisitos y el pago de tu aportación..." style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.88rem;" />
+                </div>
+
+                <!-- SECCIÓN DE REQUISITOS PREVIOS DESTACADOS -->
+                <div style="background: linear-gradient(135deg, #f0f7ff 0%, #e0effe 100%); border: 1.5px solid #bae6fd; border-radius: 10px; padding: 14px; margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 800; color: #0369a1; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                        <span>Requisitos Previos Destacados (Un requisito por línea)</span>
+                    </label>
+                    <textarea id="item-form-requirements" rows="3" placeholder="• DPI vigente original o fotocopia legible&#10;• Recibo de luz o agua reciente&#10;• Aportación inicial mínima de Q 100.00" style="width: 100%; padding: 8px 12px; border: 1.5px solid #7dd3fc; border-radius: 8px; font-size: 0.84rem; font-family: inherit; background: white;">${Array.isArray(currentData.requirements) ? currentData.requirements.join('\n') : (Array.isArray(currentData.benefitItems) ? currentData.benefitItems.join('\n') : '')}</textarea>
+                    <span style="font-size: 0.72rem; color: #0369a1; display: block; margin-top: 3px;">Aparecerán resaltados en un recuadro arriba de las preguntas para que el usuario conozca los requisitos antes de llenar sus datos.</span>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--colua-gray-700); margin-bottom: 4px;">Descripción o Mensaje de Bienvenida</label>
+                    <textarea id="item-desc" rows="2" placeholder="Información adicional sobre el proceso de envío..." style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.88rem;">${currentData.description || ''}</textarea>
+                </div>
+
+                <!-- Configuración de Destino, WhatsApp y Webhook / Excel -->
+                <div style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+                    <label style="font-size: 0.86rem; font-weight: 800; color: #166534; display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        <span>Recepción de Respuestas & Canales de Destino</span>
+                    </label>
+                    <p style="font-size: 0.78rem; color: #15803d; margin: 0 0 10px 0; line-height: 1.4;">
+                        Las respuestas se guardan en el panel administrativo, abren chat de WhatsApp y pueden enviarse a un Excel/Google Sheets en red.
+                    </p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                        <div>
+                            <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #166534; margin-bottom: 3px;">WhatsApp de Recepción / Enlace:</label>
+                            <input type="text" id="item-lead-whatsapp" value="${currentData.leadWhatsapp || '50277957795'}" placeholder="Ej: 50277957795" style="width: 100%; padding: 8px 10px; border: 1.5px solid #86efac; border-radius: 6px; font-size: 0.85rem; background: white;" />
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #166534; margin-bottom: 3px;">Texto del Botón de Envío:</label>
+                            <input type="text" id="item-btn-text" value="${currentData.buttonText || 'Enviar Solicitud y Coordinar Pago'}" placeholder="Ej: Enviar Solicitud" style="width: 100%; padding: 8px 10px; border: 1.5px solid #86efac; border-radius: 6px; font-size: 0.85rem; background: white;" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-size: 0.78rem; font-weight: 700; color: #166534; margin-bottom: 3px;">
+                            🔗 Enlace Webhook / Google Sheets / Excel en la Red (Opcional):
+                        </label>
+                        <input type="url" id="item-form-webhook" value="${currentData.webhookUrl || ''}" placeholder="Ej: https://script.google.com/macros/s/.../exec o webhook de Zapier/Make" style="width: 100%; padding: 8px 10px; border: 1.5px solid #86efac; border-radius: 6px; font-size: 0.82rem; background: white; font-family: monospace;" />
+                        <span style="font-size: 0.72rem; color: #15803d; display: block; margin-top: 3px;">Pega aquí la URL de tu Webhook o Google Apps Script para recibir las respuestas directamente en tu hoja de cálculo en la nube.</span>
+                    </div>
+                </div>
+
+                <!-- CONSTRUCTOR DINÁMICO DE PREGUNTAS / CAMPOS -->
+                <div style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
+                        <div>
+                            <h4 style="font-size: 0.95rem; font-weight: 800; color: var(--colua-navy); margin: 0 0 2px 0;">
+                                Preguntas y Campos del Formulario
+                            </h4>
+                            <span style="font-size: 0.76rem; color: #64748b;">Los usuarios ingresarán sus respuestas en estos campos interactivos.</span>
+                        </div>
+                        <button type="button" id="btn-add-question-field" class="btn btn-primary" style="padding: 6px 14px; font-size: 0.8rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; background: #1d4ed8;">
+                            <span>+ Crear Pregunta</span>
+                        </button>
+                    </div>
+
+                    <div id="dynamic-questions-builder-container" style="display: flex; flex-direction: column; gap: 10px; max-height: 40vh; overflow-y: auto; padding-right: 4px;">
+                        <!-- Filas de preguntas insertadas aquí dinámicamente -->
+                    </div>
+                </div>
+            `;
+        } else if (activeType === 'image') {
+            // === 2. EDITOR ESPECIALIZADO: IMAGEN ===
+            typeSpecificHtml = `
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--colua-navy); margin-bottom: 4px;">Texto Alternativo / Título de la Imagen *</label>
+                    <input type="text" id="item-title" value="${currentData.title}" required placeholder="Ej: Edificio Central COLUA / Banner Promocional" style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.9rem;" />
+                </div>
+
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--colua-gray-700); margin-bottom: 4px;">Pie de Imagen o Descripción (Opcional)</label>
+                    <input type="text" id="item-desc" value="${currentData.description || ''}" placeholder="Ej: Fotografía oficial de la agencia..." style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.88rem;" />
+                </div>
+
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--colua-gray-700); margin-bottom: 4px;">Enlace de Destino al hacer Clic (Opcional)</label>
+                    <input type="text" id="item-btn-action" value="${currentData.buttonAction || currentData.targetSectionId || ''}" placeholder="Ej: #sec_agencias o https://micoopeenlinea.com.gt" style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.88rem; font-family: monospace;" />
+                </div>
+
+                <!-- Selector de Imagen / Catálogo y Supabase -->
+                <div class="form-group" style="margin-bottom: 16px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <label style="font-size: 0.86rem; font-weight: 700; color: var(--colua-navy); margin: 0;">Seleccionar o Subir Imagen:</label>
+                        <span id="upload-status" style="font-size: 0.76rem; color: var(--colua-green); font-weight: 600;"></span>
+                    </div>
+
+                    <div style="display: flex; gap: 14px; align-items: center; margin-bottom: 12px;">
+                        <div style="width: 110px; height: 85px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 4px;">
+                            <img id="item-img-preview" src="${currentData.imageUrl || 'assets/colua_edificio.png'}" alt="Preview" style="max-width: 100%; max-height: 100%; object-fit: cover;" onerror="this.src='assets/distintivo_colua.png'" />
+                        </div>
+                        <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+                            <input type="text" id="item-img-url" value="${currentData.imageUrl || ''}" placeholder="assets/colua_edificio.png o URL externa" style="width: 100%; padding: 8px 10px; border: 1.5px solid #cbd5e1; border-radius: 6px; font-size: 0.82rem; font-family: monospace;" />
+                            <label class="btn btn-primary" style="padding: 6px 12px; font-size: 0.78rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; width: fit-content; margin: 0; background: var(--colua-navy);">
+                                <span>📁 Subir desde este Dispositivo</span>
+                                <input type="file" id="item-file-input" accept="image/*" style="display: none;" />
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Catálogo Rápido de Assets -->
+                    <div style="border-top: 1px dashed #cbd5e1; padding-top: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-size: 0.75rem; font-weight: 700; color: #475569; text-transform: uppercase;">Catálogo de Imágenes del Sistema</span>
+                            <input type="text" id="asset-picker-search" placeholder="🔍 Buscar..." style="padding: 3px 8px; font-size: 0.75rem; border: 1px solid #cbd5e1; border-radius: 6px; width: 120px;" />
+                        </div>
+                        <div id="asset-picker-grid" style="max-height: 140px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 6px; padding: 6px; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
+                            ${ASSET_CATALOG.map(item => `
+                                <div class="asset-catalog-thumb ${(currentData.imageUrl || '') === item.path ? 'active-thumb' : ''}" data-path="${item.path}" data-label="${item.label.toLowerCase()}" style="cursor: pointer; padding: 4px; border-radius: 6px; border: 1.5px solid #cbd5e1; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                                    <img src="${item.path}" alt="${item.label}" style="width: 28px; height: 28px; object-fit: contain;" onerror="this.src='assets/distintivo_colua.png'" />
+                                    <span style="font-size: 0.62rem; color: #334155; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;">${item.label}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (activeType === 'text') {
+            // === 3. EDITOR ESPECIALIZADO: TEXTO ===
+            typeSpecificHtml = `
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--colua-navy); margin-bottom: 4px;">Título o Encabezado *</label>
+                    <input type="text" id="item-title" value="${currentData.title}" required placeholder="Ej: Compromiso con el Desarrollo Cooperativo" style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.9rem;" />
+                </div>
+
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--colua-gray-700); margin-bottom: 4px;">Jerarquía Visual / Nivel:</label>
+                    <select id="item-text-hierarchy" style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.88rem; background: white;">
+                        <option value="h1" ${currentData.textHierarchy === 'h1' ? 'selected' : ''}>Encabezado Principal (H1 Grande)</option>
+                        <option value="h2" ${currentData.textHierarchy === 'h2' || !currentData.textHierarchy ? 'selected' : ''}>Título de Sección (H2 Estándar)</option>
+                        <option value="h3" ${currentData.textHierarchy === 'h3' ? 'selected' : ''}>Subtítulo Destacado (H3)</option>
+                        <option value="callout" ${currentData.textHierarchy === 'callout' ? 'selected' : ''}>Caja de Alerta / Mensaje Destacado</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--colua-gray-700); margin-bottom: 4px;">Contenido del Párrafo o Mensaje</label>
+                    <textarea id="item-desc" rows="5" placeholder="Escribe el texto completo que verán los asociados..." style="width: 100%; padding: 10px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.88rem; line-height: 1.5;">${currentData.description || ''}</textarea>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--colua-gray-700); margin-bottom: 4px;">Alineación del Texto:</label>
+                    <select id="item-text-align" style="width: 100%; padding: 8px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.88rem; background: white;">
+                        <option value="left" ${currentData.textAlign === 'left' ? 'selected' : ''}>Alinear a la Izquierda</option>
+                        <option value="center" ${currentData.textAlign === 'center' ? 'selected' : ''}>Centrado</option>
+                        <option value="right" ${currentData.textAlign === 'right' ? 'selected' : ''}>Alinear a la Derecha</option>
+                    </select>
+                </div>
+            `;
+        } else if (activeType === 'button') {
+            // === 4. EDITOR ESPECIALIZADO: BOTÓN DE ACCIÓN ===
+            typeSpecificHtml = `
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--colua-navy); margin-bottom: 4px;">Texto Visible en el Botón *</label>
+                    <input type="text" id="item-title" value="${currentData.title || currentData.buttonText || 'Contactar con Asesor'}" required placeholder="Ej: Abrir Cuenta de Ahorros / Solicitar Crédito" style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.9rem;" />
+                </div>
+
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--colua-gray-700); margin-bottom: 4px;">Destino o Acción del Botón *</label>
+                    <input type="text" id="item-btn-action" value="${currentData.buttonAction || currentData.targetSectionId || 'tel:77957795'}" required placeholder="tel:77957795, https://..., #sec_ahorros, form:form_asociate" style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.88rem; font-family: monospace;" />
+                </div>
+
+                <!-- Plantillas Rápidas -->
+                <div style="margin-bottom: 14px; background: #f8fafc; padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <span style="font-size: 0.74rem; font-weight: 700; color: #475569; display: block; margin-bottom: 6px;">Destinos Frecuentes:</span>
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <button type="button" class="btn-preset-chip" data-text="Llenar Formulario" data-action="form:form_asociate" style="padding: 3px 8px; font-size: 0.72rem; border-radius: 12px; border: 1px solid #1d4ed8; background: #eff6ff; color: #1d4ed8; font-weight: 600; cursor: pointer;">📝 Formulario</button>
+                        <button type="button" class="btn-preset-chip" data-text="Llamar a PBX" data-action="tel:77957795" style="padding: 3px 8px; font-size: 0.72rem; border-radius: 12px; border: 1px solid #cbd5e1; background: white; color: #334155; cursor: pointer;">📞 PBX Central</button>
+                        <button type="button" class="btn-preset-chip" data-text="Banca en Línea" data-action="https://micoopeenlinea.com.gt" style="padding: 3px 8px; font-size: 0.72rem; border-radius: 12px; border: 1px solid #cbd5e1; background: white; color: #334155; cursor: pointer;">🌐 Web Externa</button>
+                        <button type="button" class="btn-preset-chip" data-text="Ver Agencias" data-action="#sec_agencias" style="padding: 3px 8px; font-size: 0.72rem; border-radius: 12px; border: 1px solid #cbd5e1; background: white; color: #334155; cursor: pointer;">📍 Agencias</button>
+                    </div>
+                </div>
+            `;
+        } else if (activeType === 'benefit_list') {
+            // === 5. EDITOR ESPECIALIZADO: LISTA DE BENEFICIOS / REQUISITOS ===
+            const reqsText = Array.isArray(currentData.benefitItems) ? currentData.benefitItems.join('\n') : (currentData.subtitle || '');
+            typeSpecificHtml = `
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--colua-navy); margin-bottom: 4px;">Título de la Lista *</label>
+                    <input type="text" id="item-title" value="${currentData.title}" required placeholder="Ej: Requisitos para Apertura de Cuenta" style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.9rem;" />
+                </div>
+
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--colua-gray-700); margin-bottom: 4px;">
+                        Elementos / Viñetas de la Lista (Un elemento por línea):
+                    </label>
+                    <textarea id="item-benefit-items" rows="6" placeholder="• DPI original o fotocopia&#10;• Recibo de servicios recientes&#10;• Aportación inicial mínima" style="width: 100%; padding: 10px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.86rem; font-family: inherit; line-height: 1.5;">${reqsText}</textarea>
+                    <span style="font-size: 0.72rem; color: #64748b; display: block; margin-top: 4px;">Cada línea se renderizará automáticamente con un ícono de verificación (✓).</span>
+                </div>
+            `;
+        } else {
+            // === 6. EDITOR POR DEFECTO: PRODUCTO FINANCIERO / TARJETA ===
+            typeSpecificHtml = `
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--colua-gray-700); margin-bottom: 4px;">Título Principal *</label>
+                    <input type="text" id="item-title" value="${currentData.title}" required placeholder="Ej: Crédito Productivo / Cuenta Ahorro" style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-200); border-radius: 8px; font-size: 0.9rem;" />
+                </div>
+
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--colua-gray-700); margin-bottom: 4px;">Subtítulo / Etiqueta / Monto</label>
+                    <input type="text" id="item-subtitle" value="${currentData.subtitle || ''}" placeholder="Ej: Monto: desde Q1,000.00 / 100% Cobertura" style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-200); border-radius: 8px; font-size: 0.9rem;" />
+                </div>
+
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--colua-gray-700); margin-bottom: 4px;">Descripción Detallada</label>
+                    <textarea id="item-desc" rows="3" placeholder="Describe los beneficios o características..." style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-200); border-radius: 8px; font-size: 0.88rem;">${currentData.description || ''}</textarea>
+                </div>
+
+                <div style="background: #f8fafc; border: 1.5px solid var(--colua-gray-200); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px;">
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">Texto del Botón</label>
+                            <input type="text" id="item-btn-text" value="${currentData.buttonText || ''}" placeholder="Ej: Ver Más / Solicitar" style="width: 100%; padding: 8px 10px; border: 1.5px solid var(--colua-gray-200); border-radius: 8px; font-size: 0.85rem;" />
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">Destino / Acción</label>
+                            <input type="text" id="item-btn-action" value="${currentData.buttonAction || currentData.targetSectionId || ''}" placeholder="modal:info, tel:77957795 o #sec_..." style="width: 100%; padding: 8px 10px; border: 1.5px solid var(--colua-gray-200); border-radius: 8px; font-size: 0.85rem;" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Selector de Imagen -->
+                <div class="form-group" style="margin-bottom: 16px; background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 12px;">
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <div style="width: 44px; height: 44px; border-radius: 8px; border: 1.5px solid #cbd5e1; background: #f8fafc; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 3px;">
+                            <img id="item-img-preview" src="${currentData.imageUrl || 'assets/distintivo_colua.png'}" alt="Preview" style="max-width: 100%; max-height: 100%; object-fit: contain;" onerror="this.src='assets/distintivo_colua.png'" />
+                        </div>
+                        <div style="flex: 1;">
+                            <input type="text" id="item-img-url" value="${currentData.imageUrl || ''}" placeholder="assets/ahorros.png" style="width: 100%; padding: 6px 10px; border: 1.5px solid #cbd5e1; border-radius: 6px; font-size: 0.82rem;" />
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
 
         const modalHtml = `
-            <div style="max-width: 520px; width: 100%;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-right: 36px;">
+            <div style="max-width: 560px; width: 100%; text-align: left;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 12px;">
                     <div>
                         <span style="font-size: 0.72rem; font-weight: 700; color: #16a34a; background: #dcfce7; padding: 2px 8px; border-radius: 6px; display: inline-block; margin-bottom: 4px;">
                             ${activeTypeName}
                         </span>
                         <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--colua-navy); margin: 0;">
-                            ${isNew ? `Nueva ${activeTypeName}` : `Editar: ${currentData.title}`}
+                            ${isNew ? `Configurar ${activeTypeName}` : `Editar: ${currentData.title}`}
                         </h3>
                     </div>
                 </div>
 
                 <form id="item-edit-form">
-                    <div class="form-group" style="margin-bottom: 12px;">
-                        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">Título Principal *</label>
-                        <input type="text" id="item-title" value="${currentData.title}" required placeholder="Ej: Crédito Productivo / Cuenta Ahorro" style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-200); border-radius: 8px; font-size: 0.9rem;" />
-                    </div>
+                    ${typeSpecificHtml}
 
-                    <div class="form-group" style="margin-bottom: 12px;">
-                        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">Subtítulo / Etiqueta / Monto</label>
-                        <input type="text" id="item-subtitle" value="${currentData.subtitle || ''}" placeholder="Ej: Monto: desde Q1,000.00 / 100% Cobertura" style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-200); border-radius: 8px; font-size: 0.9rem;" />
-                    </div>
-
-                    <div class="form-group" style="margin-bottom: 12px;">
-                        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">Descripción Detallada</label>
-                        <textarea id="item-desc" rows="3" placeholder="Describe los beneficios, propósito o características del elemento..." style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-200); border-radius: 8px; font-size: 0.88rem;">${currentData.description || ''}</textarea>
-                    </div>
-
-                    <!-- Configuración de Botón y Tipo de Acción Informativa / Destino -->
-                    <div style="background: #f8fafc; border: 1.5px solid var(--colua-gray-200); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                            <label style="font-size: 0.86rem; font-weight: 700; color: var(--colua-navy); margin: 0; display: flex; align-items: center; gap: 6px;">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
-                                Acción del Botón / Interacción de la Tarjeta
-                            </label>
-                            <span style="font-size: 0.74rem; color: #64748b;">(Opcional)</span>
-                        </div>
-
-                        <!-- Selector de Tipo de Acción Rápida -->
-                        <div style="margin-bottom: 8px;">
-                            <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--colua-gray-600); margin-bottom: 4px;">Tipo de Acción / Comportamiento:</label>
-                            <select id="item-btn-type-preset" style="width: 100%; padding: 8px 10px; border: 1.5px solid var(--colua-gray-300); border-radius: 6px; font-size: 0.84rem; background: white; color: var(--colua-navy); font-weight: 600;">
-                                <option value="custom">Personalizado (Escrito manualmente abajo)</option>
-                                <option value="info_modal" ${(!currentData.buttonAction || currentData.buttonAction === 'info' || currentData.buttonAction.startsWith('modal:') || currentData.buttonText?.toLowerCase().includes('ver más')) ? 'selected' : ''}>📄 Ficha Informativa Completa ("Ver más detalles" emergente)</option>
-                                <option value="pbx" ${(currentData.buttonAction || '').startsWith('tel:') ? 'selected' : ''}>📞 Llamada Directa a PBX Central (tel:77957795)</option>
-                                <option value="ahorros" ${currentData.buttonAction === '#sec_ahorros' ? 'selected' : ''}>💰 Abrir Pantalla de Ahorros (#sec_ahorros)</option>
-                                <option value="creditos" ${currentData.buttonAction === '#sec_creditos' ? 'selected' : ''}>💳 Abrir Pantalla de Créditos (#sec_creditos)</option>
-                                <option value="seguros" ${currentData.buttonAction === '#sec_seguros' ? 'selected' : ''}>🛡️ Abrir Pantalla de Seguros (#sec_seguros)</option>
-                                <option value="remesas" ${currentData.buttonAction === '#sec_remesas' ? 'selected' : ''}>🌍 Abrir Pantalla de Remesas (#sec_remesas)</option>
-                                <option value="agencias" ${currentData.buttonAction === '#sec_agencias' ? 'selected' : ''}>📍 Localizador de Agencias (#sec_agencias)</option>
-                                <option value="digital" ${currentData.buttonAction === 'https://micoopeenlinea.com.gt' ? 'selected' : ''}>🌐 Portal MICOOPE en Línea (Web externa)</option>
-                                <option value="simulador" ${currentData.buttonAction === '#simulador-financiero' ? 'selected' : ''}>🧮 Abrir Simulador de Créditos (#simulador-financiero)</option>
-                            </select>
-                        </div>
-
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px;">
-                            <div>
-                                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">Texto del Botón</label>
-                                <input type="text" id="item-btn-text" value="${currentData.buttonText || ''}" placeholder="Ej: Ver Más Información / Solicitar (PBX)" style="width: 100%; padding: 8px 10px; border: 1.5px solid var(--colua-gray-200); border-radius: 8px; font-size: 0.85rem;" />
-                            </div>
-                            <div>
-                                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">Destino / Acción</label>
-                                <input type="text" id="item-btn-action" value="${currentData.buttonAction || currentData.targetSectionId || ''}" placeholder="modal:info, tel:77957795 o #sec_..." style="width: 100%; padding: 8px 10px; border: 1.5px solid var(--colua-gray-200); border-radius: 8px; font-size: 0.85rem; font-family: monospace;" />
-                            </div>
-                        </div>
-
-                        <!-- Presets Rápidos con 1 Clic -->
-                        <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
-                            <span style="font-size: 0.7rem; color: #64748b;">Plantillas rápidas:</span>
-                            <button type="button" class="btn-preset-chip" data-text="Ver Más Información" data-action="modal:info" style="padding: 2px 8px; font-size: 0.72rem; border-radius: 12px; border: 1px solid #cbd5e1; background: white; color: #334155; cursor: pointer;">📄 Ver Más</button>
-                            <button type="button" class="btn-preset-chip" data-text="Solicitar Información (PBX)" data-action="tel:77957795" style="padding: 2px 8px; font-size: 0.72rem; border-radius: 12px; border: 1px solid #cbd5e1; background: white; color: #334155; cursor: pointer;">📞 PBX Central</button>
-                            <button type="button" class="btn-preset-chip" data-text="Ingresar a MICOOPE en Línea" data-action="https://micoopeenlinea.com.gt" style="padding: 2px 8px; font-size: 0.72rem; border-radius: 12px; border: 1px solid #cbd5e1; background: white; color: #334155; cursor: pointer;">🌐 Banca Digital</button>
-                        </div>
-                    </div>
-
-                    <!-- Selector de Imagen / Ícono con Catálogo Rápido y Supabase Storage -->
-                    <div class="form-group" style="margin-bottom: 16px; background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 14px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                            <label style="font-size: 0.86rem; font-weight: 700; color: var(--colua-navy); margin: 0; display: flex; align-items: center; gap: 6px;">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                                Imagen / Ícono de la Tarjeta
-                            </label>
-                            <span id="upload-status" style="font-size: 0.76rem; color: var(--colua-green); font-weight: 600;"></span>
-                        </div>
-
-                        <!-- Previsualización en Vivo y Entrada de Ruta -->
-                        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
-                            <div style="width: 48px; height: 48px; border-radius: 8px; border: 1.5px solid #cbd5e1; background: #f8fafc; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; padding: 4px;">
-                                <img id="item-img-preview" src="${currentData.imageUrl || 'assets/distintivo_colua.png'}" alt="Preview" style="max-width: 100%; max-height: 100%; object-fit: contain;" onerror="this.src='assets/distintivo_colua.png'" />
-                            </div>
-                            <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
-                                <input type="text" id="item-img-url" value="${currentData.imageUrl || ''}" placeholder="assets/ahorros.png o URL externa" style="width: 100%; padding: 7px 10px; border: 1.5px solid #cbd5e1; border-radius: 6px; font-size: 0.82rem; font-family: monospace;" />
-                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                                    <label class="btn btn-outline" style="padding: 3px 8px; font-size: 0.74rem; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin: 0; border-color: #cbd5e1; background: #f8fafc;">
-                                        <span>📁 Subir personalizada...</span>
-                                        <input type="file" id="item-file-input" accept="image/*" style="display: none;" />
-                                    </label>
-                                    <span style="font-size: 0.72rem; color: #64748b;">o selecciona un ícono abajo:</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Catálogo Rápido Visual Oficial -->
-                        <div style="border-top: 1px dashed #cbd5e1; padding-top: 10px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; flex-wrap: wrap;">
-                                <span style="font-size: 0.76rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">
-                                    Catálogo Rápido de Assets (${ASSET_CATALOG.length} disponibles)
-                                </span>
-                                <input type="text" id="asset-picker-search" placeholder="🔍 Filtrar íconos..." style="padding: 4px 8px; font-size: 0.75rem; border: 1px solid #cbd5e1; border-radius: 6px; width: 135px;" />
-                            </div>
-
-                            <!-- Pestañas / Filtro por Categorías -->
-                            <div id="asset-cat-pills" style="display: flex; gap: 4px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 8px;">
-                                <button type="button" class="asset-cat-btn active" data-cat="all" style="padding: 3px 8px; font-size: 0.72rem; font-weight: 700; border-radius: 12px; border: 1px solid #0f172a; background: #0f172a; color: white; cursor: pointer; white-space: nowrap;">Todos</button>
-                                <button type="button" class="asset-cat-btn" data-cat="principales" style="padding: 3px 8px; font-size: 0.72rem; font-weight: 600; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; cursor: pointer; white-space: nowrap;">Principales</button>
-                                <button type="button" class="asset-cat-btn" data-cat="ahorros" style="padding: 3px 8px; font-size: 0.72rem; font-weight: 600; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; cursor: pointer; white-space: nowrap;">Ahorros</button>
-                                <button type="button" class="asset-cat-btn" data-cat="creditos" style="padding: 3px 8px; font-size: 0.72rem; font-weight: 600; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; cursor: pointer; white-space: nowrap;">Créditos</button>
-                                <button type="button" class="asset-cat-btn" data-cat="seguros" style="padding: 3px 8px; font-size: 0.72rem; font-weight: 600; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; cursor: pointer; white-space: nowrap;">Seguros</button>
-                                <button type="button" class="asset-cat-btn" data-cat="beneficios" style="padding: 3px 8px; font-size: 0.72rem; font-weight: 600; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; cursor: pointer; white-space: nowrap;">Beneficios</button>
-                                <button type="button" class="asset-cat-btn" data-cat="remesas" style="padding: 3px 8px; font-size: 0.72rem; font-weight: 600; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; cursor: pointer; white-space: nowrap;">Remesas</button>
-                                <button type="button" class="asset-cat-btn" data-cat="fotos" style="padding: 3px 8px; font-size: 0.72rem; font-weight: 600; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; cursor: pointer; white-space: nowrap;">Fotos</button>
-                            </div>
-
-                            <!-- Grilla de Íconos Seleccionables -->
-                            <div id="asset-picker-grid" style="max-height: 155px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; padding: 6px; background: #f1f5f9; border-radius: 8px; border: 1px solid #e2e8f0;">
-                                ${ASSET_CATALOG.map(item => {
-                                    const isSel = (currentData.imageUrl || '') === item.path;
-                                    return `
-                                        <div class="asset-catalog-thumb ${isSel ? 'active-thumb' : ''}" data-path="${item.path}" data-cat="${item.cat}" data-label="${item.label.toLowerCase()}" title="${item.label} (${item.path})" style="cursor: pointer; padding: 6px 4px; border-radius: 6px; border: 1.5px solid ${isSel ? 'var(--colua-navy)' : '#cbd5e1'}; background: ${isSel ? '#eff6ff' : '#ffffff'}; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; transition: all 0.15s ease;" onmouseover="this.style.transform='translateY(-1px)'; this.style.borderColor='var(--colua-navy)';" onmouseout="if(!this.classList.contains('active-thumb')) { this.style.transform='none'; this.style.borderColor='#cbd5e1'; }">
-                                            <img src="${item.path}" alt="${item.label}" style="width: 30px; height: 30px; object-fit: contain;" onerror="this.src='assets/distintivo_colua.png'" />
-                                            <span style="font-size: 0.65rem; font-weight: 600; color: #1e293b; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.label}</span>
-                                        </div>
-                                    `;
-                                }).join('')}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-group" style="margin-bottom: 16px;">
-                        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">
-                            Fecha de Publicación * <span style="font-size: 0.74rem; font-weight: 400; color: var(--colua-gray-500);">(La más reciente encabezará como novedad)</span>
-                        </label>
-                        <input type="datetime-local" id="item-pub-date" value="${(() => {
-                            const raw = currentData.publicationDate || Date.now();
-                            const d = new Date(typeof raw === 'number' ? raw : Number(raw) || Date.now());
-                            return isNaN(d.getTime()) ? new Date().toISOString().slice(0, 16) : new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-                        })()}" style="width: 100%; padding: 8px 12px; border: 1.5px solid var(--colua-gray-200); border-radius: 8px; font-size: 0.88rem;" />
-                    </div>
-
-                    <div style="margin-bottom: 16px; padding: 12px 14px; background: #f8fafc; border-radius: 8px; border: 1px solid var(--colua-gray-200); display: flex; flex-direction: column; gap: 10px;">
+                    <!-- Estados Globales de Publicación -->
+                    <div style="margin-bottom: 16px; padding: 12px 14px; background: #f8fafc; border-radius: 8px; border: 1px solid var(--colua-gray-200); display: flex; flex-direction: column; gap: 8px;">
                         <label style="display: flex; align-items: center; gap: 10px; font-size: 0.88rem; font-weight: 600; color: var(--colua-gray-800); cursor: pointer;">
                             <input type="checkbox" id="item-enabled" ${currentData.isEnabled !== false && currentData.isVisible !== false ? 'checked' : ''} style="width: 18px; height: 18px;" />
-                            <span>Elemento Activo / Visible en la aplicación</span>
+                            <span>Elemento Activo / Publicado en la web</span>
                         </label>
-                        <label style="display: flex; align-items: center; gap: 10px; font-size: 0.88rem; font-weight: 600; color: #b45309; cursor: pointer;">
+                        <label style="display: flex; align-items: center; gap: 10px; font-size: 0.85rem; font-weight: 600; color: #b45309; cursor: pointer;">
                             <input type="checkbox" id="item-is-draft" ${currentData.isDraft === true ? 'checked' : ''} style="width: 18px; height: 18px;" />
-                            <span>Guardar como Borrador (No visible para usuarios públicos hasta publicar)</span>
+                            <span>Guardar como Borrador (No visible para usuarios públicos)</span>
                         </label>
                     </div>
 
                     <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--colua-gray-200); padding-top: 14px;">
-                        <button type="button" class="btn btn-outline" onclick="app.closeModal()">Cancelar</button>
-                        <button type="submit" class="btn btn-primary" style="padding: 9px 20px; font-weight: 600;">Guardar Tarjeta</button>
+                        <button type="button" class="btn btn-outline" onclick="app.closeModal()" style="padding: 9px 16px;">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" style="padding: 9px 24px; font-weight: 700; background: var(--colua-navy);">Guardar ${activeTypeName}</button>
                     </div>
                 </form>
             </div>
@@ -1876,51 +2553,131 @@ class AdminComponent {
 
         app.showModal(modalHtml);
 
-        const btnTextInput = document.getElementById('item-btn-text');
-        const btnActionInput = document.getElementById('item-btn-action');
-        const btnTypePreset = document.getElementById('item-btn-type-preset');
+        // LÓGICA DEL CONSTRUCTOR DE PREGUNTAS (Para form_lead)
+        let dynamicQuestions = Array.isArray(currentData.formQuestions) ? [...currentData.formQuestions] : [...defaultQuestions];
 
-        btnTypePreset?.addEventListener('change', () => {
-            const val = btnTypePreset.value;
-            if (val === 'info_modal') {
-                if (btnActionInput) btnActionInput.value = 'modal:info';
-                if (btnTextInput && !btnTextInput.value) btnTextInput.value = 'Ver Más Información';
-            } else if (val === 'pbx') {
-                if (btnActionInput) btnActionInput.value = 'tel:77957795';
-                if (btnTextInput && !btnTextInput.value) btnTextInput.value = 'Solicitar Información (PBX)';
-            } else if (val === 'ahorros') {
-                if (btnActionInput) btnActionInput.value = '#sec_ahorros';
-                if (btnTextInput && !btnTextInput.value) btnTextInput.value = 'Ver Cuentas de Ahorro';
-            } else if (val === 'creditos') {
-                if (btnActionInput) btnActionInput.value = '#sec_creditos';
-                if (btnTextInput && !btnTextInput.value) btnTextInput.value = 'Cotizar Crédito';
-            } else if (val === 'seguros') {
-                if (btnActionInput) btnActionInput.value = '#sec_seguros';
-                if (btnTextInput && !btnTextInput.value) btnTextInput.value = 'Ver Seguros';
-            } else if (val === 'remesas') {
-                if (btnActionInput) btnActionInput.value = '#sec_remesas';
-                if (btnTextInput && !btnTextInput.value) btnTextInput.value = 'Ver Remesas';
-            } else if (val === 'agencias') {
-                if (btnActionInput) btnActionInput.value = '#sec_agencias';
-                if (btnTextInput && !btnTextInput.value) btnTextInput.value = 'Ver Agencias';
-            } else if (val === 'digital') {
-                if (btnActionInput) btnActionInput.value = 'https://micoopeenlinea.com.gt';
-                if (btnTextInput && !btnTextInput.value) btnTextInput.value = 'Ingresar a MICOOPE en Línea';
-            } else if (val === 'simulador') {
-                if (btnActionInput) btnActionInput.value = '#simulador-financiero';
-                if (btnTextInput && !btnTextInput.value) btnTextInput.value = 'Calcular Cuota';
+        const renderQuestionsBuilder = () => {
+            const container = document.getElementById('dynamic-questions-builder-container');
+            if (!container) return;
+
+            if (dynamicQuestions.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 18px; background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 8px; color: #64748b; font-size: 0.84rem;">
+                        No hay preguntas agregadas todavía. Haz clic en <strong>"+ Crear Pregunta"</strong> para agregar campos.
+                    </div>
+                `;
+                return;
             }
-        });
 
+            container.innerHTML = dynamicQuestions.map((q, idx) => `
+                <div class="question-row-card" data-idx="${idx}" style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; position: relative;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.75rem; font-weight: 800; color: #1e40af; background: #dbeafe; padding: 2px 7px; border-radius: 4px;">
+                            Pregunta #${idx + 1}
+                        </span>
+                        <button type="button" class="btn-del-question" data-idx="${idx}" title="Eliminar pregunta" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 2px 6px; font-size: 0.9rem;">
+                            🗑️
+                        </button>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px;">
+                        <div>
+                            <label style="display: block; font-size: 0.74rem; font-weight: 700; color: #334155; margin-bottom: 2px;">Texto de la Pregunta *</label>
+                            <input type="text" class="q-text-input" data-idx="${idx}" value="${q.question || q.label || ''}" placeholder="Ej: ¿Cuál es tu número de DPI o Consulta?" style="width: 100%; padding: 7px 10px; border: 1.5px solid #cbd5e1; border-radius: 6px; font-size: 0.84rem; background: white;" />
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.74rem; font-weight: 700; color: #334155; margin-bottom: 2px;">Tipo de Respuesta:</label>
+                            <select class="q-type-select" data-idx="${idx}" style="width: 100%; padding: 7px 8px; border: 1.5px solid #cbd5e1; border-radius: 6px; font-size: 0.82rem; background: white;">
+                                <option value="text" ${q.type === 'text' ? 'selected' : ''}>Texto Corto</option>
+                                <option value="textarea" ${q.type === 'textarea' ? 'selected' : ''}>Texto Largo</option>
+                                <option value="tel" ${q.type === 'tel' ? 'selected' : ''}>Teléfono</option>
+                                <option value="email" ${q.type === 'email' ? 'selected' : ''}>Correo</option>
+                                <option value="file" ${q.type === 'file' || q.type === 'image' ? 'selected' : ''}>📸 Subir Foto / Documento (DPI, Recibo, etc.)</option>
+                                <option value="select" ${q.type === 'select' ? 'selected' : ''}>Desplegable</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    ${q.type === 'select' ? `
+                        <div>
+                            <label style="display: block; font-size: 0.72rem; font-weight: 700; color: #334155; margin-bottom: 2px;">Opciones del menú (Separadas por comas):</label>
+                            <input type="text" class="q-options-input" data-idx="${idx}" value="${Array.isArray(q.options) ? q.options.join(', ') : (q.options || '')}" placeholder="Opción 1, Opción 2, Opción 3" style="width: 100%; padding: 6px 10px; border: 1.5px solid #cbd5e1; border-radius: 6px; font-size: 0.82rem; background: white;" />
+                        </div>
+                    ` : ''}
+
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 0.76rem; font-weight: 600; color: #475569; cursor: pointer;">
+                            <input type="checkbox" class="q-req-check" data-idx="${idx}" ${q.required ? 'checked' : ''} style="width: 14px; height: 14px;" />
+                            <span>Respuesta Obligatoria (*)</span>
+                        </label>
+                    </div>
+                </div>
+            `).join('');
+
+            // Eventos de las filas de preguntas
+            container.querySelectorAll('.q-text-input').forEach(inp => {
+                inp.addEventListener('input', (e) => {
+                    const idx = Number(e.target.dataset.idx);
+                    dynamicQuestions[idx].question = e.target.value;
+                    dynamicQuestions[idx].label = e.target.value;
+                });
+            });
+
+            container.querySelectorAll('.q-type-select').forEach(sel => {
+                sel.addEventListener('change', (e) => {
+                    const idx = Number(e.target.dataset.idx);
+                    dynamicQuestions[idx].type = e.target.value;
+                    renderQuestionsBuilder();
+                });
+            });
+
+            container.querySelectorAll('.q-options-input').forEach(inp => {
+                inp.addEventListener('input', (e) => {
+                    const idx = Number(e.target.dataset.idx);
+                    const raw = e.target.value;
+                    dynamicQuestions[idx].options = raw.split(',').map(o => o.trim()).filter(Boolean);
+                });
+            });
+
+            container.querySelectorAll('.q-req-check').forEach(chk => {
+                chk.addEventListener('change', (e) => {
+                    const idx = Number(e.target.dataset.idx);
+                    dynamicQuestions[idx].required = e.target.checked;
+                });
+            });
+
+            container.querySelectorAll('.btn-del-question').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const idx = Number(e.target.closest('button').dataset.idx);
+                    dynamicQuestions.splice(idx, 1);
+                    renderQuestionsBuilder();
+                });
+            });
+        };
+
+        if (activeType === 'form_lead') {
+            renderQuestionsBuilder();
+            document.getElementById('btn-add-question-field')?.addEventListener('click', () => {
+                const newId = 'q_' + Date.now();
+                dynamicQuestions.push({
+                    id: newId,
+                    question: 'Nueva Pregunta ' + (dynamicQuestions.length + 1),
+                    label: 'Nueva Pregunta ' + (dynamicQuestions.length + 1),
+                    type: 'text',
+                    required: true,
+                    placeholder: 'Escribe tu respuesta...'
+                });
+                renderQuestionsBuilder();
+            });
+        }
+
+        // Eventos de presets e imágenes si existen
         document.querySelectorAll('.btn-preset-chip').forEach(chip => {
             chip.addEventListener('click', () => {
-                if (btnTextInput) btnTextInput.value = chip.dataset.text;
-                if (btnActionInput) btnActionInput.value = chip.dataset.action;
-                if (chip.dataset.action === 'modal:info' && btnTypePreset) {
-                    btnTypePreset.value = 'info_modal';
-                } else if (chip.dataset.action.startsWith('tel:') && btnTypePreset) {
-                    btnTypePreset.value = 'pbx';
-                }
+                const btnAction = document.getElementById('item-btn-action');
+                const btnText = document.getElementById('item-btn-text');
+                if (btnAction) btnAction.value = chip.dataset.action;
+                if (btnText && !btnText.value) btnText.value = chip.dataset.text;
             });
         });
 
@@ -1930,71 +2687,13 @@ class AdminComponent {
         const uploadStatus = document.getElementById('upload-status');
         const thumbs = document.querySelectorAll('.asset-catalog-thumb');
 
-        // Click en Íconos del Catálogo
         thumbs.forEach(t => {
             t.addEventListener('click', () => {
                 const path = t.dataset.path;
                 if (imgUrlInput) imgUrlInput.value = path;
                 if (imgPreview) imgPreview.src = path;
-                thumbs.forEach(other => {
-                    other.classList.remove('active-thumb');
-                    other.style.borderColor = '#cbd5e1';
-                    other.style.background = '#ffffff';
-                });
-                t.classList.add('active-thumb');
+                thumbs.forEach(other => other.style.borderColor = '#cbd5e1');
                 t.style.borderColor = 'var(--colua-navy)';
-                t.style.background = '#eff6ff';
-                if (uploadStatus) uploadStatus.textContent = '✓ ' + path;
-            });
-        });
-
-        // Actualizar preview en vivo al escribir
-        imgUrlInput?.addEventListener('input', () => {
-            const val = imgUrlInput.value.trim();
-            if (imgPreview && val) {
-                imgPreview.src = val;
-            }
-            thumbs.forEach(t => {
-                if (t.dataset.path === val) {
-                    t.classList.add('active-thumb');
-                    t.style.borderColor = 'var(--colua-navy)';
-                    t.style.background = '#eff6ff';
-                } else {
-                    t.classList.remove('active-thumb');
-                    t.style.borderColor = '#cbd5e1';
-                    t.style.background = '#ffffff';
-                }
-            });
-        });
-
-        // Filtro y Búsqueda en el Catálogo de Assets
-        const assetSearchInput = document.getElementById('asset-picker-search');
-        const catButtons = document.querySelectorAll('.asset-cat-btn');
-        let selectedCat = 'all';
-
-        const filterCatalog = () => {
-            const q = (assetSearchInput?.value || '').toLowerCase().trim();
-            thumbs.forEach(t => {
-                const matchesCat = selectedCat === 'all' || t.dataset.cat === selectedCat;
-                const matchesSearch = !q || t.dataset.label.includes(q) || t.dataset.path.toLowerCase().includes(q);
-                t.style.display = matchesCat && matchesSearch ? 'flex' : 'none';
-            });
-        };
-
-        assetSearchInput?.addEventListener('input', filterCatalog);
-
-        catButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                catButtons.forEach(b => {
-                    b.style.background = '#f8fafc';
-                    b.style.color = '#475569';
-                    b.style.borderColor = '#e2e8f0';
-                });
-                btn.style.background = '#0f172a';
-                btn.style.color = 'white';
-                btn.style.borderColor = '#0f172a';
-                selectedCat = btn.dataset.cat;
-                filterCatalog();
             });
         });
 
@@ -2002,44 +2701,69 @@ class AdminComponent {
             fileInput.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
                 if (file) {
-                    uploadStatus.textContent = 'Subiendo y optimizando...';
-                    const res = await window.supabaseStorageManager.uploadImage(file, (msg) => { uploadStatus.textContent = msg; });
+                    if (uploadStatus) uploadStatus.textContent = 'Subiendo imagen...';
+                    const res = await window.supabaseStorageManager.uploadImage(file, (msg) => { if (uploadStatus) uploadStatus.textContent = msg; });
                     if (res.success) {
-                        imgUrlInput.value = res.url;
+                        if (imgUrlInput) imgUrlInput.value = res.url;
                         if (imgPreview) imgPreview.src = res.url;
-                        uploadStatus.textContent = res.type === 'data_uri' ? 'Guardada (Modo seguro base64)' : 'Subida a la nube exitosa';
-                    } else {
-                        uploadStatus.textContent = 'Error al subir';
-                        imgUrlInput.value = '';
+                        if (uploadStatus) uploadStatus.textContent = '✓ Imagen cargada';
                     }
                 }
             });
         }
 
+        // SUBMIT DEL FORMULARIO DE EDICIÓN
         document.getElementById('item-edit-form')?.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const pubDateInput = document.getElementById('item-pub-date');
-            let chosenTimestamp = currentData.publicationDate || Date.now();
-            if (pubDateInput && pubDateInput.value) {
-                const parsed = new Date(pubDateInput.value).getTime();
-                if (!isNaN(parsed)) chosenTimestamp = parsed;
+
+            const isEnabledVal = document.getElementById('item-enabled')?.checked ?? true;
+            const isDraftVal = document.getElementById('item-is-draft')?.checked ?? false;
+
+            let updatedTitle = document.getElementById('item-title')?.value?.trim() || activeTypeName;
+            let updatedSubtitle = document.getElementById('item-subtitle')?.value?.trim() || '';
+            let updatedDesc = document.getElementById('item-desc')?.value?.trim() || '';
+            let updatedBtnText = document.getElementById('item-btn-text')?.value?.trim() || '';
+            let updatedBtnAction = document.getElementById('item-btn-action')?.value?.trim() || '';
+            let updatedImg = imgUrlInput?.value?.trim() || currentData.imageUrl || '';
+            let updatedLeadWhatsapp = document.getElementById('item-lead-whatsapp')?.value?.trim() || currentData.leadWhatsapp || '50277957795';
+
+            let targetSecVal = this.selectedSectionId;
+            let formReqsArray = [];
+            let formWebhookUrl = '';
+
+            if (activeType === 'form_lead') {
+                updatedBtnAction = 'form:' + currentData.id;
+                targetSecVal = document.getElementById('item-section-target')?.value || this.selectedSectionId;
+                const rawReqs = document.getElementById('item-form-requirements')?.value?.trim() || '';
+                formReqsArray = rawReqs ? rawReqs.split('\n').map(r => r.trim()).filter(Boolean) : [];
+                formWebhookUrl = document.getElementById('item-form-webhook')?.value?.trim() || '';
             }
 
-            const isEnabledVal = document.getElementById('item-enabled').checked;
-            const isDraftVal = document.getElementById('item-is-draft').checked;
+            let benefitItems = currentData.benefitItems || [];
+            if (activeType === 'benefit_list') {
+                const rawItems = document.getElementById('item-benefit-items')?.value?.trim() || '';
+                benefitItems = rawItems ? rawItems.split('\n').map(i => i.trim()).filter(Boolean) : [];
+                updatedSubtitle = benefitItems.join(', ');
+            }
 
             const updated = {
                 ...currentData,
-                sectionId: this.selectedSectionId,
-                type: currentData.type || chosenTypeId,
-                title: document.getElementById('item-title').value.trim(),
-                subtitle: document.getElementById('item-subtitle').value.trim(),
-                description: document.getElementById('item-desc').value.trim(),
-                buttonText: document.getElementById('item-btn-text').value.trim(),
-                buttonAction: document.getElementById('item-btn-action').value.trim(),
-                targetSectionId: document.getElementById('item-btn-action').value.trim(),
-                imageUrl: imgUrlInput.value.trim(),
-                publicationDate: chosenTimestamp,
+                sectionId: targetSecVal,
+                type: activeType,
+                title: updatedTitle,
+                subtitle: updatedSubtitle,
+                description: updatedDesc,
+                buttonText: updatedBtnText,
+                buttonAction: updatedBtnAction,
+                targetSectionId: updatedBtnAction,
+                imageUrl: updatedImg,
+                leadWhatsapp: updatedLeadWhatsapp,
+                webhookUrl: formWebhookUrl,
+                requirements: formReqsArray.length > 0 ? formReqsArray : (currentData.requirements || []),
+                formQuestions: activeType === 'form_lead' ? dynamicQuestions : (currentData.formQuestions || []),
+                benefitItems: benefitItems,
+                textHierarchy: document.getElementById('item-text-hierarchy')?.value || currentData.textHierarchy || 'h2',
+                textAlign: document.getElementById('item-text-align')?.value || currentData.textAlign || 'left',
                 isEnabled: isEnabledVal,
                 isVisible: isEnabledVal,
                 isDraft: isDraftVal,
@@ -2048,21 +2772,43 @@ class AdminComponent {
             };
 
             await coluaRepo.saveContentItem(updated);
+
+            // Si es un formulario, guardarlo también en la colección forms de coluaRepo
+            if (activeType === 'form_lead') {
+                const formToSave = {
+                    id: currentData.id,
+                    title: updatedTitle,
+                    subtitle: updatedSubtitle || updatedDesc,
+                    buttonText: updatedBtnText || 'Enviar Respuestas',
+                    leadWhatsapp: updatedLeadWhatsapp,
+                    webhookUrl: formWebhookUrl,
+                    targetSectionId: targetSecVal,
+                    fields: dynamicQuestions.map(q => ({
+                        id: q.id || 'field_' + Math.random().toString(36).substring(2, 7),
+                        label: q.question || q.label || 'Campo',
+                        type: q.type || 'text',
+                        required: q.required !== false,
+                        placeholder: q.placeholder || '',
+                        options: q.options || []
+                    })),
+                    requirements: formReqsArray
+                };
+                await coluaRepo.saveForm(formToSave);
+            }
+
             app.closeModal();
 
             if (window.Swal) {
                 Swal.fire({
-                    title: isDraftVal ? "¡Guardado como Borrador!" : "¡Tarjeta Guardada!",
-                    text: isDraftVal 
-                        ? `"${updated.title}" ha sido guardado como borrador.` 
-                        : `"${updated.title}" ha sido guardado correctamente.`,
+                    title: isDraftVal ? "¡Guardado como Borrador!" : `¡${activeTypeName} Guardado!`,
+                    text: `"${updated.title}" ha sido guardado exitosamente.`,
                     icon: "success",
-                    timer: 1500,
+                    timer: 1600,
                     showConfirmButton: false,
                     draggable: true
                 });
             } else {
-                app.showToast('Tarjeta guardada exitosamente', 'success');
+                app.showToast(`${activeTypeName} guardado con éxito`, 'success');
             }
             await this.loadTabContent();
         });

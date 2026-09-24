@@ -1,10 +1,16 @@
 // Repositorio Principal de COLUA Digital (Equivalente completo a ColuaRepository.kt)
 class ColuaRepository {
   constructor() {
-    this.fb = window.firebaseClient;
-    this.storage = window.supabaseStorageManager;
     this.localStorageKey = 'COLUA_LOCAL_DB_V1';
     this.initLocalStorage();
+  }
+
+  get fb() {
+    return window.firebaseClient;
+  }
+
+  get storage() {
+    return window.supabaseStorageManager;
   }
 
   // Inicialización de persistencia local (Copia espejo en localStorage para modo offline y borradores)
@@ -148,6 +154,16 @@ class ColuaRepository {
       });
     }
 
+    if (!db.forms || db.forms.length === 0) {
+      db.forms = defaultData.forms || [];
+      changed = true;
+    }
+
+    if (!db.form_submissions) {
+      db.form_submissions = [];
+      changed = true;
+    }
+
     if (changed) {
       this.saveLocalDb(db);
     }
@@ -161,21 +177,21 @@ class ColuaRepository {
     const titleStr = (item.title || '').trim();
     const subStr = (item.subtitle || item.description || item.shortDescription || '').trim();
 
-    if (titleStr.includes('AhorroAhorro') || subStr === '¡Ahorro!' || subStr === '¡ahorro!') {
-      item.title = item.title.replace(/AhorroAhorro/g, 'Ahorros');
-      if (subStr === '¡Ahorro!' || subStr === '¡ahorro!') item.subtitle = 'Cuentas de ahorro';
+    if (titleStr.includes('AhorroAhorro') || titleStr.includes('Ahorro Infantil') || subStr === '¡Ahorro!' || subStr === '¡ahorro!') {
+      item.title = 'Ahorros';
+      item.subtitle = 'Cuentas de ahorro';
       changed = true;
-    } else if (titleStr.includes('CréditoCrédito') || subStr === '¡Crédito!' || subStr === '¡credito!') {
-      item.title = item.title.replace(/CréditoCrédito/g, 'Créditos');
-      if (subStr === '¡Crédito!' || subStr === '¡credito!') item.subtitle = 'Líneas de crédito';
+    } else if (titleStr.includes('CréditoCrédito') || titleStr.includes('Productivo, Consumo') || subStr === '¡Crédito!' || subStr === '¡credito!') {
+      item.title = 'Créditos';
+      item.subtitle = 'Líneas de crédito';
       changed = true;
-    } else if (titleStr.includes('Seguros de Vida Seguros') || subStr === '¡Seguros!' || subStr === '¡seguros!') {
-      item.title = item.title.replace(/Seguros de Vida Seguros/g, 'Seguros');
-      if (subStr === '¡Seguros!' || subStr === '¡seguros!') item.subtitle = 'Protección y vida';
+    } else if (titleStr.includes('Seguros de Vida Seguros') || titleStr.includes('Seguros Médicos') || subStr === '¡Seguros!' || subStr === '¡seguros!') {
+      item.title = 'Seguros';
+      item.subtitle = 'Protección y vida';
       changed = true;
     } else if (titleStr.includes('Remesas Dirigidas') || subStr === '¡Remesas!' || subStr === '¡remesas!') {
-      item.title = item.title.replace(/Remesas Dirigidas/g, 'Remesas');
-      if (subStr === '¡Remesas!' || subStr === '¡remesas!') item.subtitle = 'Recibe tu dinero';
+      item.title = 'Remesas';
+      item.subtitle = 'Recibe tu dinero';
       changed = true;
     }
     return changed;
@@ -513,12 +529,47 @@ class ColuaRepository {
       last_sync_timestamp: Date.now()
     };
 
+    const defaultForms = [
+      {
+        id: "form_asociate",
+        title: "¿Cómo Asociarte a COLUA MICOOPE?",
+        subtitle: "Inicia tu proceso de asociación cooperativa completando este breve formulario. Un asesor te contactará para coordinar los requisitos y el pago de tu aportación inicial.",
+        iconName: "distintivo_colua",
+        accentColor: "#173789",
+        targetCardId: "home_asociate",
+        buttonText: "Enviar Solicitud de Afiliación",
+        requirements: [
+          "DPI vigente original o copia legible (o Certificado de Nacimiento para menores de edad)",
+          "Recibo de luz, agua o teléfono reciente (comprobante de dirección)",
+          "Aportación inicial mínima de Q 100.00 (saldo de tu cuenta de aportaciones)"
+        ],
+        fields: [
+          { id: "nombre", label: "Nombre y Apellido", type: "text", required: true, placeholder: "Ej: Juan Carlos Gómez" },
+          { id: "telefono", label: "Teléfono / WhatsApp", type: "tel", required: true, placeholder: "Ej: 5555-1234" },
+          { id: "email", label: "Correo Electrónico", type: "email", required: true, placeholder: "Ej: juangomez@gmail.com" },
+          { id: "dpi", label: "Número de DPI / CUI", type: "text", required: false, placeholder: "Ej: 1234 56789 0101" },
+          { id: "foto_dpi", label: "Foto de tu DPI (Ambos lados)", type: "file", required: false, placeholder: "Tomar o subir foto del DPI" },
+          { id: "foto_recibo_luz", label: "Foto de tu Recibo de Luz / Agua reciente", type: "file", required: false, placeholder: "Tomar o subir foto de recibo de servicios" },
+          { id: "agencia", label: "Agencia de tu Preferencia", type: "select", required: true, options: ["Sololá Central", "Panajachel", "Santiago Atitlán", "San Lucas Tolimán", "Santa Cruz del Quiché", "Joyabaj", "Chichicastenango", "Totonicapán", "Mazatenango", "Otra / Coordinar por teléfono"] },
+          { id: "metodo_pago", label: "Forma de pago de aportación inicial (Q100.00)", type: "select", required: true, options: ["Pago en Efectivo en Agencia", "Transferencia Bancaria", "Coordinar con Asesor al contactarme"] },
+          { id: "foto_pago", label: "Comprobante de Pago / Depósito (Opcional)", type: "file", required: false, placeholder: "Subir foto de boleta o transferencia" },
+          { id: "comentarios", label: "¿Algún comentario o consulta adicional?", type: "textarea", required: false, placeholder: "Escribe cualquier consulta o el mejor horario para llamarte..." }
+        ],
+        isEnabled: true,
+        isPublished: true,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      }
+    ];
+
     return {
       sections: defaultSections,
       navigation_items: defaultNavigation,
       agencias: defaultAgencias,
       content_items: defaultItems,
       content_blocks: defaultBlocks,
+      forms: defaultForms,
+      form_submissions: [],
       global_config: defaultGlobalConfig,
       usuarios: []
     };
@@ -540,8 +591,8 @@ class ColuaRepository {
     return initialDb;
   }
 
-  // Helper con timeout ultrarrápido para no ralentizar la UI si Firestore tarda o no responde
-  async _withTimeout(promise, ms = 150) {
+  // Helper con timeout seguro para no ralentizar la UI si Firestore tarda o no responde
+  async _withTimeout(promise, ms = 2500) {
     let timer;
     const timeout = new Promise((_, reject) => {
       timer = setTimeout(() => reject(new Error('Firestore timeout')), ms);
@@ -555,6 +606,37 @@ class ColuaRepository {
 
   // --- SECCIONES ---
   async getAllSections() {
+    let remoteSections = [];
+    if (this.fb && this.fb.db) {
+      try {
+        const snap = await this._withTimeout(this.fb.collection('sections').get(), 3000);
+        if (!snap.empty) {
+          remoteSections = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        }
+      } catch (e) {}
+    }
+
+    if (!remoteSections || remoteSections.length === 0) {
+      remoteSections = await this.fetchCollectionRest('sections');
+    }
+
+    if (remoteSections && remoteSections.length > 0) {
+      const db = this.getLocalDb();
+      let changed = false;
+      remoteSections.forEach(remoteSec => {
+        if (!remoteSec || !remoteSec.id || remoteSec.id === 'sec_comunidad' || remoteSec.slug === 'comunidad') return;
+        const idx = db.sections.findIndex(s => s.id === remoteSec.id);
+        if (idx >= 0) {
+          db.sections[idx] = { ...db.sections[idx], ...remoteSec };
+          changed = true;
+        } else {
+          db.sections.push(remoteSec);
+          changed = true;
+        }
+      });
+      if (changed) this.saveLocalDb(db);
+    }
+
     const db = this.getLocalDb();
     const localSections = (db.sections || [])
       .filter(s => s.id !== 'sec_comunidad' && s.slug !== 'comunidad' && (s.title || '').trim().toLowerCase() !== 'comunidad');
@@ -736,9 +818,50 @@ class ColuaRepository {
     const cleanId = (sectionId || '').toLowerCase();
     const isNews = cleanId === 'sec_noticias' || cleanId === 'noticias';
     const isAgencias = cleanId === 'sec_agencias' || cleanId === 'agencias';
+
+    // 1. Intentar consultar por Firestore SDK
+    let remoteItems = [];
+    if (this.fb && this.fb.db) {
+      try {
+        const snap = await this._withTimeout(
+          this.fb.collection('content_items').get(),
+          3000
+        );
+        if (!snap.empty) {
+          remoteItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        }
+      } catch (e) {}
+    }
+
+    // 2. Si no hay respuesta del SDK, consultar REST API pública de Firestore
+    if (!remoteItems || remoteItems.length === 0) {
+      remoteItems = await this.fetchCollectionRest('content_items');
+    }
+
+    if (remoteItems && remoteItems.length > 0) {
+      const db = this.getLocalDb();
+      let changed = false;
+      remoteItems.forEach(remoteItem => {
+        if (!remoteItem || !remoteItem.id || remoteItem.sectionId === 'sec_comunidad') return;
+        this._cleanItemIfInverted(remoteItem);
+        const idx = db.content_items.findIndex(i => i.id === remoteItem.id);
+        if (idx >= 0) {
+          db.content_items[idx] = { ...db.content_items[idx], ...remoteItem };
+          changed = true;
+        } else {
+          db.content_items.push(remoteItem);
+          changed = true;
+        }
+      });
+      if (changed) this.saveLocalDb(db);
+    }
     
     const db = this.getLocalDb();
-    let localList = (db.content_items || []).filter(i => (i.sectionId || '').toLowerCase() === cleanId);
+    let localList = (db.content_items || []).filter(i => {
+      const iSec = (i.sectionId || '').toLowerCase();
+      return iSec === cleanId || iSec === cleanId.replace('sec_', '') || ('sec_' + iSec) === cleanId;
+    });
+
     let localCleaned = false;
     localList.forEach(i => {
       if (this._cleanItemIfInverted(i)) localCleaned = true;
@@ -801,24 +924,56 @@ class ColuaRepository {
     return { success: true, item, isEnabled: newStatus };
   }
 
-  // Helper para decodificar documentos de la API REST de Firestore
+  // Helpers recursivos para decodificar documentos de la API REST de Firestore
+  _parseFirestoreRestValue(valObj) {
+    if (!valObj) return null;
+    if ('stringValue' in valObj) return valObj.stringValue;
+    if ('integerValue' in valObj) return parseInt(valObj.integerValue, 10);
+    if ('doubleValue' in valObj) return parseFloat(valObj.doubleValue);
+    if ('booleanValue' in valObj) return valObj.booleanValue;
+    if ('timestampValue' in valObj) return valObj.timestampValue;
+    if ('nullValue' in valObj) return null;
+    if ('arrayValue' in valObj) {
+      return (valObj.arrayValue.values || []).map(v => this._parseFirestoreRestValue(v));
+    }
+    if ('mapValue' in valObj) {
+      const res = {};
+      if (valObj.mapValue.fields) {
+        for (const [k, v] of Object.entries(valObj.mapValue.fields)) {
+          res[k] = this._parseFirestoreRestValue(v);
+        }
+      }
+      return res;
+    }
+    return valObj;
+  }
+
   _parseFirestoreRestDoc(doc) {
     if (!doc || !doc.name) return null;
     const data = { id: doc.name.split('/').pop() };
     if (doc.fields) {
       for (const [key, valObj] of Object.entries(doc.fields)) {
-        if ('stringValue' in valObj) data[key] = valObj.stringValue;
-        else if ('integerValue' in valObj) data[key] = parseInt(valObj.integerValue, 10);
-        else if ('doubleValue' in valObj) data[key] = parseFloat(valObj.doubleValue);
-        else if ('booleanValue' in valObj) data[key] = valObj.booleanValue;
-        else if ('timestampValue' in valObj) data[key] = valObj.timestampValue;
-        else if ('nullValue' in valObj) data[key] = null;
-        else if ('arrayValue' in valObj) {
-          data[key] = (valObj.arrayValue.values || []).map(v => Object.values(v)[0]);
-        }
+        data[key] = this._parseFirestoreRestValue(valObj);
       }
     }
     return data;
+  }
+
+  async fetchCollectionRest(collectionName) {
+    try {
+      const projectId = (window.COLUA_CONFIG && window.COLUA_CONFIG.firebase && window.COLUA_CONFIG.firebase.projectId) || 'colua-info';
+      const restUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collectionName}?pageSize=200`;
+      const resp = await fetch(restUrl, { cache: 'no-cache' });
+      if (resp.ok) {
+        const json = await resp.json();
+        if (json.documents && Array.isArray(json.documents)) {
+          return json.documents.map(d => this._parseFirestoreRestDoc(d)).filter(Boolean);
+        }
+      }
+    } catch (e) {
+      console.warn(`[ColuaRepository] Error consultando REST para ${collectionName}:`, e);
+    }
+    return [];
   }
 
   // Alias y sincronizador robusto para componente de noticias
@@ -2160,6 +2315,7 @@ class ColuaRepository {
 
   async resetToFactoryDefaults() {
     const currentUsers = this.getLocalDb().usuarios || [];
+    localStorage.removeItem(this.localStorageKey);
     localStorage.removeItem('colua_local_db');
     const freshDb = this.getLocalDb();
     freshDb.usuarios = currentUsers;
@@ -2178,12 +2334,13 @@ class ColuaRepository {
   subscribeToPublishedConfig(onUpdated) {
     if (this.fb && this.fb.db) {
       try {
-        return this.fb.collection('config').doc('published_config').onSnapshot((snap) => {
+        return this.fb.collection('config').doc('published_config').onSnapshot(async (snap) => {
           if (snap.exists) {
             const remoteVersion = snap.data().version || 1;
-            const currentLocal = this.getLocalDb().global_config.published_version || 1;
+            const currentLocal = this.getLocalDb().global_config?.published_version || 1;
             if (remoteVersion > currentLocal) {
-              console.log(`Nueva versión remota detectada (v${remoteVersion}). Actualizando...`);
+              console.log(`Nueva versión remota detectada (v${remoteVersion}). Sincronizando datos...`);
+              await this.syncAllFromCloud();
               if (onUpdated) onUpdated(remoteVersion);
             }
           }
@@ -2191,6 +2348,258 @@ class ColuaRepository {
       } catch (e) {}
     }
   }
+
+  // Sincronización completa desde Firestore Cloud
+  async syncAllFromCloud() {
+    if (!this.fb || !this.fb.db) return false;
+    try {
+      const [secSnap, itemSnap] = await Promise.all([
+        this._withTimeout(this.fb.collection('sections').get(), 4000),
+        this._withTimeout(this.fb.collection('content_items').get(), 4000)
+      ]);
+
+      const db = this.getLocalDb();
+      let changed = false;
+
+      if (secSnap && !secSnap.empty) {
+        secSnap.docs.forEach(doc => {
+          const remoteSec = { id: doc.id, ...doc.data() };
+          if (remoteSec.id === 'sec_comunidad' || remoteSec.slug === 'comunidad') return;
+          const idx = db.sections.findIndex(s => s.id === remoteSec.id);
+          if (idx >= 0) {
+            db.sections[idx] = { ...db.sections[idx], ...remoteSec };
+          } else {
+            db.sections.push(remoteSec);
+          }
+          changed = true;
+        });
+      }
+
+      if (itemSnap && !itemSnap.empty) {
+        itemSnap.docs.forEach(doc => {
+          const remoteItem = { id: doc.id, ...doc.data() };
+          if (remoteItem.sectionId === 'sec_comunidad') return;
+          this._cleanItemIfInverted(remoteItem);
+          const idx = db.content_items.findIndex(i => i.id === remoteItem.id);
+          if (idx >= 0) {
+            db.content_items[idx] = { ...db.content_items[idx], ...remoteItem };
+          } else {
+            db.content_items.push(remoteItem);
+          }
+          changed = true;
+        });
+      }
+
+      // Sincronizar formularios
+      try {
+        const formSnap = await this._withTimeout(this.fb.collection('forms').get(), 3000);
+        if (formSnap && !formSnap.empty) {
+          if (!db.forms) db.forms = [];
+          formSnap.docs.forEach(doc => {
+            const remoteForm = { id: doc.id, ...doc.data() };
+            const idx = db.forms.findIndex(f => f.id === remoteForm.id);
+            if (idx >= 0) db.forms[idx] = { ...db.forms[idx], ...remoteForm };
+            else db.forms.push(remoteForm);
+            changed = true;
+          });
+        }
+      } catch (e) {}
+
+      if (changed) {
+        this.saveLocalDb(db);
+        console.log('[COLUA Sync] Datos de la nube sincronizados exitosamente.');
+      }
+      return true;
+    } catch (e) {
+      console.warn('[COLUA Sync] Modo local/offline activo o error de conexión:', e.message);
+      return false;
+    }
+  }
+
+  // --- FORMULARIOS DINÁMICOS & CAPTACIÓN DE LEADS ---
+  async getForms() {
+    if (this.fb && this.fb.db) {
+      try {
+        const snap = await this._withTimeout(this.fb.collection('forms').get(), 3000);
+        if (!snap.empty) {
+          const remoteForms = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          const db = this.getLocalDb();
+          let changed = false;
+          if (!db.forms) db.forms = [];
+          remoteForms.forEach(rem => {
+            const idx = db.forms.findIndex(f => f.id === rem.id);
+            if (idx >= 0) {
+              db.forms[idx] = { ...db.forms[idx], ...rem };
+            } else {
+              db.forms.push(rem);
+            }
+            changed = true;
+          });
+          if (changed) this.saveLocalDb(db);
+        }
+      } catch (e) {}
+    }
+    const db = this.getLocalDb();
+    if (!db.forms || db.forms.length === 0) {
+      db.forms = this._getDefaultData().forms;
+      this.saveLocalDb(db);
+    }
+    return db.forms || [];
+  }
+
+  async getFormById(formId) {
+    const forms = await this.getForms();
+    return forms.find(f => f.id === formId) || forms[0] || null;
+  }
+
+  async saveForm(formData) {
+    if (!formData.id) formData.id = 'form_' + Math.random().toString(36).substring(2, 9);
+    formData.updatedAt = Date.now();
+    const db = this.getLocalDb();
+    if (!db.forms) db.forms = [];
+    const idx = db.forms.findIndex(f => f.id === formData.id);
+    if (idx >= 0) db.forms[idx] = formData;
+    else db.forms.push(formData);
+    this.saveLocalDb(db);
+
+    if (this.fb && this.fb.db) {
+      try {
+        await this.fb.collection('forms').doc(formData.id).set(formData, { merge: true });
+      } catch (e) {}
+    }
+
+    await this.logAudit({
+      action: idx >= 0 ? 'EDITAR_FORMULARIO' : 'CREAR_FORMULARIO',
+      performedBy: window.authService?.getCurrentUser()?.nombre || 'Super Administrador',
+      details: `Se guardó el formulario "${formData.title}" (${formData.id}) con ${formData.requirements?.length || 0} requisitos.`
+    });
+
+    return { success: true, form: formData };
+  }
+
+  async deleteForm(formId) {
+    const db = this.getLocalDb();
+    if (!db.forms) db.forms = [];
+    db.forms = db.forms.filter(f => f.id !== formId);
+    this.saveLocalDb(db);
+
+    if (this.fb && this.fb.db) {
+      try {
+        await this.fb.collection('forms').doc(formId).delete();
+      } catch (e) {}
+    }
+
+    await this.logAudit({
+      action: 'ELIMINAR_FORMULARIO',
+      performedBy: window.authService?.getCurrentUser()?.nombre || 'Super Administrador',
+      details: `Se eliminó el formulario ${formId}`
+    });
+
+    return { success: true };
+  }
+
+  async submitFormLead(leadData) {
+    const leadId = 'lead_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+    const fullLead = {
+      id: leadId,
+      ...leadData,
+      estado: leadData.estado || 'Pendiente',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      fechaStr: new Date().toLocaleString()
+    };
+
+    const db = this.getLocalDb();
+    if (!db.form_submissions) db.form_submissions = [];
+    db.form_submissions.unshift(fullLead);
+    this.saveLocalDb(db);
+
+    if (this.fb && this.fb.db) {
+      try {
+        await this.fb.collection('form_submissions').doc(leadId).set(fullLead);
+      } catch (e) {
+        console.warn('Error guardando lead en Firestore:', e);
+      }
+    }
+
+    await this.logAudit({
+      action: 'NUEVA_SOLICITUD_LEAD',
+      performedBy: fullLead.nombre || 'Visitante Web',
+      details: `Nueva solicitud para "${fullLead.formTitle || 'Afiliación'}" recibida de ${fullLead.nombre} (${fullLead.telefono}).`
+    });
+
+    return { success: true, lead: fullLead };
+  }
+
+  async getFormSubmissions() {
+    if (this.fb && this.fb.db) {
+      try {
+        const snap = await this._withTimeout(this.fb.collection('form_submissions').get(), 3000);
+        if (!snap.empty) {
+          const remoteSubs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          const db = this.getLocalDb();
+          let changed = false;
+          if (!db.form_submissions) db.form_submissions = [];
+          remoteSubs.forEach(rem => {
+            const idx = db.form_submissions.findIndex(s => s.id === rem.id);
+            if (idx >= 0) {
+              db.form_submissions[idx] = { ...db.form_submissions[idx], ...rem };
+            } else {
+              db.form_submissions.push(rem);
+            }
+            changed = true;
+          });
+          if (changed) {
+            db.form_submissions.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            this.saveLocalDb(db);
+          }
+        }
+      } catch (e) {}
+    }
+    const db = this.getLocalDb();
+    return (db.form_submissions || []).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  }
+
+  async updateSubmissionStatus(id, newStatus) {
+    const db = this.getLocalDb();
+    if (!db.form_submissions) db.form_submissions = [];
+    const lead = db.form_submissions.find(s => s.id === id);
+    if (!lead) return { success: false, error: 'Solicitud no encontrada' };
+
+    lead.estado = newStatus;
+    lead.updatedAt = Date.now();
+    this.saveLocalDb(db);
+
+    if (this.fb && this.fb.db) {
+      try {
+        await this.fb.collection('form_submissions').doc(id).set({ estado: newStatus, updatedAt: Date.now() }, { merge: true });
+      } catch (e) {}
+    }
+
+    await this.logAudit({
+      action: 'ACTUALIZAR_ESTADO_SOLICITUD',
+      performedBy: window.authService?.getCurrentUser()?.nombre || 'Super Administrador',
+      details: `Solicitud de ${lead.nombre} marcada como "${newStatus}".`
+    });
+
+    return { success: true, lead };
+  }
+
+  async deleteSubmission(id) {
+    const db = this.getLocalDb();
+    if (!db.form_submissions) db.form_submissions = [];
+    db.form_submissions = db.form_submissions.filter(s => s.id !== id);
+    this.saveLocalDb(db);
+
+    if (this.fb && this.fb.db) {
+      try {
+        await this.fb.collection('form_submissions').doc(id).delete();
+      } catch (e) {}
+    }
+
+    return { success: true };
+  }
+
   async getBlocksByItemId(itemId) {
     const cleanId = (itemId || '').toLowerCase();
     try {
@@ -2500,6 +2909,307 @@ class ColuaRepository {
     });
 
     return { success: true, item, isEnabled: newStatus };
+  }
+
+  // --- SINCRONIZACIÓN EN LA NUBE Y TIEMPO REAL ---
+  async syncAllFromCloud() {
+    let hasChanges = false;
+    const db = this.getLocalDb();
+
+    // 1. Sincronizar Content Items (Tarjetas, Formularios, Banners, Noticias)
+    let remoteItems = [];
+    if (this.fb && this.fb.db) {
+      try {
+        const snap = await this._withTimeout(this.fb.collection('content_items').get(), 3500);
+        if (!snap.empty) {
+          remoteItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        }
+      } catch (e) {}
+    }
+
+    if (!remoteItems || remoteItems.length === 0) {
+      remoteItems = await this.fetchCollectionRest('content_items');
+    }
+
+    if (remoteItems && remoteItems.length > 0) {
+      if (!db.content_items) db.content_items = [];
+      remoteItems.forEach(remoteItem => {
+        if (!remoteItem || !remoteItem.id || remoteItem.sectionId === 'sec_comunidad') return;
+        this._cleanItemIfInverted(remoteItem);
+        const idx = db.content_items.findIndex(i => i.id === remoteItem.id);
+        if (idx >= 0) {
+          db.content_items[idx] = { ...db.content_items[idx], ...remoteItem };
+        } else {
+          db.content_items.push(remoteItem);
+        }
+        hasChanges = true;
+      });
+    }
+
+    // 2. Sincronizar Secciones
+    let remoteSections = [];
+    if (this.fb && this.fb.db) {
+      try {
+        const snap = await this._withTimeout(this.fb.collection('sections').get(), 3500);
+        if (!snap.empty) {
+          remoteSections = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        }
+      } catch (e) {}
+    }
+
+    if (!remoteSections || remoteSections.length === 0) {
+      remoteSections = await this.fetchCollectionRest('sections');
+    }
+
+    if (remoteSections && remoteSections.length > 0) {
+      if (!db.sections) db.sections = [];
+      remoteSections.forEach(remoteSec => {
+        if (!remoteSec || !remoteSec.id || remoteSec.id === 'sec_comunidad' || remoteSec.slug === 'comunidad') return;
+        const idx = db.sections.findIndex(s => s.id === remoteSec.id);
+        if (idx >= 0) {
+          db.sections[idx] = { ...db.sections[idx], ...remoteSec };
+        } else {
+          db.sections.push(remoteSec);
+        }
+        hasChanges = true;
+      });
+    }
+
+    // 3. Sincronizar Formularios
+    let remoteForms = [];
+    if (this.fb && this.fb.db) {
+      try {
+        const snap = await this._withTimeout(this.fb.collection('forms').get(), 3000);
+        if (!snap.empty) {
+          remoteForms = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        }
+      } catch (e) {}
+    }
+
+    if (!remoteForms || remoteForms.length === 0) {
+      remoteForms = await this.fetchCollectionRest('forms');
+    }
+
+    if (remoteForms && remoteForms.length > 0) {
+      if (!db.forms) db.forms = [];
+      remoteForms.forEach(rf => {
+        if (!rf || !rf.id) return;
+        const idx = db.forms.findIndex(f => f.id === rf.id);
+        if (idx >= 0) db.forms[idx] = { ...db.forms[idx], ...rf };
+        else db.forms.push(rf);
+        hasChanges = true;
+      });
+    }
+
+    // 4. Sincronizar Agencias
+    let remoteAgencias = [];
+    if (this.fb && this.fb.db) {
+      try {
+        const snap = await this._withTimeout(this.fb.collection('agencias').get(), 3000);
+        if (!snap.empty) {
+          remoteAgencias = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        }
+      } catch (e) {}
+    }
+
+    if (!remoteAgencias || remoteAgencias.length === 0) {
+      remoteAgencias = await this.fetchCollectionRest('agencias');
+    }
+
+    if (remoteAgencias && remoteAgencias.length > 0) {
+      if (!db.agencias) db.agencias = [];
+      remoteAgencias.forEach(ra => {
+        if (!ra || !ra.id) return;
+        const idx = db.agencias.findIndex(a => a.id === ra.id);
+        if (idx >= 0) db.agencias[idx] = { ...db.agencias[idx], ...ra };
+        else db.agencias.push(ra);
+        hasChanges = true;
+      });
+    }
+
+    if (hasChanges) {
+      this.saveLocalDb(db);
+      try {
+        window.dispatchEvent(new CustomEvent('colua-data-synced', { detail: { timestamp: Date.now() } }));
+      } catch (e) {}
+    }
+
+    return hasChanges;
+  }
+
+  // Suscripción a cambios en tiempo real entre múltiples pestañas / ordenadores
+  subscribeToPublishedConfig(callback) {
+    if (!this.fb || !this.fb.db) return;
+    try {
+      this.fb.collection('content_items').onSnapshot((snap) => {
+        const db = this.getLocalDb();
+        let changed = false;
+        snap.docChanges().forEach(change => {
+          const item = { id: change.doc.id, ...change.doc.data() };
+          if (change.type === 'added' || change.type === 'modified') {
+            const idx = db.content_items.findIndex(i => i.id === item.id);
+            if (idx >= 0) db.content_items[idx] = item;
+            else db.content_items.push(item);
+            changed = true;
+          } else if (change.type === 'removed') {
+            db.content_items = db.content_items.filter(i => i.id !== item.id);
+            changed = true;
+          }
+        });
+        if (changed) {
+          this.saveLocalDb(db);
+          if (typeof callback === 'function') callback();
+        }
+      }, (err) => console.warn('[ColuaRepo] Realtime content_items listener warning:', err));
+
+      this.fb.collection('sections').onSnapshot((snap) => {
+        const db = this.getLocalDb();
+        let changed = false;
+        snap.docChanges().forEach(change => {
+          const sec = { id: change.doc.id, ...change.doc.data() };
+          if (change.type === 'added' || change.type === 'modified') {
+            const idx = db.sections.findIndex(s => s.id === sec.id);
+            if (idx >= 0) db.sections[idx] = sec;
+            else db.sections.push(sec);
+            changed = true;
+          } else if (change.type === 'removed') {
+            db.sections = db.sections.filter(s => s.id !== sec.id);
+            changed = true;
+          }
+        });
+        if (changed) {
+          this.saveLocalDb(db);
+          if (typeof callback === 'function') callback();
+        }
+      }, (err) => console.warn('[ColuaRepo] Realtime sections listener warning:', err));
+    } catch (e) {
+      console.warn('[ColuaRepo] Error configurando suscripción en tiempo real:', e);
+    }
+  }
+
+  // --- FORMULARIOS & LEADS ---
+  getForms() {
+    const db = this.getLocalDb();
+    return db.forms || [];
+  }
+
+  getFormById(id) {
+    if (!id) return null;
+    const db = this.getLocalDb();
+    return (db.forms || []).find(f => f.id === id || f.targetCardId === id);
+  }
+
+  async saveForm(form) {
+    if (!form.id) form.id = 'form_' + Math.random().toString(36).substring(2, 9);
+    form.updatedAt = Date.now();
+    const db = this.getLocalDb();
+    if (!db.forms) db.forms = [];
+    const idx = db.forms.findIndex(f => f.id === form.id);
+    if (idx >= 0) db.forms[idx] = form;
+    else db.forms.push(form);
+    this.saveLocalDb(db);
+
+    if (this.fb && this.fb.db) {
+      try {
+        await this.fb.collection('forms').doc(form.id).set(form, { merge: true });
+      } catch (e) {
+        console.warn('Error guardando formulario en Firestore:', e);
+      }
+    }
+    return form;
+  }
+
+  async submitFormLead(lead) {
+    if (!lead.id) lead.id = 'lead_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+    lead.createdAt = Date.now();
+    lead.fechaStr = new Date().toLocaleString();
+    lead.estado = lead.estado || 'Pendiente';
+
+    const db = this.getLocalDb();
+    if (!db.form_submissions) db.form_submissions = [];
+    db.form_submissions.unshift(lead);
+    this.saveLocalDb(db);
+
+    if (this.fb && this.fb.db) {
+      try {
+        await this.fb.collection('form_submissions').doc(lead.id).set(lead, { merge: true });
+      } catch (e) {
+        console.warn('Error guardando lead en Firestore:', e);
+      }
+    }
+    return lead;
+  }
+
+  async getFormLeads() {
+    let remoteLeads = [];
+    if (this.fb && this.fb.db) {
+      try {
+        const snap = await this._withTimeout(this.fb.collection('form_submissions').get(), 3000);
+        if (!snap.empty) {
+          remoteLeads = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          const db = this.getLocalDb();
+          db.form_submissions = remoteLeads;
+          this.saveLocalDb(db);
+          return remoteLeads;
+        }
+      } catch (e) {}
+    }
+    const db = this.getLocalDb();
+    return db.form_submissions || [];
+  }
+
+  async publishCurrentConfiguration() {
+    const db = this.getLocalDb();
+    if (db.content_items) {
+      db.content_items.forEach(i => {
+        if (i.isDraft) {
+          i.isDraft = false;
+          i.isPublished = true;
+          i.updatedAt = Date.now();
+        }
+      });
+    }
+    if (db.sections) {
+      db.sections.forEach(s => {
+        if (s.isDraft) {
+          s.isDraft = false;
+          s.isPublished = true;
+          s.updatedAt = Date.now();
+        }
+      });
+    }
+    this.saveLocalDb(db);
+
+    if (this.fb && this.fb.db) {
+      try {
+        const batch = this.fb.db.batch();
+        (db.content_items || []).forEach(item => {
+          const ref = this.fb.collection('content_items').doc(item.id);
+          batch.set(ref, item, { merge: true });
+        });
+        (db.sections || []).forEach(sec => {
+          const ref = this.fb.collection('sections').doc(sec.id);
+          batch.set(ref, sec, { merge: true });
+        });
+        await batch.commit();
+      } catch (e) {
+        console.warn('Error publicando lote a Firestore:', e);
+      }
+    }
+    return { success: true, timestamp: Date.now() };
+  }
+
+  getSyncStatusInfo() {
+    const db = this.getLocalDb();
+    const isOnline = navigator.onLine;
+    const isFirebaseConnected = !!(this.fb && this.fb.db);
+    return {
+      isOnline,
+      isFirebaseConnected,
+      totalItems: (db.content_items || []).length,
+      totalSections: (db.sections || []).length,
+      lastSync: db.global_config?.last_sync_timestamp || Date.now()
+    };
   }
 
   // Aliases para compatibilidad con admin.js y otros componentes

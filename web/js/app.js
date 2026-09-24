@@ -61,6 +61,22 @@ const App = {
             window.addEventListener('online',  () => this.showToast('Conexión restablecida', 'success'));
         } catch (e) {}
 
+        // 8. Sincronización en la nube en tiempo real (Firestore)
+        try {
+            if (window.coluaRepository) {
+                window.coluaRepository.syncAllFromCloud().then((synced) => {
+                    if (synced && window.router && (window.location.hash === '#inicio' || window.location.hash === '' || window.location.hash === '#/')) {
+                        window.router.handleRouting();
+                    }
+                });
+                window.coluaRepository.subscribeToPublishedConfig(() => {
+                    if (window.router) window.router.handleRouting();
+                });
+            }
+        } catch (e) {
+            console.warn('[COLUA] Error iniciando sincronización cloud:', e);
+        }
+
         console.log('[COLUA] App lista.');
     },
 
@@ -415,6 +431,317 @@ const App = {
         `;
 
         this.showModal(modalHtml);
+    },
+
+    // ── Formulario Dinámico / Preguntas y Respuestas / Captación Directa ───────
+    async showDynamicFormModal(formId = 'form_asociate') {
+        let form = null;
+        if (typeof formId === 'object' && formId !== null) {
+            form = formId;
+        } else if (window.coluaRepository) {
+            form = await window.coluaRepository.getFormById(formId);
+            if (!form) {
+                const db = window.coluaRepository.getLocalDb();
+                const item = (db.content_items || []).find(i => i.id === formId);
+                if (item) {
+                    form = {
+                        id: item.id,
+                        title: item.title,
+                        subtitle: item.subtitle || item.description,
+                        buttonText: item.buttonText || 'Enviar mis Respuestas',
+                        leadWhatsapp: item.leadWhatsapp || '50277957795',
+                        fields: (item.formQuestions || []).map(q => ({
+                            id: q.id || 'field_' + Math.random().toString(36).substring(2, 7),
+                            label: q.question || q.label || 'Campo',
+                            type: q.type || 'text',
+                            required: q.required !== false,
+                            placeholder: q.placeholder || '',
+                            options: q.options || []
+                        })),
+                        requirements: item.benefitItems || []
+                    };
+                }
+            }
+        }
+
+        if (!form || !form.fields || form.fields.length === 0) {
+            form = {
+                id: form?.id || 'form_asociate',
+                title: form?.title || 'Formulario de Consultas y Solicitud',
+                subtitle: form?.subtitle || 'Completa tus datos o preguntas para que un asesor te contacte a la brevedad.',
+                buttonText: form?.buttonText || 'Enviar Solicitud y Coordinar Pago',
+                leadWhatsapp: form?.leadWhatsapp || '50277957795',
+                requirements: form?.requirements || [
+                    'DPI vigente original o copia legible (o Certificado de Nacimiento)',
+                    'Recibo de luz, agua o teléfono reciente',
+                    'Aportación inicial mínima de Q 100.00'
+                ],
+                fields: [
+                    { id: 'nombre', label: 'Nombre y Apellido', type: 'text', required: true, placeholder: 'Ej: Juan Gómez' },
+                    { id: 'telefono', label: 'Teléfono / WhatsApp', type: 'tel', required: true, placeholder: 'Ej: 5555-1234' },
+                    { id: 'email', label: 'Correo Electrónico', type: 'email', required: false, placeholder: 'Ej: juangomez@gmail.com' },
+                    { id: 'dpi', label: 'Número de DPI / CUI', type: 'text', required: false, placeholder: 'Ej: 1234 56789 0101' },
+                    { id: 'foto_dpi', label: 'Foto de tu DPI (Ambos lados)', type: 'file', required: false },
+                    { id: 'foto_recibo_luz', label: 'Foto de tu Recibo de Luz / Agua reciente', type: 'file', required: false },
+                    { id: 'metodo_pago', label: 'Forma de pago de aportación inicial (Q100.00)', type: 'select', required: true, options: ['Pago en Efectivo en Agencia', 'Transferencia Bancaria', 'Coordinar con Asesor por WhatsApp'] },
+                    { id: 'consulta', label: '¿Alguna duda o comentario adicional?', type: 'textarea', required: false, placeholder: 'Escribe aquí tu duda o mejor horario para llamarte...' }
+                ]
+            };
+        }
+
+        this._formUploadedFiles = {};
+
+        const modalHtml = `
+            <div style="max-width: 580px; width: 100%; text-align: left;">
+                <!-- Encabezado Institucional -->
+                <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 14px; border-bottom: 1.5px solid var(--colua-gray-200); padding-bottom: 14px;">
+                    <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(23, 55, 137, 0.08); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <img src="assets/distintivo_colua.png" alt="COLUA" style="width: 32px; height: 32px; object-fit: contain;" />
+                    </div>
+                    <div>
+                        <span class="badge" style="background: var(--colua-navy); color: white; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; letter-spacing: 0.4px;">FORMULARIO INTERACTIVO</span>
+                        <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--colua-navy); margin: 2px 0 0 0; line-height: 1.25;">
+                            ${form.title}
+                        </h2>
+                    </div>
+                </div>
+
+                <p style="font-size: 0.86rem; color: #475569; margin: 0 0 16px 0; line-height: 1.45;">
+                    ${form.subtitle || 'Por favor ingresa tus respuestas en los campos a continuación.'}
+                </p>
+
+                <!-- Caja Destacada de Requisitos / Instrucciones -->
+                ${form.requirements && form.requirements.length > 0 ? `
+                    <div style="background: linear-gradient(135deg, #f0f7ff 0%, #e0effe 100%); border: 1.5px solid #bae6fd; border-radius: 12px; padding: 12px 16px; margin-bottom: 16px;">
+                        <div style="font-size: 0.8rem; font-weight: 800; color: #0369a1; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                            Requisitos Previos:
+                        </div>
+                        <ul style="margin: 0; padding-left: 20px; font-size: 0.84rem; color: #0f172a; line-height: 1.45; font-weight: 500;">
+                            ${form.requirements.map(req => `<li style="margin-bottom: 3px;">${req}</li>`).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+
+                <!-- Formulario de Preguntas & Respuestas -->
+                <form id="dynamic-lead-form" style="display: flex; flex-direction: column; gap: 12px; max-height: 52vh; overflow-y: auto; padding-right: 4px;">
+                    ${form.fields.map(f => {
+                        const isReq = f.required ? 'required' : '';
+                        if (f.type === 'select') {
+                            return `
+                                <div>
+                                    <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--colua-gray-800); margin-bottom: 4px;">
+                                        ${f.label} ${f.required ? '<span style="color: #ef4444;">*</span>' : ''}
+                                    </label>
+                                    <select name="${f.id}" id="lead-${f.id}" data-label="${f.label}" ${isReq} style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.88rem; background: white; color: var(--colua-gray-800);">
+                                        <option value="">(Selecciona una opción...)</option>
+                                        ${(f.options || []).map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+                                    </select>
+                                </div>
+                            `;
+                        } else if (f.type === 'textarea') {
+                            return `
+                                <div>
+                                    <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--colua-gray-800); margin-bottom: 4px;">
+                                        ${f.label} ${f.required ? '<span style="color: #ef4444;">*</span>' : ''}
+                                    </label>
+                                    <textarea name="${f.id}" id="lead-${f.id}" data-label="${f.label}" ${isReq} placeholder="${f.placeholder || 'Escribe tu respuesta aquí...'}" rows="3" style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.88rem; font-family: inherit; resize: vertical;"></textarea>
+                                </div>
+                            `;
+                        } else if (f.type === 'file' || f.type === 'image') {
+                            return `
+                                <div>
+                                    <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--colua-gray-800); margin-bottom: 4px;">
+                                        ${f.label} ${f.required ? '<span style="color: #ef4444;">*</span>' : ''}
+                                    </label>
+                                    <div style="border: 2px dashed #93c5fd; border-radius: 10px; padding: 12px; text-align: center; background: #f0fdf4; transition: all 0.2s;" id="dropzone-${f.id}">
+                                        <input type="file" id="lead-${f.id}" name="${f.id}" data-label="${f.label}" accept="image/*,application/pdf" ${isReq} style="display: none;" onchange="app.handleFormFileUpload('${f.id}', this)" />
+                                        <label for="lead-${f.id}" style="cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 0;">
+                                            <div style="display: flex; align-items: center; gap: 6px; color: #166534; font-weight: 700; font-size: 0.84rem;">
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                                <span id="preview-text-${f.id}">📸 Adjuntar Foto (DPI, Recibo de luz, etc.)</span>
+                                            </div>
+                                            <span style="font-size: 0.72rem; color: #4b5563;">Toca para tomar foto con tu cámara o subir archivo</span>
+                                        </label>
+                                        <div id="preview-img-container-${f.id}" style="display: none; margin-top: 8px; text-align: center;">
+                                            <img id="preview-img-${f.id}" src="" style="max-height: 105px; max-width: 100%; border-radius: 8px; border: 1.5px solid #86efac; box-shadow: 0 2px 4px rgba(0,0,0,0.06);" />
+                                            <span id="preview-filename-${f.id}" style="display: block; font-size: 0.72rem; color: #15803d; font-weight: 600; margin-top: 3px;"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            return `
+                                <div>
+                                    <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--colua-gray-800); margin-bottom: 4px;">
+                                        ${f.label} ${f.required ? '<span style="color: #ef4444;">*</span>' : ''}
+                                    </label>
+                                    <input type="${f.type || 'text'}" name="${f.id}" id="lead-${f.id}" data-label="${f.label}" ${isReq} placeholder="${f.placeholder || 'Ingresa tu respuesta...'}" style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.88rem;" />
+                                </div>
+                            `;
+                        }
+                    }).join('')}
+
+                    <div style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid var(--colua-gray-200); padding-top: 14px; margin-top: 6px;">
+                        <button type="button" class="btn btn-outline" onclick="app.closeModal()" style="padding: 9px 16px;">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" style="padding: 9px 22px; font-weight: 700; background: var(--colua-navy); display: inline-flex; align-items: center; gap: 8px;">
+                            <span>${form.buttonText || 'Enviar Solicitud y Coordinar'}</span>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        `;
+
+        this.showModal(modalHtml);
+
+        const formEl = document.getElementById('dynamic-lead-form');
+        if (formEl) {
+            formEl.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(formEl);
+                
+                const answersMap = {};
+                let primaryName = '';
+                let primaryPhone = '';
+                let primaryEmail = '';
+                const attachedFiles = [];
+
+                form.fields.forEach(f => {
+                    if (f.type === 'file' || f.type === 'image') {
+                        const fileObj = app._formUploadedFiles ? app._formUploadedFiles[f.id] : null;
+                        if (fileObj) {
+                            answersMap[f.label] = fileObj.dataUrl || `[Foto adjuntada: ${fileObj.name}]`;
+                            attachedFiles.push({ fieldId: f.id, label: f.label, name: fileObj.name, dataUrl: fileObj.dataUrl });
+                        } else {
+                            answersMap[f.label] = 'No adjuntado';
+                        }
+                    } else {
+                        const val = (formData.get(f.id) || '').trim();
+                        answersMap[f.label] = val;
+                        if (!primaryName && (f.label.toLowerCase().includes('nombre') || f.id.includes('nombre'))) primaryName = val;
+                        if (!primaryPhone && (f.type === 'tel' || f.label.toLowerCase().includes('tel') || f.id.includes('telefono'))) primaryPhone = val;
+                        if (!primaryEmail && (f.type === 'email' || f.label.toLowerCase().includes('email') || f.label.toLowerCase().includes('correo'))) primaryEmail = val;
+                    }
+                });
+
+                if (!primaryName) primaryName = Object.values(answersMap)[0] || 'Visitante Web';
+
+                const leadData = {
+                    formId: form.id,
+                    formTitle: form.title,
+                    nombre: primaryName,
+                    telefono: primaryPhone || 'No proporcionado',
+                    email: primaryEmail || 'No proporcionado',
+                    respuestas: answersMap,
+                    archivosAdjuntos: attachedFiles,
+                    comentarios: Object.entries(answersMap).map(([k, v]) => {
+                        const cleanVal = typeof v === 'string' && v.startsWith('data:') ? '[📸 Foto adjuntada por el asociado]' : v;
+                        return `${k}: ${cleanVal}`;
+                    }).join('\n')
+                };
+
+                if (window.coluaRepository) {
+                    await window.coluaRepository.submitFormLead(leadData);
+                }
+
+                // Si tiene webhook / enlace de Google Sheets / Excel en red configurado
+                if (form.webhookUrl && form.webhookUrl.startsWith('http')) {
+                    try {
+                        fetch(form.webhookUrl, {
+                            method: 'POST',
+                            mode: 'no-cors',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                fecha: new Date().toISOString(),
+                                fechaLocal: new Date().toLocaleString(),
+                                formId: form.id,
+                                formTitle: form.title,
+                                nombre: primaryName,
+                                telefono: primaryPhone,
+                                email: primaryEmail,
+                                respuestas: answersMap
+                            })
+                        }).catch(e => console.warn('[COLUA Webhook] Notificación en red enviada.'));
+                    } catch (e) {
+                        console.warn('[COLUA Webhook] Error al disparar webhook:', e);
+                    }
+                }
+
+                app.closeModal();
+
+                // Construcción de mensaje estructurado de WhatsApp
+                const rawWhatsapp = (form.leadWhatsapp || '50277957795').replace(/[^0-9]/g, '') || '50277957795';
+                const lines = [`*Solicitud y Respuestas - COLUA MICOOPE*`, `*Formulario:* ${form.title}`];
+                Object.entries(answersMap).forEach(([q, a]) => {
+                    if (a) {
+                        const displayVal = (typeof a === 'string' && a.startsWith('data:')) ? '📸 [Foto adjuntada en web / lista para confirmar]' : a;
+                        lines.push(`• *${q}:* ${displayVal}`);
+                    }
+                });
+                const waMessage = encodeURIComponent(lines.join('\n'));
+                const waUrl = `https://wa.me/${rawWhatsapp}?text=${waMessage}`;
+
+                if (window.Swal) {
+                    Swal.fire({
+                        title: "¡Solicitud Recibida con Éxito!",
+                        html: `
+                            <div style="text-align: left; font-size: 0.9rem; color: #334155; line-height: 1.55;">
+                                <p style="margin-bottom: 12px;">
+                                    Tus datos y comprobantes han sido registrados en la administración de <strong>COLUA MICOOPE</strong>.
+                                </p>
+                                <p style="margin-bottom: 14px; font-size: 0.84rem; color: #64748b;">
+                                    Puedes abrir el chat de WhatsApp ahora mismo para coordinar el pago de tu aportación y el seguimiento de tu afiliación con un asesor:
+                                </p>
+                                <div style="margin-top: 14px; display: flex; justify-content: center;">
+                                    <a href="${waUrl}" target="_blank" style="background: #25D366; color: white; padding: 10px 18px; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 0.88rem; display: inline-flex; align-items: center; gap: 8px;">
+                                        <span>💬 Coordinar Pago y Afiliación por WhatsApp</span>
+                                    </a>
+                                </div>
+                            </div>
+                        `,
+                        icon: "success",
+                        confirmButtonColor: "#173789",
+                        confirmButtonText: "Entendido",
+                        draggable: true
+                    });
+                } else {
+                    app.showToast('¡Solicitud enviada exitosamente al administrador!', 'success');
+                }
+            });
+        }
+    },
+
+    // ── Gestor de Subida de Fotos en Formularios ───────────────────
+    handleFormFileUpload(fieldId, inputEl) {
+        if (!inputEl.files || !inputEl.files[0]) return;
+        const file = inputEl.files[0];
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const result = e.target.result;
+            if (!this._formUploadedFiles) this._formUploadedFiles = {};
+            this._formUploadedFiles[fieldId] = {
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                dataUrl: result
+            };
+
+            const container = document.getElementById(`preview-img-container-${fieldId}`);
+            const img = document.getElementById(`preview-img-${fieldId}`);
+            const txt = document.getElementById(`preview-text-${fieldId}`);
+            const fn = document.getElementById(`preview-filename-${fieldId}`);
+
+            if (txt) txt.textContent = `✓ Foto lista: ${file.name}`;
+            if (fn) fn.textContent = `${file.name} (${Math.round(file.size / 1024)} KB)`;
+            if (img && result.startsWith('data:image')) {
+                img.src = result;
+                if (container) container.style.display = 'block';
+            } else if (container) {
+                container.style.display = 'none';
+            }
+        };
+        reader.readAsDataURL(file);
     },
 
     // ── Toast ──────────────────────────────────────
@@ -994,6 +1321,7 @@ const App = {
 };
 
 window.app = App;
+window.App = App;
 
 // Arrancar cuando el DOM esté listo
 if (document.readyState === 'loading') {
