@@ -101,10 +101,10 @@ class SupabaseStorageManager {
   getShortDisplayLabel(path) {
     if (!path || !path.trim()) return '';
     const clean = path.trim();
-    if (clean.startsWith('data:image/')) return '📷 imagen_subida_nube.jpg';
+    if (clean.startsWith('data:image/')) return 'imagen_subida_nube.jpg';
     if (clean.startsWith('http://') || clean.startsWith('https://')) {
       const last = clean.split('/').pop() || '';
-      return '☁️ ' + (last.length > 25 ? last.substring(0, 22) + '...' : last);
+      return (last.length > 25 ? last.substring(0, 22) + '...' : last);
     }
     return clean;
   }

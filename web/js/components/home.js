@@ -2,14 +2,13 @@
 
 class HomeComponent {
   async render() {
-    let sections = [];
+    let homeItems = [];
     try {
       if (window.coluaRepository) {
-        const allSec = await window.coluaRepository.getAllSections();
-        sections = allSec.filter(s => s.id !== 'sec_home' && s.slug !== 'home' && s.isVisible !== false && s.isEnabled !== false && s.menuPlacement !== 'hidden' && s.id !== 'sec_comunidad' && s.slug !== 'comunidad');
+        homeItems = await window.coluaRepository.getItemsBySection('sec_home');
       }
     } catch (e) {
-      console.error('Error cargando secciones dinámicas en Home:', e);
+      console.error('Error cargando items dinámicos de sec_home:', e);
     }
 
     const iconMap = {
@@ -36,19 +35,118 @@ class HomeComponent {
       'sec_sostenibilidad': 'assets/sostenibilidad_cooperativa.png'
     };
 
-    if (!sections || sections.length === 0) {
-      sections = [
-        { id: "sec_ahorros", title: "Cuentas de Ahorro", description: "Aportaciones, Ahorro Infantil y Planes Programados.", iconName: "ahorros" },
-        { id: "sec_creditos", title: "Créditos", description: "Productivo, Consumo, Vivienda y Vehículo con tasas justas.", iconName: "credito" },
-        { id: "sec_seguros", title: "Seguros Columna", description: "Protección de vida, gastos médicos y coberturas solidarias.", iconName: "seguro" },
-        { id: "sec_remesas", title: "Remesas Familiares", description: "Recibe directo a tu cuenta con beneficio de repatriación.", iconName: "remesa" },
-        { id: "sec_beneficios", title: "Tus 6 Beneficios", description: "Hospitalización, seguro de ahorrantes y beneficio de oro.", iconName: "beneficios" },
-        { id: "sec_agencias", title: "Agencias & PBX", description: "25 agencias en Sololá, Quiché, Totonicapán y Suchitepéquez.", iconName: "ubicacion" },
-        { id: "sec_noticias", title: "Noticias & Novedades", description: "Comunicados oficiales, jornadas y convocatorias.", iconName: "noticias_colua" },
-        { id: "sec_sostenibilidad", title: "Sostenibilidad & Formación", description: "Becas educativas, talleres y centros de innovación.", iconName: "sostenibilidad_cooperativa" },
-        { id: "sec_nosotros", title: "Nosotros", description: "Valores cooperativos, historia y propósito visionario.", iconName: "public_service" }
-      ];
+    // 1. Obtener todas las secciones activas registradas en el sistema (incluyendo nuevas secciones creadas)
+    let allSections = [];
+    try {
+      if (window.coluaRepository) {
+        allSections = await window.coluaRepository.getAllSections();
+      }
+    } catch (e) {
+      console.error('Error cargando secciones en Home:', e);
     }
+
+    // 2. Tarjetas canónicas base aseguradas (10 pantallas fijas)
+    const canonicalBaseCards = [
+      { id: "home_ahorro", title: "Ahorros", subtitle: "Cuentas de ahorro", description: "Cuentas de ahorro", iconName: "ahorros", targetSectionId: "sec_ahorros", imageUrl: "assets/ahorros.png" },
+      { id: "home_credito", title: "Créditos", subtitle: "Líneas de crédito", description: "Líneas de crédito", iconName: "credito", targetSectionId: "sec_creditos", imageUrl: "assets/credito.png" },
+      { id: "home_seguros", title: "Seguros", subtitle: "Protección y vida", description: "Protección y vida", iconName: "seguro", targetSectionId: "sec_seguros", imageUrl: "assets/seguro.png" },
+      { id: "home_remesas", title: "Remesas", subtitle: "Recibe tu dinero", description: "Recibe tu dinero", iconName: "remesa", targetSectionId: "sec_remesas", imageUrl: "assets/remesa.png" },
+      { id: "home_beneficios", title: "Tus 6 Beneficios", subtitle: "Hospitalización, seguro de ahorrantes y beneficio de oro", description: "Hospitalización, seguro de ahorrantes y beneficio de oro", iconName: "beneficios", targetSectionId: "sec_beneficios", imageUrl: "assets/beneficios.png" },
+      { id: "home_agencias", title: "Agencias & PBX", subtitle: "Nuestras ubicaciones", description: "25 agencias en Sololá, Quiché, Totonicapán y Suchitepéquez", iconName: "ubicacion", targetSectionId: "sec_agencias", imageUrl: "assets/ubicacion.png" },
+      { id: "home_servicios", title: "Servicios Digitales", subtitle: "Banca en línea", description: "MICOOPE en Línea, App Móvil y Notificaciones SMS", iconName: "servicios_digitales", targetSectionId: "sec_servicios", imageUrl: "assets/servicios_digitales.png" },
+      { id: "home_noticias", title: "Noticias & Novedades", subtitle: "Actualidad COLUA", description: "Comunicados oficiales, jornadas ecológicas y convocatorias", iconName: "noticias_colua", targetSectionId: "sec_noticias", imageUrl: "assets/noticias.png" },
+      { id: "home_sostenibilidad", title: "Sostenibilidad Cooperativa", subtitle: "Cursos y centros de innovación", description: "Becas educativas, talleres productivos y centros de innovación", iconName: "sostenibilidad_cooperativa", targetSectionId: "sec_sostenibilidad", imageUrl: "assets/sostenibilidad_cooperativa.png" },
+      { id: "home_nosotros", title: "Nosotros", subtitle: "Valores cooperativos, historia y propósito", description: "Valores cooperativos, historia y propósito", iconName: "public_service", targetSectionId: "sec_nosotros", imageUrl: "assets/distintivo_colua.png" }
+    ];
+
+    // 3. Tarjetas activas registradas en sec_home (excluyendo cabecera y banners)
+    let displayCards = [];
+    const usedTargetSections = new Set();
+
+    if (homeItems && homeItems.length > 0) {
+      const activeHomeItems = homeItems.filter(i => 
+        i.isEnabled !== false && 
+        i.isVisible !== false && 
+        i.isDraft !== true && 
+        i.id !== 'home_hero_header' &&
+        !i.id.startsWith('home_banner_') && 
+        !i.id.startsWith('home_simulador_')
+      );
+      activeHomeItems.forEach(item => {
+        displayCards.push(item);
+        const tgt = item.targetSectionId || item.id || '';
+        if (tgt) usedTargetSections.add(tgt.toLowerCase());
+      });
+    }
+
+    // 4. Asegurar que las 10 tarjetas canónicas estén representadas
+    canonicalBaseCards.forEach(base => {
+      const tgt = base.targetSectionId.toLowerCase();
+      const hasCard = displayCards.some(c => 
+        (c.targetSectionId && c.targetSectionId.toLowerCase() === tgt) ||
+        (c.id && c.id.toLowerCase() === base.id.toLowerCase()) ||
+        (c.id && c.id.toLowerCase() === tgt)
+      );
+      if (!hasCard) {
+        displayCards.push(base);
+        usedTargetSections.add(tgt);
+      }
+    });
+
+    // 5. Incluir dinámicamente cualquier NUEVA pantalla/sección creada en el CMS (la 11va, 12va, etc.)
+    if (allSections && allSections.length > 0) {
+      allSections.forEach(sec => {
+        if (
+          sec.id === 'sec_home' || 
+          sec.slug === 'home' || 
+          sec.id === 'sec_comunidad' || 
+          sec.slug === 'comunidad' ||
+          sec.isVisible === false || 
+          sec.isEnabled === false ||
+          sec.menuPlacement === 'hidden'
+        ) {
+          return;
+        }
+        const secIdLower = (sec.id || '').toLowerCase();
+        const secSlugLower = (sec.slug || '').toLowerCase();
+        const isRepresented = displayCards.some(c => {
+          const cTgt = (c.targetSectionId || '').toLowerCase();
+          const cId = (c.id || '').toLowerCase();
+          return cTgt === secIdLower || cTgt === '#' + secIdLower || cTgt === secSlugLower || cId === secIdLower || cId === 'home_' + secSlugLower;
+        });
+
+        if (!isRepresented) {
+          displayCards.push({
+            id: sec.id,
+            title: sec.title || 'Nueva Sección',
+            subtitle: sec.description || sec.shortDescription || 'Área de gestión cooperativa',
+            description: sec.description || 'Área de gestión cooperativa',
+            iconName: sec.iconName || 'distintivo_colua',
+            targetSectionId: sec.id,
+            imageUrl: sec.imageUrl || iconMap[sec.iconName] || iconMap[sec.id] || 'assets/distintivo_colua.png',
+            displayOrder: sec.displayOrder || sec.orderIndex || 99
+          });
+        }
+      });
+    }
+
+    displayCards.sort((a, b) => (a.displayOrder || a.orderIndex || 99) - (b.displayOrder || b.orderIndex || 99));
+
+    // Hero, Banners y Simulación dinámicos desde sec_home
+    const heroItem = homeItems.find(i => i.id === 'home_hero_header');
+    const heroTitle = heroItem?.title || 'Hola, bienvenido a <span class="brand-blue-accent">COLUA MICOOPE</span>';
+    const heroSubtitle = heroItem?.subtitle || 'El lado humano de los ahorros y créditos cooperativos. Selecciona un área para comenzar tu gestión.';
+
+    const pbxItem = homeItems.find(i => i.id === 'home_banner_pbx');
+    const pbxTitle = pbxItem?.shortDescription || 'ATENCIÓN TELEFÓNICA';
+    const pbxPhone = pbxItem?.buttonText || pbxItem?.subtitle || 'PBX: (502) 7795-7795';
+    const pbxAction = pbxItem?.buttonAction || pbxItem?.targetSectionId || 'tel:77957795';
+    const pbxHours = pbxItem?.description || 'Lunes a viernes de 8:00 a 17:00 | Sábados de 8:00 a 12:00 hrs.';
+
+    const digitalItem = homeItems.find(i => i.id === 'home_banner_digital');
+    const digitalTag = digitalItem?.subtitle || 'CANAL DIGITAL SEGURO';
+    const digitalTitle = digitalItem?.buttonText || digitalItem?.title || 'Ingresar a MICOOPE en Línea';
+    const digitalAction = digitalItem?.buttonAction || digitalItem?.targetSectionId || 'https://micoopeenlinea.com.gt';
 
     return `
       <div class="clean-page-container">
@@ -58,10 +156,10 @@ class HomeComponent {
              ============================================== -->
         <header class="clean-hero-header">
           <h1 class="clean-hero-title">
-            Hola, bienvenido a <span class="brand-blue-accent">COLUA MICOOPE</span>
+            ${heroTitle}
           </h1>
           <p class="clean-hero-subtitle">
-            El lado humano de los ahorros y créditos cooperativos. Selecciona un área para comenzar tu gestión.
+            ${heroSubtitle}
           </p>
         </header>
 
@@ -69,23 +167,76 @@ class HomeComponent {
              2. CUADRÍCULA DINÁMICA DE SECCIONES DE GESTIÓN
              ============================================== -->
         <section class="clean-cards-grid" aria-label="Áreas de Gestión Cooperativa">
-          ${sections.map(s => {
-            const iconImg = s.imageUrl || iconMap[s.id] || iconMap[s.iconName] || 'assets/distintivo_colua.png';
+          ${displayCards.map(s => {
+            const rawRoute = (s.buttonAction || s.targetSectionId || s.id || '').trim();
+            const isInfoModal = rawRoute === 'modal:info' || rawRoute === 'info_modal' || s.buttonAction === 'modal:info';
+
+            let targetRoute = rawRoute;
+            if (!isInfoModal) {
+              if (rawRoute.startsWith('http') || rawRoute.startsWith('tel:') || rawRoute.startsWith('#') || rawRoute.startsWith('sec_')) {
+                targetRoute = rawRoute;
+              } else if (rawRoute.startsWith('home_')) {
+                targetRoute = rawRoute.replace('home_', 'sec_');
+              } else if (s.targetSectionId && (s.targetSectionId.startsWith('sec_') || s.targetSectionId.startsWith('#'))) {
+                targetRoute = s.targetSectionId;
+              } else if (s.id && s.id.startsWith('sec_')) {
+                targetRoute = s.id;
+              } else {
+                targetRoute = s.targetSectionId || 'sec_ahorros';
+              }
+            }
+
+            const iconImg = s.imageUrl || iconMap[s.id] || iconMap[s.iconName] || iconMap[s.targetSectionId] || 'assets/distintivo_colua.png';
+            
+            let clickAction = '';
+            if (isInfoModal) {
+              clickAction = `app.showItemInfoModal ? app.showItemInfoModal('${s.id}') : (window.location.hash='#${s.targetSectionId || s.id}')`;
+            } else if (targetRoute.startsWith('http')) {
+              clickAction = `window.open('${targetRoute}', '_blank')`;
+            } else if (targetRoute.startsWith('tel:')) {
+              clickAction = `window.location.href='${targetRoute}'`;
+            } else if (targetRoute.startsWith('#')) {
+              clickAction = `window.location.hash='${targetRoute}'`;
+            } else {
+              clickAction = `window.coluaRouter ? window.coluaRouter.navigate('${targetRoute}') : (window.location.hash='#${targetRoute}')`;
+            }
+
+            let cardTitle = (s.title || '').trim();
+            let cardSubtitle = (s.subtitle || s.description || s.shortDescription || '').trim();
+
+            const lowerTitle = cardTitle.toLowerCase();
+            const lowerSub = cardSubtitle.toLowerCase();
+            const rawId = (s.id || '').toLowerCase();
+            // Sanitizar solo si contiene strings residuales de versiones anteriores
+            if (lowerSub.includes('ahorro!') || lowerTitle.includes('ahorroahorro')) {
+              cardTitle = cardTitle.replace(/ahorroahorro/gi, 'Ahorros');
+              if (lowerSub.includes('ahorro!')) cardSubtitle = 'Cuentas de ahorro';
+            } else if (lowerSub.includes('crédito!') || lowerSub.includes('credito!') || lowerTitle.includes('créditocrédito')) {
+              cardTitle = cardTitle.replace(/créditocrédito/gi, 'Créditos');
+              if (lowerSub.includes('crédito!') || lowerSub.includes('credito!')) cardSubtitle = 'Líneas de crédito';
+            } else if (lowerSub.includes('seguro!') || lowerTitle.includes('seguros de vida seguros')) {
+              cardTitle = cardTitle.replace(/seguros de vida seguros/gi, 'Seguros');
+              if (lowerSub.includes('seguro!')) cardSubtitle = 'Protección y vida';
+            } else if (lowerSub.includes('remesa!') || lowerTitle.includes('remesas dirigidas')) {
+              cardTitle = cardTitle.replace(/remesas dirigidas/gi, 'Remesas');
+              if (lowerSub.includes('remesa!')) cardSubtitle = 'Recibe tu dinero';
+            }
+
             return `
-              <div class="clean-item-card" onclick="window.coluaRouter.navigate('${s.id}')" role="button" tabindex="0" title="Ver ${s.title}">
+              <div class="clean-item-card" onclick="${clickAction}" role="button" tabindex="0" title="Ver ${cardTitle}">
                 <div class="clean-card-top-row">
                   <div class="clean-card-icon-box">
-                    ${iconImg.startsWith('assets/') || iconImg.startsWith('http') || iconImg.startsWith('data:') ? `
-                      <img src="${iconImg}" alt="${s.title}" class="clean-card-icon-img" onerror="this.src='assets/distintivo_colua.png'" />
+                    ${iconImg && (iconImg.startsWith('assets/') || iconImg.startsWith('http') || iconImg.startsWith('data:')) ? `
+                      <img src="${iconImg}" alt="${cardTitle}" class="clean-card-icon-img" onerror="this.src='assets/distintivo_colua.png'" />
                     ` : `
-                      <span style="font-size:1.5rem;">${s.icon || '📄'}</span>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#173789" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12l2 2 4-4"/></svg>
                     `}
                   </div>
                   <span class="clean-card-arrow-icon">→</span>
                 </div>
                 <div class="clean-card-info-bottom">
-                  <h3 class="clean-card-title-text">${s.title}</h3>
-                  <p class="clean-card-desc-text">${s.description || s.subtitle || ''}</p>
+                  <h3 class="clean-card-title-text">${cardTitle}</h3>
+                  <p class="clean-card-desc-text">${cardSubtitle}</p>
                 </div>
               </div>
             `;
@@ -102,21 +253,21 @@ class HomeComponent {
               <img src="assets/pbx.png" alt="PBX" />
             </div>
             <div class="clean-banner-white-info">
-              <span class="clean-banner-tag-blue">ATENCIÓN TELEFÓNICA</span>
-              <a href="tel:77957795" class="clean-banner-pbx-number">PBX: (502) 7795-7795</a>
-              <span class="clean-banner-pbx-hours">Lunes a viernes de 8:00 a 17:00 | Sábados de 8:00 a 12:00 hrs.</span>
+              <span class="clean-banner-tag-blue">${pbxTitle}</span>
+              <a href="${pbxAction}" class="clean-banner-pbx-number">${pbxPhone}</a>
+              <span class="clean-banner-pbx-hours">${pbxHours}</span>
             </div>
           </div>
 
           <!-- Banner Dark Navy: Canal Digital Seguro -->
-          <a href="https://micoopeenlinea.com.gt" target="_blank" rel="noopener noreferrer" class="clean-banner-dark-card" title="Ingresar a MICOOPE en Línea">
+          <a href="${digitalAction}" target="_blank" rel="noopener noreferrer" class="clean-banner-dark-card" title="Ingresar a MICOOPE en Línea">
             <div class="clean-banner-dark-left">
               <div class="clean-banner-dark-icon">
                 <img src="assets/micoope_enlinea.png" alt="MICOOPE en Línea" />
               </div>
               <div class="clean-banner-white-info">
-                <span class="clean-banner-dark-tag">CANAL DIGITAL SEGURO</span>
-                <h4 class="clean-banner-dark-title">Ingresar a MICOOPE en Línea</h4>
+                <span class="clean-banner-dark-tag">${digitalTag}</span>
+                <h4 class="clean-banner-dark-title">${digitalTitle}</h4>
               </div>
             </div>
             <span class="clean-banner-dark-arrow">→</span>
@@ -143,112 +294,217 @@ class HomeComponent {
         </div>
 
         <!-- ==============================================
-             5. SIMULADOR FINANCIERO MINIMALISTA
+             5. SIMULADOR FINANCIERO DINÁMICO & EDITABLE
              ============================================== -->
-        <section class="clean-simulator-wrapper" id="simulador-financiero">
-          <div style="margin-bottom:1.5rem;">
-            <h2 style="font-size:1.4rem;font-weight:700;color:#0f172a;margin-bottom:0.25rem;">Calcula tu Cuota o Rendimiento</h2>
-            <p style="font-size:0.88rem;color:#64748b;">Simula tu préstamo o inversión a plazo fijo con tasas competitivas y transparentes.</p>
-          </div>
-
-          <div class="clean-sim-tabs">
-            <button class="clean-sim-tab-btn active" id="sim-tab-credito">Simulador de Crédito</button>
-            <button class="clean-sim-tab-btn" id="sim-tab-ahorro">Simulador de Ahorro Plazo Fijo</button>
+        <section class="clean-simulator-wrapper" id="simulador-financiero" style="background:#ffffff;border:1.5px solid #e2e8f0;border-radius:18px;padding:2rem;box-shadow:0 10px 25px -5px rgba(0,0,0,0.05);margin-top:2.5rem;">
+          <div style="margin-bottom:1.5rem;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
+            <div>
+              <span style="font-size:0.75rem;font-weight:800;color:#173789;text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:4px;">HERRAMIENTA FINANCIERA EN VIVO</span>
+              <h2 style="font-size:1.45rem;font-weight:800;color:#0f172a;margin:0 0 0.25rem 0;">Calcula tu Cuota o Rendimiento</h2>
+              <p style="font-size:0.88rem;color:#64748b;margin:0;">Simula tu préstamo o inversión a plazo fijo con montos ilimitados y tasas oficiales actualizadas.</p>
+            </div>
+            <div class="clean-sim-tabs" style="display:flex;gap:6px;background:#f1f5f9;padding:4px;border-radius:12px;">
+              <button class="clean-sim-tab-btn active" id="sim-tab-credito" style="padding:8px 16px;border-radius:8px;font-size:0.84rem;font-weight:700;border:none;cursor:pointer;">Simulador de Crédito</button>
+              <button class="clean-sim-tab-btn" id="sim-tab-ahorro" style="padding:8px 16px;border-radius:8px;font-size:0.84rem;font-weight:700;border:none;cursor:pointer;">Simulador de Ahorro</button>
+            </div>
           </div>
 
           <!-- Panel 1: Crédito -->
           <div id="sim-panel-credito">
-            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:2rem;align-items:center;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:2.25rem;align-items:flex-start;">
+              
+              <!-- Controles Formulario Crédito -->
               <div>
-                <div style="margin-bottom:1.25rem;">
-                  <div style="display:flex;justify-content:space-between;margin-bottom:0.4rem;">
-                    <label style="font-size:0.88rem;font-weight:600;color:#334155;">Monto a Solicitar</label>
-                    <span id="disp-credito-monto" style="font-size:0.95rem;font-weight:700;color:#2563eb;">Q 25,000</span>
+                <!-- Línea de Crédito & Tasa -->
+                <div style="margin-bottom:1.35rem;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
+                    <label style="font-size:0.88rem;font-weight:700;color:#1e293b;">Tipo de Crédito y Tasa Oficial</label>
+                    <span id="badge-tasa-credito" style="font-size:0.76rem;font-weight:800;color:#15803d;background:#dcfce7;padding:3px 9px;border-radius:8px;">
+                      1.25% mensual (15.00% anual)
+                    </span>
                   </div>
-                  <input type="range" id="range-credito-monto" min="1000" max="150000" step="1000" value="25000" style="width:100%;accent-color:#2563eb;" />
-                  <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#94a3b8;margin-top:2px;">
-                    <span>Q 1,000</span><span>Q 150,000</span>
-                  </div>
-                </div>
-
-                <div style="margin-bottom:1.25rem;">
-                  <div style="display:flex;justify-content:space-between;margin-bottom:0.4rem;">
-                    <label style="font-size:0.88rem;font-weight:600;color:#334155;">Plazo del Crédito</label>
-                    <span id="disp-credito-plazo" style="font-size:0.95rem;font-weight:700;color:#2563eb;">24 Meses</span>
-                  </div>
-                  <input type="range" id="range-credito-plazo" min="6" max="60" step="6" value="24" style="width:100%;accent-color:#2563eb;" />
-                  <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#94a3b8;margin-top:2px;">
-                    <span>6 Meses</span><span>60 Meses</span>
-                  </div>
-                </div>
-
-                <div>
-                  <label style="font-size:0.88rem;font-weight:600;color:#334155;display:block;margin-bottom:0.4rem;">Destino</label>
-                  <select id="select-credito-destino" style="width:100%;padding:0.6rem 0.8rem;border:1px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:0.88rem;background:#ffffff;color:#0f172a;">
-                    <option value="1.25">Crédito Productivo / Capital de Trabajo</option>
-                    <option value="1.20">Crédito para Vivienda</option>
-                    <option value="1.35">Crédito de Consumo / Personal</option>
-                    <option value="1.30">Credi Vehículo Nuevo o Usado</option>
+                  <select id="select-credito-destino" style="width:100%;padding:0.65rem 0.85rem;border:1.5px solid #cbd5e1;border-radius:10px;font-family:inherit;font-size:0.9rem;background:#ffffff;color:#0f172a;font-weight:600;outline:none;transition:border-color 0.2s;">
+                    <option value="1.25" data-tasa-anual="15.00" data-name="Crédito Productivo">Crédito Productivo — Capital de trabajo e inversión (1.25% mes / 15.00% año)</option>
+                    <option value="1.35" data-tasa-anual="16.20" data-name="Crédito Consumo">Crédito Consumo — Gastos personales, estudios y menaje (1.35% mes / 16.20% año)</option>
+                    <option value="1.15" data-tasa-anual="13.80" data-name="Crédito Vivienda">Crédito Vivienda — Compra, construcción o remodelación (1.15% mes / 13.80% año)</option>
+                    <option value="1.20" data-tasa-anual="14.40" data-name="Crédi Vehículo">Crédi Vehículo — Vehículo o motocicleta nueva/usada (1.20% mes / 14.40% año)</option>
+                    <option value="1.30" data-tasa-anual="15.60" data-name="Crédito MIPYMES">Crédito MIPYMES — Negocios y comercio en crecimiento (1.30% mes / 15.60% año)</option>
+                    <option value="1.25" data-tasa-anual="15.00" data-name="Crédito Agrícola">Crédito Agrícola — Siembra, cosecha y tecnificación (1.25% mes / 15.00% año)</option>
+                    <option value="1.00" data-tasa-anual="12.00" data-name="Crédito Automático">Crédito Automático — Respaldo sobre aportaciones (1.00% mes / 12.00% año)</option>
+                    <option value="1.40" data-tasa-anual="16.80" data-name="Microcréditos">Microcréditos — Emprendimiento ágil sin trámites largos (1.40% mes / 16.80% año)</option>
                   </select>
                 </div>
+
+                <!-- Monto a Solicitar (Entrada Directa + Rango) -->
+                <div style="margin-bottom:1.35rem;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
+                    <label style="font-size:0.88rem;font-weight:700;color:#1e293b;">Monto a Solicitar (Escribe o desliza)</label>
+                    <span style="font-size:0.75rem;color:#64748b;">(Separación automática con comas)</span>
+                  </div>
+                  
+                  <!-- Input Numérico Principal con Formateo de Comas -->
+                  <div style="position:relative;margin-bottom:0.75rem;">
+                    <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-weight:800;color:#173789;font-size:1.1rem;">Q</span>
+                    <input type="text" id="input-credito-monto" value="25,000" placeholder="Ej. 1,000,000" style="width:100%;padding:0.7rem 0.85rem 0.7rem 2.2rem;border:2px solid #2563eb;border-radius:10px;font-family:inherit;font-size:1.15rem;font-weight:800;color:#0f172a;outline:none;background:#f8faff;" />
+                  </div>
+
+                  <!-- Barrita Deslizadora Sincronizada -->
+                  <input type="range" id="range-credito-monto" min="1000" max="1000000" step="1000" value="25000" style="width:100%;accent-color:#2563eb;cursor:pointer;" />
+                  
+                  <!-- Entradas de Mínimo y Máximo Editables -->
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+                    <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:6px 10px;border-radius:8px;">
+                      <label style="font-size:0.7rem;font-weight:700;color:#64748b;display:block;text-transform:uppercase;">Monto Mínimo</label>
+                      <div style="display:flex;align-items:center;gap:4px;">
+                        <span style="font-weight:700;color:#64748b;font-size:0.8rem;">Q</span>
+                        <input type="text" id="input-credito-min" value="1,000" style="width:100%;border:none;background:transparent;font-weight:700;color:#334155;font-size:0.85rem;padding:0;outline:none;" />
+                      </div>
+                    </div>
+                    <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:6px 10px;border-radius:8px;">
+                      <label style="font-size:0.7rem;font-weight:700;color:#64748b;display:block;text-transform:uppercase;">Monto Máximo (Hasta 1M+)</label>
+                      <div style="display:flex;align-items:center;gap:4px;">
+                        <span style="font-weight:700;color:#64748b;font-size:0.8rem;">Q</span>
+                        <input type="text" id="input-credito-max" value="1,000,000" style="width:100%;border:none;background:transparent;font-weight:700;color:#334155;font-size:0.85rem;padding:0;outline:none;" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Plazo del Crédito -->
+                <div style="margin-bottom:1rem;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
+                    <label style="font-size:0.88rem;font-weight:700;color:#1e293b;">Plazo del Financiamiento</label>
+                    <span id="disp-credito-plazo" style="font-size:0.95rem;font-weight:800;color:#2563eb;">24 Meses (2.0 Años)</span>
+                  </div>
+                  <input type="range" id="range-credito-plazo" min="6" max="120" step="6" value="24" style="width:100%;accent-color:#2563eb;cursor:pointer;" />
+                  <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#94a3b8;margin-top:2px;">
+                    <span>6 Meses</span><span>60 Meses (5 Años)</span><span>120 Meses (10 Años)</span>
+                  </div>
+                </div>
               </div>
 
-              <!-- Resultado -->
-              <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:1.5rem;text-align:center;">
-                <span style="font-size:0.78rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Cuota Mensual Nivelada</span>
-                <div id="calc-credito-cuota" style="font-size:2rem;font-weight:800;color:#0f172a;margin:0.5rem 0 1rem;">Q 1,354.17</div>
-                <div style="font-size:0.82rem;color:#64748b;display:flex;flex-direction:column;gap:0.4rem;text-align:left;border-top:1px solid #e2e8f0;padding-top:0.75rem;margin-bottom:1.25rem;">
-                  <div style="display:flex;justify-content:space-between;"><span>Capital:</span><strong id="calc-credito-monto-res" style="color:#0f172a;">Q 25,000.00</strong></div>
-                  <div style="display:flex;justify-content:space-between;"><span>Plazo:</span><strong id="calc-credito-plazo-res" style="color:#0f172a;">24 meses</strong></div>
-                  <div style="display:flex;justify-content:space-between;"><span>Póliza de Deudores:</span><strong style="color:#2563eb;">Incluida</strong></div>
+              <!-- Resultado del Cálculo (Fórmula Francesa Oficial) -->
+              <div style="background:linear-gradient(145deg, #f8fafc 0%, #edf2f7 100%);border:2px solid #cbd5e1;border-radius:16px;padding:1.75rem;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.03);">
+                <span style="font-size:0.76rem;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:2px;">Cuota Mensual Nivelada</span>
+                <div id="calc-credito-cuota" style="font-size:2.35rem;font-weight:900;color:#173789;margin:0.25rem 0 1rem 0;letter-spacing:-0.5px;">Q 1,354.17</div>
+                
+                <div style="font-size:0.84rem;color:#475569;display:flex;flex-direction:column;gap:0.45rem;text-align:left;border-top:1.5px solid #cbd5e1;padding-top:0.9rem;margin-bottom:1.4rem;">
+                  <div style="display:flex;justify-content:space-between;">
+                    <span>Monto Solicitado:</span>
+                    <strong id="calc-credito-monto-res" style="color:#0f172a;font-weight:800;">Q 25,000.00</strong>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;">
+                    <span>Plazo de Amortización:</span>
+                    <strong id="calc-credito-plazo-res" style="color:#0f172a;font-weight:700;">24 meses</strong>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;">
+                    <span>Tasa Aplicada:</span>
+                    <strong id="calc-credito-tasa-res" style="color:#15803d;font-weight:800;">1.25% mes (15.00% anual)</strong>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;">
+                    <span>Total Intereses Estimados:</span>
+                    <strong id="calc-credito-intereses-res" style="color:#0f172a;font-weight:700;">Q 7,500.00</strong>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;">
+                    <span>Póliza y Seguro de Deudores:</span>
+                    <strong style="color:#2563eb;font-weight:800;">100% Cubierta por COLUA</strong>
+                  </div>
                 </div>
-                <button class="clean-btn-card-action" onclick="window.coluaRouter.navigate('sec_creditos')" style="background:#2563eb;color:#ffffff;border-color:#2563eb;">
-                  Solicitar este Crédito
-                </button>
+
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  <button class="clean-btn-card-action" onclick="window.coluaRouter ? window.coluaRouter.navigate('sec_creditos') : (window.location.hash='#sec_creditos')" style="background:#173789;color:#ffffff;border-color:#173789;font-weight:700;font-size:0.92rem;padding:0.75rem 1.25rem;border-radius:10px;cursor:pointer;transition:all 0.2s;">
+                    Solicitar este Crédito en Agencia
+                  </button>
+                  <a href="tel:77957795" style="font-size:0.8rem;font-weight:700;color:#173789;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    <span>O cotiza con un asesor al PBX: 7795-7795</span>
+                  </a>
+                </div>
               </div>
+
             </div>
           </div>
 
           <!-- Panel 2: Ahorro Plazo Fijo -->
           <div id="sim-panel-ahorro" style="display:none;">
-            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:2rem;align-items:center;">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:2.25rem;align-items:flex-start;">
+              
+              <!-- Controles Ahorro -->
               <div>
-                <div style="margin-bottom:1.25rem;">
-                  <div style="display:flex;justify-content:space-between;margin-bottom:0.4rem;">
-                    <label style="font-size:0.88rem;font-weight:600;color:#334155;">Monto de Inversión</label>
-                    <span id="disp-ahorro-monto" style="font-size:0.95rem;font-weight:700;color:#2563eb;">Q 10,000</span>
+                <!-- Monto de Inversión -->
+                <div style="margin-bottom:1.35rem;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
+                    <label style="font-size:0.88rem;font-weight:700;color:#1e293b;">Monto de Inversión (Escribe o desliza)</label>
+                    <span style="font-size:0.75rem;color:#64748b;">(Separación automática con comas)</span>
                   </div>
-                  <input type="range" id="range-ahorro-monto" min="1000" max="250000" step="1000" value="10000" style="width:100%;accent-color:#2563eb;" />
-                  <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#94a3b8;margin-top:2px;">
-                    <span>Q 1,000</span><span>Q 250,000</span>
+                  
+                  <div style="position:relative;margin-bottom:0.75rem;">
+                    <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-weight:800;color:#173789;font-size:1.1rem;">Q</span>
+                    <input type="text" id="input-ahorro-monto" value="10,000" placeholder="Ej. 500,000" style="width:100%;padding:0.7rem 0.85rem 0.7rem 2.2rem;border:2px solid #59B8A4;border-radius:10px;font-family:inherit;font-size:1.15rem;font-weight:800;color:#0f172a;outline:none;background:#f8faff;" />
+                  </div>
+
+                  <input type="range" id="range-ahorro-monto" min="1000" max="1000000" step="1000" value="10000" style="width:100%;accent-color:#59B8A4;cursor:pointer;" />
+                  
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;">
+                    <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:6px 10px;border-radius:8px;">
+                      <label style="font-size:0.7rem;font-weight:700;color:#64748b;display:block;text-transform:uppercase;">Inversión Mínima</label>
+                      <div style="display:flex;align-items:center;gap:4px;">
+                        <span style="font-weight:700;color:#64748b;font-size:0.8rem;">Q</span>
+                        <input type="text" id="input-ahorro-min" value="1,000" style="width:100%;border:none;background:transparent;font-weight:700;color:#334155;font-size:0.85rem;padding:0;outline:none;" />
+                      </div>
+                    </div>
+                    <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:6px 10px;border-radius:8px;">
+                      <label style="font-size:0.7rem;font-weight:700;color:#64748b;display:block;text-transform:uppercase;">Inversión Máxima</label>
+                      <div style="display:flex;align-items:center;gap:4px;">
+                        <span style="font-weight:700;color:#64748b;font-size:0.8rem;">Q</span>
+                        <input type="text" id="input-ahorro-max" value="1,000,000" style="width:100%;border:none;background:transparent;font-weight:700;color:#334155;font-size:0.85rem;padding:0;outline:none;" />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div>
-                  <div style="display:flex;justify-content:space-between;margin-bottom:0.4rem;">
-                    <label style="font-size:0.88rem;font-weight:600;color:#334155;">Plazo de la Inversión</label>
-                    <span id="disp-ahorro-plazo" style="font-size:0.95rem;font-weight:700;color:#2563eb;">365 Días (1 Año)</span>
+                <!-- Plazo de la Inversión -->
+                <div style="margin-bottom:1rem;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
+                    <label style="font-size:0.88rem;font-weight:700;color:#1e293b;">Plazo de la Inversión</label>
+                    <span id="disp-ahorro-plazo" style="font-size:0.95rem;font-weight:800;color:#0d9488;">365 Días (1 Año)</span>
                   </div>
-                  <input type="range" id="range-ahorro-plazo" min="90" max="1095" step="90" value="365" style="width:100%;accent-color:#2563eb;" />
+                  <input type="range" id="range-ahorro-plazo" min="90" max="1825" step="90" value="365" style="width:100%;accent-color:#59B8A4;cursor:pointer;" />
                   <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#94a3b8;margin-top:2px;">
-                    <span>90 Días</span><span>3 Años</span>
+                    <span>90 Días</span><span>365 Días (1 Año)</span><span>1,825 Días (5 Años)</span>
                   </div>
                 </div>
               </div>
 
               <!-- Resultado Ahorro -->
-              <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:1.5rem;text-align:center;">
-                <span style="font-size:0.78rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">Ganancia Estimada en Intereses</span>
-                <div id="calc-ahorro-ganancia" style="font-size:2rem;font-weight:800;color:#0f172a;margin:0.5rem 0 1rem;">Q 650.00</div>
-                <div style="font-size:0.82rem;color:#64748b;display:flex;flex-direction:column;gap:0.4rem;text-align:left;border-top:1px solid #e2e8f0;padding-top:0.75rem;margin-bottom:1.25rem;">
-                  <div style="display:flex;justify-content:space-between;"><span>Capital al Vencimiento:</span><strong id="calc-ahorro-total" style="color:#0f172a;">Q 10,650.00</strong></div>
-                  <div style="display:flex;justify-content:space-between;"><span>Tasa Preferencial:</span><strong id="calc-ahorro-tasa" style="color:#2563eb;">6.50% Anual</strong></div>
-                  <div style="display:flex;justify-content:space-between;"><span>Garantía:</span><strong style="color:#0f172a;">Respaldo MICOOPE</strong></div>
+              <div style="background:linear-gradient(145deg, #f0fdf4 0%, #e6f7f2 100%);border:2px solid #a7f3d0;border-radius:16px;padding:1.75rem;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.03);">
+                <span style="font-size:0.76rem;font-weight:800;color:#047857;text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:2px;">Ganancia Estimada en Intereses</span>
+                <div id="calc-ahorro-ganancia" style="font-size:2.35rem;font-weight:900;color:#065f46;margin:0.25rem 0 1rem 0;letter-spacing:-0.5px;">Q 650.00</div>
+                
+                <div style="font-size:0.84rem;color:#334155;display:flex;flex-direction:column;gap:0.45rem;text-align:left;border-top:1.5px solid #a7f3d0;padding-top:0.9rem;margin-bottom:1.4rem;">
+                  <div style="display:flex;justify-content:space-between;">
+                    <span>Capital al Vencimiento:</span>
+                    <strong id="calc-ahorro-total" style="color:#065f46;font-weight:800;">Q 10,650.00</strong>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;">
+                    <span>Tasa Preferencial MICOOPE:</span>
+                    <strong id="calc-ahorro-tasa" style="color:#0d9488;font-weight:800;">6.50% Anual</strong>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;">
+                    <span>Protección y Solvencia:</span>
+                    <strong style="color:#0f172a;font-weight:700;">Fondo de Garantía MICOOPE</strong>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;">
+                    <span>Disponibilidad de Pago:</span>
+                    <strong style="color:#0f172a;font-weight:700;">Mensual o al Vencimiento</strong>
+                  </div>
                 </div>
-                <button class="clean-btn-card-action" onclick="window.coluaRouter.navigate('sec_ahorros')" style="background:#2563eb;color:#ffffff;border-color:#2563eb;">
+
+                <button class="clean-btn-card-action" onclick="window.coluaRouter ? window.coluaRouter.navigate('sec_ahorros') : (window.location.hash='#sec_ahorros')" style="background:#059669;color:#ffffff;border-color:#059669;font-weight:700;font-size:0.92rem;padding:0.75rem 1.25rem;border-radius:10px;cursor:pointer;width:100%;">
                   Abrir Cuenta a Plazo Fijo
                 </button>
               </div>
+
             </div>
           </div>
         </section>
@@ -261,7 +517,7 @@ class HomeComponent {
     this.initSimulatorEvents();
   }
 
-  // Lógica del Simulador Financiero en Vivo
+  // Lógica del Simulador Financiero en Vivo con Comas cada 3 dígitos y montos ilimitados
   initSimulatorEvents() {
     const tabCredito = document.getElementById('sim-tab-credito');
     const tabAhorro = document.getElementById('sim-tab-ahorro');
@@ -272,6 +528,10 @@ class HomeComponent {
       tabCredito.onclick = () => {
         tabCredito.classList.add('active');
         tabAhorro.classList.remove('active');
+        tabCredito.style.background = '#ffffff';
+        tabCredito.style.color = '#173789';
+        tabAhorro.style.background = 'transparent';
+        tabAhorro.style.color = '#64748b';
         if (panelCredito) panelCredito.style.display = 'block';
         if (panelAhorro) panelAhorro.style.display = 'none';
       };
@@ -279,73 +539,236 @@ class HomeComponent {
       tabAhorro.onclick = () => {
         tabAhorro.classList.add('active');
         tabCredito.classList.remove('active');
+        tabAhorro.style.background = '#ffffff';
+        tabAhorro.style.color = '#173789';
+        tabCredito.style.background = 'transparent';
+        tabCredito.style.color = '#64748b';
         if (panelAhorro) panelAhorro.style.display = 'block';
         if (panelCredito) panelCredito.style.display = 'none';
       };
     }
 
-    // Controles de Crédito
+    // Helper para formatear números con comas cada 3 dígitos
+    const formatNumberWithCommas = (val) => {
+      if (val === undefined || val === null || isNaN(val)) return '0';
+      const parts = val.toString().split('.');
+      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      return parts.join('.');
+    };
+
+    const parseNumberFromFormatted = (str) => {
+      if (!str) return 0;
+      const clean = str.toString().replace(/[^\d.]/g, '');
+      const parsed = parseFloat(clean);
+      return isNaN(parsed) ? 0 : parsed;
+    };
+
+    // ── SIMULADOR DE CRÉDITO ────────────────────────────
+    const inputMonto = document.getElementById('input-credito-monto');
     const rangeMonto = document.getElementById('range-credito-monto');
+    const inputMin = document.getElementById('input-credito-min');
+    const inputMax = document.getElementById('input-credito-max');
     const rangePlazo = document.getElementById('range-credito-plazo');
     const selectDestino = document.getElementById('select-credito-destino');
+    const badgeTasa = document.getElementById('badge-tasa-credito');
 
-    const updateCredito = () => {
-      if (!rangeMonto || !rangePlazo) return;
-      const monto = parseFloat(rangeMonto.value);
-      const meses = parseInt(rangePlazo.value);
-      const tasaMensual = selectDestino ? parseFloat(selectDestino.value) / 100 : 0.0125;
+    const updateCredito = (fromSource) => {
+      let minVal = parseNumberFromFormatted(inputMin?.value || '1000');
+      let maxVal = parseNumberFromFormatted(inputMax?.value || '1000000');
+      if (minVal < 100) minVal = 100;
+      if (maxVal < minVal) maxVal = minVal + 1000;
 
-      // Fórmula francesa cuota nivelada
-      const cuota = monto * (tasaMensual / (1 - Math.pow(1 + tasaMensual, -meses)));
+      if (rangeMonto) {
+        rangeMonto.min = minVal;
+        rangeMonto.max = maxVal;
+      }
 
-      const dispMonto = document.getElementById('disp-credito-monto');
+      let currentMonto = 25000;
+      if (fromSource === 'slider' && rangeMonto) {
+        currentMonto = parseFloat(rangeMonto.value) || minVal;
+        if (inputMonto) inputMonto.value = formatNumberWithCommas(Math.round(currentMonto));
+      } else if (fromSource === 'input' && inputMonto) {
+        currentMonto = parseNumberFromFormatted(inputMonto.value);
+        if (currentMonto > maxVal) {
+          maxVal = currentMonto;
+          if (inputMax) inputMax.value = formatNumberWithCommas(maxVal);
+          if (rangeMonto) rangeMonto.max = maxVal;
+        }
+        if (rangeMonto) rangeMonto.value = currentMonto;
+      } else {
+        currentMonto = parseNumberFromFormatted(inputMonto?.value || '25000');
+      }
+
+      const meses = parseInt(rangePlazo?.value || '24', 10);
+      const opt = selectDestino?.selectedOptions?.[0];
+      const tasaMensual = opt ? parseFloat(opt.value) / 100 : 0.0125;
+      const tasaAnual = opt?.dataset?.tasaAnual || (tasaMensual * 12 * 100).toFixed(2);
+
+      if (badgeTasa) {
+        badgeTasa.textContent = `${(tasaMensual * 100).toFixed(2)}% mensual (${tasaAnual}% anual)`;
+      }
+
+      // Fórmula Francesa Cuota Nivelada: C = M * (i / (1 - (1+i)^-n))
+      let cuota = 0;
+      if (tasaMensual > 0 && meses > 0 && currentMonto > 0) {
+        cuota = currentMonto * (tasaMensual / (1 - Math.pow(1 + tasaMensual, -meses)));
+      }
+      const totalPagar = cuota * meses;
+      const totalIntereses = Math.max(0, totalPagar - currentMonto);
+
       const dispPlazo = document.getElementById('disp-credito-plazo');
       const calcCuota = document.getElementById('calc-credito-cuota');
       const calcMontoRes = document.getElementById('calc-credito-monto-res');
       const calcPlazoRes = document.getElementById('calc-credito-plazo-res');
+      const calcTasaRes = document.getElementById('calc-credito-tasa-res');
+      const calcInteresesRes = document.getElementById('calc-credito-intereses-res');
 
-      if (dispMonto) dispMonto.innerText = `Q ${monto.toLocaleString('es-GT')}`;
       if (dispPlazo) dispPlazo.innerText = `${meses} Meses (${(meses/12).toFixed(1)} Años)`;
-      if (calcCuota) calcCuota.innerText = `Q ${cuota.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}`;
-      if (calcMontoRes) calcMontoRes.innerText = `Q ${monto.toLocaleString('es-GT')}.00`;
-      if (calcPlazoRes) calcPlazoRes.innerText = `${meses} meses`;
+      if (calcCuota) calcCuota.innerText = `Q ${formatNumberWithCommas(cuota.toFixed(2))}`;
+      if (calcMontoRes) calcMontoRes.innerText = `Q ${formatNumberWithCommas(currentMonto.toFixed(2))}`;
+      if (calcPlazoRes) calcPlazoRes.innerText = `${meses} meses (${(meses/12).toFixed(1)} años)`;
+      if (calcTasaRes) calcTasaRes.innerText = `${(tasaMensual * 100).toFixed(2)}% mes (${tasaAnual}% anual)`;
+      if (calcInteresesRes) calcInteresesRes.innerText = `Q ${formatNumberWithCommas(totalIntereses.toFixed(2))}`;
     };
 
-    if (rangeMonto) rangeMonto.oninput = updateCredito;
-    if (rangePlazo) rangePlazo.oninput = updateCredito;
-    if (selectDestino) selectDestino.onchange = updateCredito;
+    if (inputMonto) {
+      inputMonto.addEventListener('input', (e) => {
+        const raw = parseNumberFromFormatted(e.target.value);
+        e.target.value = formatNumberWithCommas(raw);
+        updateCredito('input');
+      });
+      inputMonto.addEventListener('blur', (e) => {
+        const raw = parseNumberFromFormatted(e.target.value);
+        e.target.value = formatNumberWithCommas(raw || 1000);
+        updateCredito('input');
+      });
+    }
 
-    // Controles de Ahorro Plazo Fijo
+    if (inputMin) {
+      inputMin.addEventListener('change', (e) => {
+        const raw = parseNumberFromFormatted(e.target.value);
+        e.target.value = formatNumberWithCommas(raw);
+        updateCredito('limits');
+      });
+    }
+
+    if (inputMax) {
+      inputMax.addEventListener('change', (e) => {
+        const raw = parseNumberFromFormatted(e.target.value);
+        e.target.value = formatNumberWithCommas(raw);
+        updateCredito('limits');
+      });
+    }
+
+    if (rangeMonto) {
+      rangeMonto.addEventListener('input', () => updateCredito('slider'));
+    }
+
+    if (rangePlazo) {
+      rangePlazo.addEventListener('input', () => updateCredito('plazo'));
+    }
+
+    if (selectDestino) {
+      selectDestino.addEventListener('change', () => updateCredito('tasa'));
+    }
+
+    // ── SIMULADOR DE AHORRO PLAZO FIJO ─────────────────
+    const inputAhorroMonto = document.getElementById('input-ahorro-monto');
     const rangeAhorroMonto = document.getElementById('range-ahorro-monto');
+    const inputAhorroMin = document.getElementById('input-ahorro-min');
+    const inputAhorroMax = document.getElementById('input-ahorro-max');
     const rangeAhorroPlazo = document.getElementById('range-ahorro-plazo');
 
-    const updateAhorro = () => {
-      if (!rangeAhorroMonto || !rangeAhorroPlazo) return;
-      const monto = parseFloat(rangeAhorroMonto.value);
-      const dias = parseInt(rangeAhorroPlazo.value);
+    const updateAhorro = (fromSource) => {
+      let minVal = parseNumberFromFormatted(inputAhorroMin?.value || '1000');
+      let maxVal = parseNumberFromFormatted(inputAhorroMax?.value || '1000000');
+      if (minVal < 100) minVal = 100;
+      if (maxVal < minVal) maxVal = minVal + 1000;
 
+      if (rangeAhorroMonto) {
+        rangeAhorroMonto.min = minVal;
+        rangeAhorroMonto.max = maxVal;
+      }
+
+      let currentMonto = 10000;
+      if (fromSource === 'slider' && rangeAhorroMonto) {
+        currentMonto = parseFloat(rangeAhorroMonto.value) || minVal;
+        if (inputAhorroMonto) inputAhorroMonto.value = formatNumberWithCommas(Math.round(currentMonto));
+      } else if (fromSource === 'input' && inputAhorroMonto) {
+        currentMonto = parseNumberFromFormatted(inputAhorroMonto.value);
+        if (currentMonto > maxVal) {
+          maxVal = currentMonto;
+          if (inputAhorroMax) inputAhorroMax.value = formatNumberWithCommas(maxVal);
+          if (rangeAhorroMonto) rangeAhorroMonto.max = maxVal;
+        }
+        if (rangeAhorroMonto) rangeAhorroMonto.value = currentMonto;
+      } else {
+        currentMonto = parseNumberFromFormatted(inputAhorroMonto?.value || '10000');
+      }
+
+      const dias = parseInt(rangeAhorroPlazo?.value || '365', 10);
+
+      // Tasas preferenciales según el plazo
       let tasaAnual = 0.055;
+      if (dias >= 180) tasaAnual = 0.060;
       if (dias >= 365) tasaAnual = 0.065;
       if (dias >= 730) tasaAnual = 0.075;
+      if (dias >= 1095) tasaAnual = 0.080;
 
-      const ganancia = monto * (tasaAnual * (dias / 365));
-      const total = monto + ganancia;
+      const ganancia = currentMonto * (tasaAnual * (dias / 365));
+      const total = currentMonto + ganancia;
 
-      const dispMonto = document.getElementById('disp-ahorro-monto');
       const dispPlazo = document.getElementById('disp-ahorro-plazo');
       const calcGanancia = document.getElementById('calc-ahorro-ganancia');
       const calcTotal = document.getElementById('calc-ahorro-total');
       const calcTasa = document.getElementById('calc-ahorro-tasa');
 
-      if (dispMonto) dispMonto.innerText = `Q ${monto.toLocaleString('es-GT')}`;
-      if (dispPlazo) dispPlazo.innerText = `${dias} Días (${Math.round(dias/30)} Meses)`;
-      if (calcGanancia) calcGanancia.innerText = `Q ${ganancia.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}`;
-      if (calcTotal) calcTotal.innerText = `Q ${total.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}`;
+      if (dispPlazo) dispPlazo.innerText = `${dias} Días (${(dias/365).toFixed(1)} Años)`;
+      if (calcGanancia) calcGanancia.innerText = `Q ${formatNumberWithCommas(ganancia.toFixed(2))}`;
+      if (calcTotal) calcTotal.innerText = `Q ${formatNumberWithCommas(total.toFixed(2))}`;
       if (calcTasa) calcTasa.innerText = `${(tasaAnual * 100).toFixed(2)}% Anual`;
     };
 
-    if (rangeAhorroMonto) rangeAhorroMonto.oninput = updateAhorro;
-    if (rangeAhorroPlazo) rangeAhorroPlazo.oninput = updateAhorro;
+    if (inputAhorroMonto) {
+      inputAhorroMonto.addEventListener('input', (e) => {
+        const raw = parseNumberFromFormatted(e.target.value);
+        e.target.value = formatNumberWithCommas(raw);
+        updateAhorro('input');
+      });
+      inputAhorroMonto.addEventListener('blur', (e) => {
+        const raw = parseNumberFromFormatted(e.target.value);
+        e.target.value = formatNumberWithCommas(raw || 1000);
+        updateAhorro('input');
+      });
+    }
+
+    if (inputAhorroMin) {
+      inputAhorroMin.addEventListener('change', (e) => {
+        const raw = parseNumberFromFormatted(e.target.value);
+        e.target.value = formatNumberWithCommas(raw);
+        updateAhorro('limits');
+      });
+    }
+
+    if (inputAhorroMax) {
+      inputAhorroMax.addEventListener('change', (e) => {
+        const raw = parseNumberFromFormatted(e.target.value);
+        e.target.value = formatNumberWithCommas(raw);
+        updateAhorro('limits');
+      });
+    }
+
+    if (rangeAhorroMonto) {
+      rangeAhorroMonto.addEventListener('input', () => updateAhorro('slider'));
+    }
+
+    if (rangeAhorroPlazo) {
+      rangeAhorroPlazo.addEventListener('input', () => updateAhorro('plazo'));
+    }
+
+    // Inicializar cálculos inmediatos
+    updateCredito('init');
+    updateAhorro('init');
   }
 }
 

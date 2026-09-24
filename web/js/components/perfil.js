@@ -724,28 +724,31 @@ class PerfilComponent {
                     app.closeModal();
                     if (window.Swal) {
                         Swal.fire({
-                            title: "¡Bienvenido Asociado!",
-                            text: `Registro completado con éxito. Tu No. de Asociado oficial es ${result.associateId}`,
+                            title: "¡Bienvenido a COLUA MICOOPE!",
+                            text: "Tu registro se ha completado exitosamente.",
                             icon: "success",
                             timer: 1500,
                             showConfirmButton: false,
                             draggable: true
                         });
                     } else {
-                        app.showToast(`¡Bienvenido! Tu No. de Asociado es ${result.associateId}`, 'success');
+                        app.showToast('¡Registro completado exitosamente!', 'success');
                     }
                     this.render(document.getElementById('main-content'));
                 } else {
+                    const regErr = (result && result.error && !result.error.startsWith('Firebase:') && !result.error.includes('(auth/'))
+                        ? result.error
+                        : "Error al completar el registro cooperativo.";
                     if (window.Swal) {
                         Swal.fire({
                             icon: "error",
                             title: "Oops...",
-                            text: result.error || "Error al completar el registro cooperativo.",
+                            text: regErr,
                             draggable: true,
                             confirmButtonColor: "#173789"
                         });
                     } else {
-                        app.showToast(result.error || 'Error al completar el registro', 'danger');
+                        app.showToast(regErr, 'danger');
                     }
                     btn.disabled = false;
                     btn.textContent = 'Completar Registro';

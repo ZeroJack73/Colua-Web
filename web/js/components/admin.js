@@ -25,8 +25,83 @@ const ADMIN_ICONS = {
     edit: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`,
     activity: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>`,
     refresh: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>`,
-    book: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>`
+    book: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>`,
+    document: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>`,
+    cloud: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>`,
+    building: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="9" y1="22" x2="9" y2="22.01"></line><line x1="15" y1="22" x2="15" y2="22.01"></line><line x1="9" y1="6" x2="9" y2="6.01"></line><line x1="15" y1="6" x2="15" y2="6.01"></line><line x1="9" y1="10" x2="9" y2="10.01"></line><line x1="15" y1="10" x2="15" y2="10.01"></line><line x1="9" y1="14" x2="9" y2="14.01"></line><line x1="15" y1="14" x2="15" y2="14.01"></line><line x1="9" y1="18" x2="9" y2="18.01"></line><line x1="15" y1="18" x2="15" y2="18.01"></line></svg>`,
+    news: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m2 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg>`
 };
+
+// Catálogo Rápido de Assets e Íconos Oficiales (assets/)
+const ASSET_CATALOG = [
+    // 1. Íconos Principales / Navegación
+    { cat: 'principales', label: 'Ahorros (Alcancía)', path: 'assets/ahorros.png' },
+    { cat: 'principales', label: 'Créditos (Efectivo)', path: 'assets/credito.png' },
+    { cat: 'principales', label: 'Seguros (Escudo)', path: 'assets/seguro.png' },
+    { cat: 'principales', label: 'Remesas (Mundo)', path: 'assets/remesa.png' },
+    { cat: 'principales', label: 'Beneficios (Corona)', path: 'assets/beneficios.png' },
+    { cat: 'principales', label: 'Agencias & PBX', path: 'assets/ubicacion.png' },
+    { cat: 'principales', label: 'Servicios Digitales', path: 'assets/servicios_digitales.png' },
+    { cat: 'principales', label: 'Noticias & Novedades', path: 'assets/noticias.png' },
+    { cat: 'principales', label: 'Sostenibilidad', path: 'assets/sostenibilidad_cooperativa.png' },
+    { cat: 'principales', label: 'Distintivo COLUA', path: 'assets/distintivo_colua.png' },
+    { cat: 'principales', label: 'PBX Teléfono', path: 'assets/pbx.png' },
+    { cat: 'principales', label: 'MICOOPE en Línea', path: 'assets/micoope_enlinea.png' },
+    { cat: 'principales', label: 'Tarjeta de Débito', path: 'assets/tarjeta_debito.png' },
+    { cat: 'principales', label: 'Edificio COLUA', path: 'assets/colua_edificio.png' },
+    { cat: 'principales', label: 'Perfil Asociado', path: 'assets/perfil.png' },
+    { cat: 'principales', label: 'Inicio', path: 'assets/inicio.png' },
+
+    // 2. Cuentas de Ahorro
+    { cat: 'ahorros', label: 'Aportación Adulto', path: 'assets/ahorro1.png' },
+    { cat: 'ahorros', label: 'Ahorro Infanto Juvenil', path: 'assets/ahorro2.png' },
+    { cat: 'ahorros', label: 'Aportación Infantil', path: 'assets/ahorro_infanto_juvenil.png' },
+    { cat: 'ahorros', label: 'Cuenta Disponible', path: 'assets/ahorro_disponible.png' },
+    { cat: 'ahorros', label: 'Ahorro Programado', path: 'assets/ahorro_programado.png' },
+    { cat: 'ahorros', label: 'Ahorro Plazo Fijo', path: 'assets/ahorro_plazo_fijo.png' },
+
+    // 3. Líneas de Crédito
+    { cat: 'creditos', label: 'Crédito Productivo', path: 'assets/credito_productivo.png' },
+    { cat: 'creditos', label: 'Crédi Consumo', path: 'assets/credi_consumo.png' },
+    { cat: 'creditos', label: 'Crédito Vivienda', path: 'assets/credito_vivienda.png' },
+    { cat: 'creditos', label: 'Crédi Vehículo', path: 'assets/credi_vehiculo.png' },
+    { cat: 'creditos', label: 'Crédito Agrícola', path: 'assets/credito1.png' },
+    { cat: 'creditos', label: 'Crédito Automático', path: 'assets/credito2.png' },
+
+    // 4. Seguros Columna
+    { cat: 'seguros', label: 'Seguro CV Especial', path: 'assets/seguro_cv_personal.png' },
+    { cat: 'seguros', label: 'Vida Saludable', path: 'assets/seguro_vida_saludable.png' },
+    { cat: 'seguros', label: 'Edad de Oro', path: 'assets/seguro_edad_de_oro.png' },
+    { cat: 'seguros', label: 'Seguro Cáncer', path: 'assets/seguro_de_cancer.png' },
+    { cat: 'seguros', label: 'Accidentes Infantil', path: 'assets/seguro_accidentes_infanto_juvenil.png' },
+    { cat: 'seguros', label: 'Seguro Manejo', path: 'assets/seguro_manejo.png' },
+    { cat: 'seguros', label: 'Vida Individual/Familiar', path: 'assets/seguro_de_vida_individual_o_familar.png' },
+
+    // 5. Beneficios Cooperativos
+    { cat: 'beneficios', label: 'Renta Hospitalaria', path: 'assets/renta_diaria.png' },
+    { cat: 'beneficios', label: 'Apoyo Quirúrgico', path: 'assets/apoyo_quirurgico.png' },
+    { cat: 'beneficios', label: 'Servicio Funerario', path: 'assets/servicio_funerario.png' },
+    { cat: 'beneficios', label: 'Seguro Ahorrantes', path: 'assets/beneficio_de_ahorrantes.png' },
+    { cat: 'beneficios', label: 'Seguro Deudores', path: 'assets/beneficio_de_deudores.png' },
+    { cat: 'beneficios', label: 'Beneficio de Oro', path: 'assets/beneficio_de_oro.png' },
+
+    // 6. Remesas y Asistencias
+    { cat: 'remesas', label: 'Repatriación', path: 'assets/rd1.png' },
+    { cat: 'remesas', label: 'Asistencia Funeraria', path: 'assets/rd2.png' },
+    { cat: 'remesas', label: 'Referencias Médicas', path: 'assets/rd3.png' },
+    { cat: 'remesas', label: 'Orientación 24/7', path: 'assets/rd4.png' },
+    { cat: 'remesas', label: 'Banner Remesas', path: 'assets/mas_que_una_remesa.png' },
+    { cat: 'remesas', label: 'Remesadoras Red', path: 'assets/remesadoras_afiliadas.png' },
+
+    // 7. Fotos e Institucional
+    { cat: 'fotos', label: 'Jornada Reforestación', path: 'assets/noticia_reforestacion.jpg' },
+    { cat: 'fotos', label: 'Taller Finanzas', path: 'assets/noticia_taller_finanzas.jpg' },
+    { cat: 'fotos', label: 'Asamblea General', path: 'assets/noticia_asamblea_general.jpg' },
+    { cat: 'fotos', label: 'Mujer Artesana', path: 'assets/nosotros_artesana.jpg' },
+    { cat: 'fotos', label: 'Equipo y Sede', path: 'assets/nosotros_edificio_equipo.jpg' },
+    { cat: 'fotos', label: 'Valores Cooperativos', path: 'assets/valores_colua.png' },
+    { cat: 'fotos', label: 'Logo Composite', path: 'assets/logo_composite.png' }
+];
 
 class AdminComponent {
     constructor() {
@@ -334,17 +409,20 @@ class AdminComponent {
                     }
                     this.render(container);
                 } else {
+                    const cleanErr = (res && res.error && !res.error.startsWith('Firebase:') && !res.error.includes('(auth/'))
+                        ? res.error
+                        : "Credenciales incorrectas o usuario no autorizado para el panel administrativo.";
                     if (window.Swal) {
                         Swal.fire({
                             title: "Acceso Denegado",
-                            text: res.error || "Credenciales incorrectas o usuario no autorizado para el panel administrativo.",
+                            text: cleanErr,
                             icon: "error",
                             draggable: true,
                             confirmButtonColor: "#173789",
                             confirmButtonText: "Reintentar"
                         });
                     } else {
-                        app.showToast(res.error || 'Credenciales incorrectas o usuario no autorizado', 'danger');
+                        app.showToast(cleanErr, 'danger');
                     }
                 }
             });
@@ -494,8 +572,8 @@ class AdminComponent {
                                         <img src="assets/distintivo_colua.png" alt="${homeTitle}" style="height: 24px; width: auto;" />
                                     </div>
                                     <strong style="font-size: 0.92rem; color: var(--colua-navy);">${homeTitle}</strong>
-                                    <span style="font-size: 0.72rem; color: #15803d; font-weight: 700; background: #dcfce7; padding: 2px 8px; border-radius: 12px; margin-top: 6px;">
-                                        🔒 Fijo e Inamovible
+                                    <span style="font-size: 0.72rem; color: #15803d; font-weight: 700; background: #dcfce7; padding: 2px 8px; border-radius: 12px; margin-top: 6px; display: inline-flex; align-items: center; gap: 4px;">
+                                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Fijo e Inamovible
                                     </span>
                                 </div>
                             `;
@@ -558,7 +636,7 @@ class AdminComponent {
                                         <td style="padding: 12px 16px;">
                                             <div style="display: flex; align-items: center; gap: 10px;">
                                                 <span style="font-size: 1.1rem; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: rgba(23, 55, 137, 0.06); color: var(--colua-navy);">
-                                                    ${sec.icon || '📄'}
+                                                    ${sec.icon ? sec.icon : ADMIN_ICONS.document}
                                                 </span>
                                                 <div>
                                                     <strong style="color: var(--colua-navy); display: block; font-size: 0.92rem;">${sec.title}</strong>
@@ -750,7 +828,7 @@ class AdminComponent {
             title: '',
             subtitle: '',
             slug: '',
-            icon: '📄',
+            icon: '',
             colorHex: '#173789',
             menuPlacement: 'grid_and_drawer',
             orderIndex: this.sections.length + 1,
@@ -786,9 +864,19 @@ class AdminComponent {
                                 style="width: 100%; padding: 10px 14px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.9rem;" />
                         </div>
                         <div>
-                            <label style="display: block; font-size: 0.84rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">Ícono / Emoji</label>
-                            <input type="text" id="sec-icon" value="${currentData.icon || '📄'}" placeholder="📄"
-                                style="width: 100%; padding: 10px 14px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.9rem;" />
+                            <label style="display: block; font-size: 0.84rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">Ícono / Distintivo</label>
+                            <div style="display: flex; gap: 6px; align-items: center;">
+                                <input type="text" id="sec-icon" value="${currentData.icon || ''}" placeholder="Ej: ahorros, credito, seguro"
+                                    style="width: 100%; padding: 10px 14px; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; font-size: 0.9rem;" />
+                                <select id="sec-icon-quick-select" style="padding: 10px 8px; font-size: 0.82rem; border: 1.5px solid var(--colua-gray-300); border-radius: 8px; background: white; color: var(--colua-navy);">
+                                    <option value="">(Elegir de catálogo...)</option>
+                                    ${ASSET_CATALOG.filter(a => a.cat === 'principales').map(a => `
+                                        <option value="${a.path.replace('assets/', '').replace('.png', '')}">
+                                            ${a.label}
+                                        </option>
+                                    `).join('')}
+                                </select>
+                            </div>
                         </div>
                     </div>
 
@@ -826,6 +914,14 @@ class AdminComponent {
         `;
 
         app.showModal(modalHtml);
+
+        const secIconInput = document.getElementById('sec-icon');
+        const secQuickSelect = document.getElementById('sec-icon-quick-select');
+        secQuickSelect?.addEventListener('change', () => {
+            if (secQuickSelect.value && secIconInput) {
+                secIconInput.value = secQuickSelect.value;
+            }
+        });
 
         document.getElementById('section-edit-form')?.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -912,7 +1008,7 @@ class AdminComponent {
                         <div style="font-size: 1.8rem; font-weight: 800; color: var(--colua-navy); line-height: 1.1; margin-bottom: 4px;">
                             ${stats.totalViews.toLocaleString()}
                         </div>
-                        <span style="font-size: 0.76rem; color: var(--colua-green); font-weight: 600;">● Plataforma digital activa</span>
+                        <span style="font-size: 0.76rem; color: var(--colua-green); font-weight: 600; display: inline-flex; align-items: center; gap: 4px;"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--colua-green);"></span> Plataforma digital activa</span>
                     </div>
 
                     <div class="card" style="padding: 20px; background: white; border-radius: 12px; border-left: 4px solid var(--colua-green); box-shadow: var(--shadow-sm);">
@@ -1116,8 +1212,9 @@ class AdminComponent {
                     <div style="display: flex; flex-direction: column; gap: 6px;">
                         ${this.sections.map(s => `
                             <button class="canvas-sec-select-btn ${s.id === this.selectedSectionId ? 'active' : ''}" data-id="${s.id}"
-                                style="text-align: left; padding: 10px 12px; border-radius: 10px; border: 1px solid ${s.id === this.selectedSectionId ? 'var(--colua-navy)' : 'var(--colua-gray-200)'}; background: ${s.id === this.selectedSectionId ? 'rgba(23, 55, 137, 0.08)' : 'white'}; font-weight: ${s.id === this.selectedSectionId ? '700' : '500'}; cursor: pointer;">
-                                ${s.icon || '📄'} ${s.title}
+                                style="text-align: left; padding: 10px 12px; border-radius: 10px; border: 1px solid ${s.id === this.selectedSectionId ? 'var(--colua-navy)' : 'var(--colua-gray-200)'}; background: ${s.id === this.selectedSectionId ? 'rgba(23, 55, 137, 0.08)' : 'white'}; font-weight: ${s.id === this.selectedSectionId ? '700' : '500'}; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                                <span style="display: inline-flex; align-items: center;">${s.icon ? s.icon : ADMIN_ICONS.document}</span>
+                                <span>${s.title}</span>
                             </button>
                         `).join('')}
                     </div>
@@ -1132,8 +1229,9 @@ class AdminComponent {
                             </h2>
                             <span style="font-size: 0.82rem; color: var(--colua-gray-500);">${this.selectedContentItems.length} elementos configurados</span>
                         </div>
-                        <button id="add-content-item-btn" class="btn btn-primary" style="font-size: 0.85rem;">
-                            ➕ Agregar Tarjeta de Contenido
+                        <button id="add-content-item-btn" class="btn btn-primary" style="font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;">
+                            ${ADMIN_ICONS.plus}
+                            <span>Agregar Tarjeta de Contenido</span>
                         </button>
                     </div>
 
@@ -1153,9 +1251,9 @@ class AdminComponent {
                                         <div style="width: 44px; height: 44px; border-radius: 10px; background: rgba(23, 55, 137, 0.06); border: 1px solid rgba(23, 55, 137, 0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; position: relative;">
                                             ${item.imageUrl && item.imageUrl.trim().length > 5 ? `
                                                 <img src="${item.imageUrl}" alt="${item.title}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-                                                <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: 1.25rem;">${item.icon || '📄'}</div>
+                                                <div style="display: none; width: 100%; height: 100%; align-items: center; justify-content: center; font-size: 1.25rem;">${item.icon || ADMIN_ICONS.document}</div>
                                             ` : `
-                                                <span style="font-size: 1.25rem;">${item.icon || '📄'}</span>
+                                                <span style="display: inline-flex; align-items: center; justify-content: center;">${item.icon ? item.icon : ADMIN_ICONS.document}</span>
                                             `}
                                         </div>
                                         <div>
@@ -1210,11 +1308,13 @@ class AdminComponent {
                                         <span class="badge" style="background: var(--colua-gray-100); color: var(--colua-gray-700); font-size: 0.74rem; font-weight: 600;">
                                             Orden: ${item.orderIndex ?? idx + 1}
                                         </span>
-                                        <span class="badge" style="background: ${item.isEnabled !== false && item.isVisible !== false ? 'rgba(89, 184, 164, 0.18)' : 'rgba(228, 42, 103, 0.18)'}; color: ${item.isEnabled !== false && item.isVisible !== false ? 'var(--colua-green)' : 'var(--colua-pink)'}; font-size: 0.74rem; font-weight: 700;">
-                                            ${item.isEnabled !== false && item.isVisible !== false ? '● Visible' : '○ Oculto'}
+                                        <span class="badge" style="background: ${item.isEnabled !== false && item.isVisible !== false ? 'rgba(89, 184, 164, 0.18)' : 'rgba(228, 42, 103, 0.18)'}; color: ${item.isEnabled !== false && item.isVisible !== false ? 'var(--colua-green)' : 'var(--colua-pink)'}; font-size: 0.74rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                                            <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:currentColor;"></span>
+                                            ${item.isEnabled !== false && item.isVisible !== false ? 'Visible' : 'Oculto'}
                                         </span>
-                                        <span class="badge" style="background: ${item.isDraft !== false ? '#fffbeb' : '#dcfce7'}; color: ${item.isDraft !== false ? '#b45309' : '#15803d'}; font-size: 0.74rem; font-weight: 700; border: 1px solid ${item.isDraft !== false ? '#fef3c7' : '#bbf7d0'};">
-                                            ${item.isDraft !== false ? '📝 Borrador' : '🚀 Publicado'}
+                                        <span class="badge" style="background: ${item.isDraft !== false ? '#fffbeb' : '#dcfce7'}; color: ${item.isDraft !== false ? '#b45309' : '#15803d'}; font-size: 0.74rem; font-weight: 700; border: 1px solid ${item.isDraft !== false ? '#fef3c7' : '#bbf7d0'}; display: inline-flex; align-items: center; gap: 4px;">
+                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="8"></circle></svg>
+                                            ${item.isDraft !== false ? 'Borrador' : 'Publicado'}
                                         </span>
                                         ${item.buttonText ? `
                                             <span class="badge" style="background: rgba(23, 55, 137, 0.08); color: var(--colua-navy); font-size: 0.74rem; font-weight: 600;">
@@ -1583,11 +1683,12 @@ class AdminComponent {
             subtitle: '',
             description: '',
             imageUrl: '',
-            icon: '📄',
+            icon: '',
             buttonText: '',
             buttonAction: '',
             orderIndex: this.selectedContentItems.length + 1,
-            isEnabled: true
+            isEnabled: true,
+            isDraft: false
         };
 
         const typeLabels = {
@@ -1633,25 +1734,114 @@ class AdminComponent {
                         <textarea id="item-desc" rows="3" placeholder="Describe los beneficios, propósito o características del elemento..." style="width: 100%; padding: 9px 12px; border: 1.5px solid var(--colua-gray-200); border-radius: 8px; font-size: 0.88rem;">${currentData.description || ''}</textarea>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
-                        <div>
-                            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">Texto de Botón (Opcional)</label>
-                            <input type="text" id="item-btn-text" value="${currentData.buttonText || ''}" placeholder="Ej: Solicitar Apertura (PBX)" style="width: 100%; padding: 8px 10px; border: 1.5px solid var(--colua-gray-200); border-radius: 8px; font-size: 0.85rem;" />
+                    <!-- Configuración de Botón y Tipo de Acción Informativa / Destino -->
+                    <div style="background: #f8fafc; border: 1.5px solid var(--colua-gray-200); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <label style="font-size: 0.86rem; font-weight: 700; color: var(--colua-navy); margin: 0; display: flex; align-items: center; gap: 6px;">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+                                Acción del Botón / Interacción de la Tarjeta
+                            </label>
+                            <span style="font-size: 0.74rem; color: #64748b;">(Opcional)</span>
                         </div>
-                        <div>
-                            <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">Destino de Botón</label>
-                            <input type="text" id="item-btn-action" value="${currentData.buttonAction || currentData.targetSectionId || ''}" placeholder="tel:77957795 o #sec_..." style="width: 100%; padding: 8px 10px; border: 1.5px solid var(--colua-gray-200); border-radius: 8px; font-size: 0.85rem;" />
+
+                        <!-- Selector de Tipo de Acción Rápida -->
+                        <div style="margin-bottom: 8px;">
+                            <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--colua-gray-600); margin-bottom: 4px;">Tipo de Acción / Comportamiento:</label>
+                            <select id="item-btn-type-preset" style="width: 100%; padding: 8px 10px; border: 1.5px solid var(--colua-gray-300); border-radius: 6px; font-size: 0.84rem; background: white; color: var(--colua-navy); font-weight: 600;">
+                                <option value="custom">Personalizado (Escrito manualmente abajo)</option>
+                                <option value="info_modal" ${(!currentData.buttonAction || currentData.buttonAction === 'info' || currentData.buttonAction.startsWith('modal:') || currentData.buttonText?.toLowerCase().includes('ver más')) ? 'selected' : ''}>📄 Ficha Informativa Completa ("Ver más detalles" emergente)</option>
+                                <option value="pbx" ${(currentData.buttonAction || '').startsWith('tel:') ? 'selected' : ''}>📞 Llamada Directa a PBX Central (tel:77957795)</option>
+                                <option value="ahorros" ${currentData.buttonAction === '#sec_ahorros' ? 'selected' : ''}>💰 Abrir Pantalla de Ahorros (#sec_ahorros)</option>
+                                <option value="creditos" ${currentData.buttonAction === '#sec_creditos' ? 'selected' : ''}>💳 Abrir Pantalla de Créditos (#sec_creditos)</option>
+                                <option value="seguros" ${currentData.buttonAction === '#sec_seguros' ? 'selected' : ''}>🛡️ Abrir Pantalla de Seguros (#sec_seguros)</option>
+                                <option value="remesas" ${currentData.buttonAction === '#sec_remesas' ? 'selected' : ''}>🌍 Abrir Pantalla de Remesas (#sec_remesas)</option>
+                                <option value="agencias" ${currentData.buttonAction === '#sec_agencias' ? 'selected' : ''}>📍 Localizador de Agencias (#sec_agencias)</option>
+                                <option value="digital" ${currentData.buttonAction === 'https://micoopeenlinea.com.gt' ? 'selected' : ''}>🌐 Portal MICOOPE en Línea (Web externa)</option>
+                                <option value="simulador" ${currentData.buttonAction === '#simulador-financiero' ? 'selected' : ''}>🧮 Abrir Simulador de Créditos (#simulador-financiero)</option>
+                            </select>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px;">
+                            <div>
+                                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">Texto del Botón</label>
+                                <input type="text" id="item-btn-text" value="${currentData.buttonText || ''}" placeholder="Ej: Ver Más Información / Solicitar (PBX)" style="width: 100%; padding: 8px 10px; border: 1.5px solid var(--colua-gray-200); border-radius: 8px; font-size: 0.85rem;" />
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">Destino / Acción</label>
+                                <input type="text" id="item-btn-action" value="${currentData.buttonAction || currentData.targetSectionId || ''}" placeholder="modal:info, tel:77957795 o #sec_..." style="width: 100%; padding: 8px 10px; border: 1.5px solid var(--colua-gray-200); border-radius: 8px; font-size: 0.85rem; font-family: monospace;" />
+                            </div>
+                        </div>
+
+                        <!-- Presets Rápidos con 1 Clic -->
+                        <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+                            <span style="font-size: 0.7rem; color: #64748b;">Plantillas rápidas:</span>
+                            <button type="button" class="btn-preset-chip" data-text="Ver Más Información" data-action="modal:info" style="padding: 2px 8px; font-size: 0.72rem; border-radius: 12px; border: 1px solid #cbd5e1; background: white; color: #334155; cursor: pointer;">📄 Ver Más</button>
+                            <button type="button" class="btn-preset-chip" data-text="Solicitar Información (PBX)" data-action="tel:77957795" style="padding: 2px 8px; font-size: 0.72rem; border-radius: 12px; border: 1px solid #cbd5e1; background: white; color: #334155; cursor: pointer;">📞 PBX Central</button>
+                            <button type="button" class="btn-preset-chip" data-text="Ingresar a MICOOPE en Línea" data-action="https://micoopeenlinea.com.gt" style="padding: 2px 8px; font-size: 0.72rem; border-radius: 12px; border: 1px solid #cbd5e1; background: white; color: #334155; cursor: pointer;">🌐 Banca Digital</button>
                         </div>
                     </div>
 
-                    <!-- Subida de Imagen a Supabase Storage -->
-                    <div class="form-group" style="margin-bottom: 14px;">
-                        <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--colua-gray-700); margin-bottom: 4px;">Imagen de Portada (Supabase Storage)</label>
-                        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 6px;">
-                            <input type="file" id="item-file-input" accept="image/*" style="font-size: 0.8rem;" />
-                            <span id="upload-status" style="font-size: 0.8rem; color: var(--colua-green); font-weight: 600;"></span>
+                    <!-- Selector de Imagen / Ícono con Catálogo Rápido y Supabase Storage -->
+                    <div class="form-group" style="margin-bottom: 16px; background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 14px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <label style="font-size: 0.86rem; font-weight: 700; color: var(--colua-navy); margin: 0; display: flex; align-items: center; gap: 6px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                Imagen / Ícono de la Tarjeta
+                            </label>
+                            <span id="upload-status" style="font-size: 0.76rem; color: var(--colua-green); font-weight: 600;"></span>
                         </div>
-                        <input type="text" id="item-img-url" value="${currentData.imageUrl || ''}" placeholder="O escribe URL / ruta relativa de la imagen (assets/...)" style="width: 100%; padding: 7px 10px; border: 1px solid var(--colua-gray-200); border-radius: 6px; font-size: 0.82rem;" />
+
+                        <!-- Previsualización en Vivo y Entrada de Ruta -->
+                        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+                            <div style="width: 48px; height: 48px; border-radius: 8px; border: 1.5px solid #cbd5e1; background: #f8fafc; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; padding: 4px;">
+                                <img id="item-img-preview" src="${currentData.imageUrl || 'assets/distintivo_colua.png'}" alt="Preview" style="max-width: 100%; max-height: 100%; object-fit: contain;" onerror="this.src='assets/distintivo_colua.png'" />
+                            </div>
+                            <div style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+                                <input type="text" id="item-img-url" value="${currentData.imageUrl || ''}" placeholder="assets/ahorros.png o URL externa" style="width: 100%; padding: 7px 10px; border: 1.5px solid #cbd5e1; border-radius: 6px; font-size: 0.82rem; font-family: monospace;" />
+                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <label class="btn btn-outline" style="padding: 3px 8px; font-size: 0.74rem; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin: 0; border-color: #cbd5e1; background: #f8fafc;">
+                                        <span>📁 Subir personalizada...</span>
+                                        <input type="file" id="item-file-input" accept="image/*" style="display: none;" />
+                                    </label>
+                                    <span style="font-size: 0.72rem; color: #64748b;">o selecciona un ícono abajo:</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Catálogo Rápido Visual Oficial -->
+                        <div style="border-top: 1px dashed #cbd5e1; padding-top: 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; flex-wrap: wrap;">
+                                <span style="font-size: 0.76rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">
+                                    Catálogo Rápido de Assets (${ASSET_CATALOG.length} disponibles)
+                                </span>
+                                <input type="text" id="asset-picker-search" placeholder="🔍 Filtrar íconos..." style="padding: 4px 8px; font-size: 0.75rem; border: 1px solid #cbd5e1; border-radius: 6px; width: 135px;" />
+                            </div>
+
+                            <!-- Pestañas / Filtro por Categorías -->
+                            <div id="asset-cat-pills" style="display: flex; gap: 4px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 8px;">
+                                <button type="button" class="asset-cat-btn active" data-cat="all" style="padding: 3px 8px; font-size: 0.72rem; font-weight: 700; border-radius: 12px; border: 1px solid #0f172a; background: #0f172a; color: white; cursor: pointer; white-space: nowrap;">Todos</button>
+                                <button type="button" class="asset-cat-btn" data-cat="principales" style="padding: 3px 8px; font-size: 0.72rem; font-weight: 600; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; cursor: pointer; white-space: nowrap;">Principales</button>
+                                <button type="button" class="asset-cat-btn" data-cat="ahorros" style="padding: 3px 8px; font-size: 0.72rem; font-weight: 600; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; cursor: pointer; white-space: nowrap;">Ahorros</button>
+                                <button type="button" class="asset-cat-btn" data-cat="creditos" style="padding: 3px 8px; font-size: 0.72rem; font-weight: 600; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; cursor: pointer; white-space: nowrap;">Créditos</button>
+                                <button type="button" class="asset-cat-btn" data-cat="seguros" style="padding: 3px 8px; font-size: 0.72rem; font-weight: 600; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; cursor: pointer; white-space: nowrap;">Seguros</button>
+                                <button type="button" class="asset-cat-btn" data-cat="beneficios" style="padding: 3px 8px; font-size: 0.72rem; font-weight: 600; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; cursor: pointer; white-space: nowrap;">Beneficios</button>
+                                <button type="button" class="asset-cat-btn" data-cat="remesas" style="padding: 3px 8px; font-size: 0.72rem; font-weight: 600; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; cursor: pointer; white-space: nowrap;">Remesas</button>
+                                <button type="button" class="asset-cat-btn" data-cat="fotos" style="padding: 3px 8px; font-size: 0.72rem; font-weight: 600; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; color: #475569; cursor: pointer; white-space: nowrap;">Fotos</button>
+                            </div>
+
+                            <!-- Grilla de Íconos Seleccionables -->
+                            <div id="asset-picker-grid" style="max-height: 155px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 6px; padding: 6px; background: #f1f5f9; border-radius: 8px; border: 1px solid #e2e8f0;">
+                                ${ASSET_CATALOG.map(item => {
+                                    const isSel = (currentData.imageUrl || '') === item.path;
+                                    return `
+                                        <div class="asset-catalog-thumb ${isSel ? 'active-thumb' : ''}" data-path="${item.path}" data-cat="${item.cat}" data-label="${item.label.toLowerCase()}" title="${item.label} (${item.path})" style="cursor: pointer; padding: 6px 4px; border-radius: 6px; border: 1.5px solid ${isSel ? 'var(--colua-navy)' : '#cbd5e1'}; background: ${isSel ? '#eff6ff' : '#ffffff'}; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; transition: all 0.15s ease;" onmouseover="this.style.transform='translateY(-1px)'; this.style.borderColor='var(--colua-navy)';" onmouseout="if(!this.classList.contains('active-thumb')) { this.style.transform='none'; this.style.borderColor='#cbd5e1'; }">
+                                            <img src="${item.path}" alt="${item.label}" style="width: 30px; height: 30px; object-fit: contain;" onerror="this.src='assets/distintivo_colua.png'" />
+                                            <span style="font-size: 0.65rem; font-weight: 600; color: #1e293b; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.label}</span>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
                     </div>
 
                     <div class="form-group" style="margin-bottom: 16px;">
@@ -1671,7 +1861,7 @@ class AdminComponent {
                             <span>Elemento Activo / Visible en la aplicación</span>
                         </label>
                         <label style="display: flex; align-items: center; gap: 10px; font-size: 0.88rem; font-weight: 600; color: #b45309; cursor: pointer;">
-                            <input type="checkbox" id="item-is-draft" ${currentData.isDraft !== false ? 'checked' : ''} style="width: 18px; height: 18px;" />
+                            <input type="checkbox" id="item-is-draft" ${currentData.isDraft === true ? 'checked' : ''} style="width: 18px; height: 18px;" />
                             <span>Guardar como Borrador (No visible para usuarios públicos hasta publicar)</span>
                         </label>
                     </div>
@@ -1686,21 +1876,140 @@ class AdminComponent {
 
         app.showModal(modalHtml);
 
+        const btnTextInput = document.getElementById('item-btn-text');
+        const btnActionInput = document.getElementById('item-btn-action');
+        const btnTypePreset = document.getElementById('item-btn-type-preset');
+
+        btnTypePreset?.addEventListener('change', () => {
+            const val = btnTypePreset.value;
+            if (val === 'info_modal') {
+                if (btnActionInput) btnActionInput.value = 'modal:info';
+                if (btnTextInput && !btnTextInput.value) btnTextInput.value = 'Ver Más Información';
+            } else if (val === 'pbx') {
+                if (btnActionInput) btnActionInput.value = 'tel:77957795';
+                if (btnTextInput && !btnTextInput.value) btnTextInput.value = 'Solicitar Información (PBX)';
+            } else if (val === 'ahorros') {
+                if (btnActionInput) btnActionInput.value = '#sec_ahorros';
+                if (btnTextInput && !btnTextInput.value) btnTextInput.value = 'Ver Cuentas de Ahorro';
+            } else if (val === 'creditos') {
+                if (btnActionInput) btnActionInput.value = '#sec_creditos';
+                if (btnTextInput && !btnTextInput.value) btnTextInput.value = 'Cotizar Crédito';
+            } else if (val === 'seguros') {
+                if (btnActionInput) btnActionInput.value = '#sec_seguros';
+                if (btnTextInput && !btnTextInput.value) btnTextInput.value = 'Ver Seguros';
+            } else if (val === 'remesas') {
+                if (btnActionInput) btnActionInput.value = '#sec_remesas';
+                if (btnTextInput && !btnTextInput.value) btnTextInput.value = 'Ver Remesas';
+            } else if (val === 'agencias') {
+                if (btnActionInput) btnActionInput.value = '#sec_agencias';
+                if (btnTextInput && !btnTextInput.value) btnTextInput.value = 'Ver Agencias';
+            } else if (val === 'digital') {
+                if (btnActionInput) btnActionInput.value = 'https://micoopeenlinea.com.gt';
+                if (btnTextInput && !btnTextInput.value) btnTextInput.value = 'Ingresar a MICOOPE en Línea';
+            } else if (val === 'simulador') {
+                if (btnActionInput) btnActionInput.value = '#simulador-financiero';
+                if (btnTextInput && !btnTextInput.value) btnTextInput.value = 'Calcular Cuota';
+            }
+        });
+
+        document.querySelectorAll('.btn-preset-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                if (btnTextInput) btnTextInput.value = chip.dataset.text;
+                if (btnActionInput) btnActionInput.value = chip.dataset.action;
+                if (chip.dataset.action === 'modal:info' && btnTypePreset) {
+                    btnTypePreset.value = 'info_modal';
+                } else if (chip.dataset.action.startsWith('tel:') && btnTypePreset) {
+                    btnTypePreset.value = 'pbx';
+                }
+            });
+        });
+
         const fileInput = document.getElementById('item-file-input');
         const imgUrlInput = document.getElementById('item-img-url');
+        const imgPreview = document.getElementById('item-img-preview');
         const uploadStatus = document.getElementById('upload-status');
+        const thumbs = document.querySelectorAll('.asset-catalog-thumb');
+
+        // Click en Íconos del Catálogo
+        thumbs.forEach(t => {
+            t.addEventListener('click', () => {
+                const path = t.dataset.path;
+                if (imgUrlInput) imgUrlInput.value = path;
+                if (imgPreview) imgPreview.src = path;
+                thumbs.forEach(other => {
+                    other.classList.remove('active-thumb');
+                    other.style.borderColor = '#cbd5e1';
+                    other.style.background = '#ffffff';
+                });
+                t.classList.add('active-thumb');
+                t.style.borderColor = 'var(--colua-navy)';
+                t.style.background = '#eff6ff';
+                if (uploadStatus) uploadStatus.textContent = '✓ ' + path;
+            });
+        });
+
+        // Actualizar preview en vivo al escribir
+        imgUrlInput?.addEventListener('input', () => {
+            const val = imgUrlInput.value.trim();
+            if (imgPreview && val) {
+                imgPreview.src = val;
+            }
+            thumbs.forEach(t => {
+                if (t.dataset.path === val) {
+                    t.classList.add('active-thumb');
+                    t.style.borderColor = 'var(--colua-navy)';
+                    t.style.background = '#eff6ff';
+                } else {
+                    t.classList.remove('active-thumb');
+                    t.style.borderColor = '#cbd5e1';
+                    t.style.background = '#ffffff';
+                }
+            });
+        });
+
+        // Filtro y Búsqueda en el Catálogo de Assets
+        const assetSearchInput = document.getElementById('asset-picker-search');
+        const catButtons = document.querySelectorAll('.asset-cat-btn');
+        let selectedCat = 'all';
+
+        const filterCatalog = () => {
+            const q = (assetSearchInput?.value || '').toLowerCase().trim();
+            thumbs.forEach(t => {
+                const matchesCat = selectedCat === 'all' || t.dataset.cat === selectedCat;
+                const matchesSearch = !q || t.dataset.label.includes(q) || t.dataset.path.toLowerCase().includes(q);
+                t.style.display = matchesCat && matchesSearch ? 'flex' : 'none';
+            });
+        };
+
+        assetSearchInput?.addEventListener('input', filterCatalog);
+
+        catButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                catButtons.forEach(b => {
+                    b.style.background = '#f8fafc';
+                    b.style.color = '#475569';
+                    b.style.borderColor = '#e2e8f0';
+                });
+                btn.style.background = '#0f172a';
+                btn.style.color = 'white';
+                btn.style.borderColor = '#0f172a';
+                selectedCat = btn.dataset.cat;
+                filterCatalog();
+            });
+        });
 
         if (fileInput) {
             fileInput.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
                 if (file) {
-                    uploadStatus.textContent = '⏳ Subiendo y optimizando...';
+                    uploadStatus.textContent = 'Subiendo y optimizando...';
                     const res = await window.supabaseStorageManager.uploadImage(file, (msg) => { uploadStatus.textContent = msg; });
                     if (res.success) {
                         imgUrlInput.value = res.url;
-                        uploadStatus.textContent = res.type === 'data_uri' ? '✅ Guardada (Modo seguro base64)' : '✅ Subida a la nube exitosa';
+                        if (imgPreview) imgPreview.src = res.url;
+                        uploadStatus.textContent = res.type === 'data_uri' ? 'Guardada (Modo seguro base64)' : 'Subida a la nube exitosa';
                     } else {
-                        uploadStatus.textContent = '❌ Error al subir';
+                        uploadStatus.textContent = 'Error al subir';
                         imgUrlInput.value = '';
                     }
                 }
@@ -1799,7 +2108,7 @@ class AdminComponent {
                     
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <button class="btn btn-outline" onclick="app.closeModal()" style="font-size: 0.82rem;">Cerrar</button>
-                        <button id="add-block-btn" class="btn btn-primary" style="font-size: 0.82rem;">➕ Agregar Bloque</button>
+                        <button id="add-block-btn" class="btn btn-primary" style="font-size: 0.82rem; display: inline-flex; align-items: center; gap: 5px;">${ADMIN_ICONS.plus} <span>Agregar Bloque</span></button>
                     </div>
                 </div>
             </div>
@@ -1856,8 +2165,9 @@ class AdminComponent {
                         <h3 style="font-size: 1.12rem; font-weight: 700; color: var(--colua-navy); margin: 0;">
                             Estado de Publicación
                         </h3>
-                        <span class="badge" style="background: ${this.syncStatus.draftsCount > 0 ? '#fffbeb' : '#dcfce7'}; color: ${this.syncStatus.draftsCount > 0 ? '#b45309' : '#15803d'}; font-size: 0.8rem; font-weight: 700; padding: 4px 10px; border-radius: 8px;">
-                            ${this.syncStatus.draftsCount > 0 ? '● Borradores pendientes de publicar' : `● Todo publicado (${this.syncStatus.version})`}
+                        <span class="badge" style="background: ${this.syncStatus.draftsCount > 0 ? '#fffbeb' : '#dcfce7'}; color: ${this.syncStatus.draftsCount > 0 ? '#b45309' : '#15803d'}; font-size: 0.8rem; font-weight: 700; padding: 4px 10px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px;">
+                            <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;"></span>
+                            ${this.syncStatus.draftsCount > 0 ? 'Borradores pendientes de publicar' : `Todo publicado (${this.syncStatus.version})`}
                         </span>
                     </div>
 
@@ -1960,8 +2270,8 @@ class AdminComponent {
 
                 <!-- 5. Acciones Avanzadas de Restauración e Integridad -->
                 <div style="display: flex; flex-direction: column; gap: 12px;">
-                    <span style="font-size: 0.76rem; font-weight: 700; color: var(--colua-gray-500); text-transform: uppercase; letter-spacing: 0.5px;">
-                        🛡️ Acciones Avanzadas de Restauración e Integridad
+                    <span style="font-size: 0.76rem; font-weight: 700; color: var(--colua-gray-500); text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; gap: 6px;">
+                        ${ADMIN_ICONS.shieldCheck} Acciones Avanzadas de Restauración e Integridad
                     </span>
 
                     <!-- Verificación e Integridad -->
@@ -2151,7 +2461,7 @@ class AdminComponent {
                         <div><strong>Pantallas locales:</strong> ${ver.localSections}</div>
                         <div><strong>Tarjetas de contenido:</strong> ${ver.localItems}</div>
                         <div><strong>Bloques atómicos:</strong> ${ver.localBlocks}</div>
-                        <div><strong>Conexión Firestore Cloud:</strong> ${ver.cloudConnected ? '✅ Conectado y Sincronizado' : '⚠️ Modo Local / Offline'}</div>
+                        <div><strong>Conexión Firestore Cloud:</strong> ${ver.cloudConnected ? 'Conectado y Sincronizado' : 'Modo Local / Offline'}</div>
                     </div>
                 `,
                 icon: "success",
@@ -2203,7 +2513,7 @@ class AdminComponent {
         // Evento Restaurar Datos Iniciales (Factory Reset)
         container.querySelector('#btn-factory-reset')?.addEventListener('click', async () => {
             const confirmRes = await Swal.fire({
-                title: "⚠️ ¿Restaurar Datos de Fábrica?",
+                title: "¿Restaurar Datos de Fábrica?",
                 text: "Esta acción reiniciará todas las secciones, productos y tarjetas a sus valores predeterminados de la cooperativa. (Los usuarios se conservarán).",
                 icon: "warning",
                 draggable: true,
@@ -3079,7 +3389,7 @@ class AdminComponent {
                 <div style="background: linear-gradient(135deg, #0a1931 0%, var(--colua-navy) 100%); color: white; border-radius: 16px; padding: 24px 26px; box-shadow: var(--shadow-md);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
                         <h2 style="font-size: 1.25rem; font-weight: 800; color: #ffffff !important; margin: 0; display: inline-flex; align-items: center; gap: 10px;">
-                            <span>📖 MANUAL COMPLETO Y GUÍA CMS</span>
+                            <span style="display: inline-flex; align-items: center;">${ADMIN_ICONS.book}</span> <span>MANUAL COMPLETO Y GUÍA CMS</span>
                         </h2>
                         <span class="badge" style="background: ${isSuper ? 'var(--colua-gold)' : 'rgba(255, 255, 255, 0.15)'}; color: ${isSuper ? '#0a1931' : '#ffffff'}; font-size: 0.74rem; font-weight: 800; padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.25);">
                             ${isSuper ? 'v105 • SuperAdmin Maestro' : `v105 • Modo Operativo (${roleLabel})`}
@@ -3221,11 +3531,11 @@ class AdminComponent {
                 <!-- 4. Apartado Especial: Publicación y Subida de Noticias -->
                 <div class="card" style="background: white; border-radius: 14px; padding: 22px; box-shadow: var(--shadow-sm); border: 1px solid var(--colua-gray-200);">
                     <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--colua-navy); margin: 0 0 14px 0; display: flex; align-items: center; gap: 10px;">
-                        <span>📰</span> <span>${isSuper ? '4.' : '3.'} Apartado Especial: Publicación y Subida de Noticias</span>
+                        <span style="display: inline-flex; align-items: center;">${ADMIN_ICONS.news}</span> <span>${isSuper ? '4.' : '3.'} Apartado Especial: Publicación y Subida de Noticias</span>
                     </h3>
 
                     <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; font-size: 0.84rem; color: #92400e; line-height: 1.5;">
-                        <strong>⚡ PUBLICACIÓN RÁPIDA DESDE EL INICIO:</strong><br/>
+                        <strong>PUBLICACIÓN RÁPIDA DESDE EL INICIO:</strong><br/>
                         ¡No necesitas ingresar a la pestaña 'Publicar' para subir una noticia! Al inicio de la pestaña 'Pantallas' o seleccionando 'Noticias' en Canvas verás la opción de agregar contenido. Puedes publicar comunicados y noticias directamente en su propio espacio independiente.
                     </div>
 
@@ -3271,7 +3581,7 @@ class AdminComponent {
                     <div class="card" style="background: white; border-radius: 14px; padding: 22px; box-shadow: var(--shadow-sm); border: 1px solid var(--colua-gray-200); border-left: 4px solid #0284c7;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
                             <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--colua-navy); margin: 0; display: flex; align-items: center; gap: 10px;">
-                                <span>☁️</span> <span>5. Conexión de Nube Doble (Firebase + Supabase)</span>
+                                <span style="display: inline-flex; align-items: center;">${ADMIN_ICONS.cloud}</span> <span>5. Conexión de Nube Doble (Firebase + Supabase)</span>
                             </h3>
                             <span class="badge" style="background: #e0f2fe; color: #0369a1; font-size: 0.72rem; font-weight: 700;">Infraestructura Cloud</span>
                         </div>
@@ -3298,7 +3608,7 @@ class AdminComponent {
                     <div class="card" style="background: white; border-radius: 14px; padding: 22px; box-shadow: var(--shadow-sm); border: 1px solid var(--colua-gray-200); border-left: 4px solid #e11d48;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
                             <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--colua-navy); margin: 0; display: flex; align-items: center; gap: 10px;">
-                                <span>📋</span> <span>6. Auditoría, Bitácora y Reversión (Rollback)</span>
+                                <span style="display: inline-flex; align-items: center;">${ADMIN_ICONS.audit}</span> <span>6. Auditoría, Bitácora y Reversión (Rollback)</span>
                             </h3>
                             <span class="badge" style="background: #ffe4e6; color: #be123c; font-size: 0.72rem; font-weight: 700;">Seguridad y Recuperación</span>
                         </div>
@@ -3325,7 +3635,7 @@ class AdminComponent {
                 <!-- 7. Gestión de Agencias y Sucursales -->
                 <div class="card" style="background: white; border-radius: 14px; padding: 22px; box-shadow: var(--shadow-sm); border: 1px solid var(--colua-gray-200);">
                     <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--colua-navy); margin: 0 0 16px 0; display: flex; align-items: center; gap: 10px;">
-                        <span>🏢</span> <span>${isSuper ? '7.' : '4.'} Gestión de Agencias y Sucursales</span>
+                        <span style="display: inline-flex; align-items: center;">${ADMIN_ICONS.building}</span> <span>${isSuper ? '7.' : '4.'} Gestión de Agencias y Sucursales</span>
                     </h3>
 
                     <div style="font-size: 0.86rem; color: var(--colua-gray-700); line-height: 1.7;">

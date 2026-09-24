@@ -215,6 +215,39 @@ class AuthManager {
     return this.clearSession();
   }
 
+  cleanAuthError(err) {
+    if (!err) return 'Credenciales incorrectas o no válidas.';
+    const code = (err.code || '').toLowerCase();
+    const msg = typeof err === 'string' ? err : (err.message || '');
+
+    if (code.includes('invalid-credential') || code.includes('wrong-password') || code.includes('user-not-found') ||
+        msg.includes('invalid-credential') || msg.includes('wrong-password') || msg.includes('user-not-found')) {
+      return 'Correo o contraseña incorrectos. Verifica tus credenciales.';
+    }
+    if (code.includes('email-already-in-use') || msg.includes('email-already-in-use')) {
+      return 'El correo electrónico ya se encuentra registrado.';
+    }
+    if (code.includes('weak-password') || msg.includes('weak-password')) {
+      return 'La contraseña debe tener al menos 6 caracteres.';
+    }
+    if (code.includes('invalid-email') || msg.includes('invalid-email')) {
+      return 'El formato del correo electrónico es inválido.';
+    }
+    if (code.includes('user-disabled') || msg.includes('user-disabled')) {
+      return 'Esta cuenta ha sido inhabilitada. Contacta al soporte de la cooperativa.';
+    }
+    if (code.includes('too-many-requests') || msg.includes('too-many-requests')) {
+      return 'Demasiados intentos fallidos. Por favor espera un momento e intenta de nuevo.';
+    }
+    if (code.includes('network') || msg.includes('network')) {
+      return 'Error de conexión. Verifica tu acceso a internet.';
+    }
+    if (msg.startsWith('Firebase:') || msg.includes('(auth/')) {
+      return 'Credenciales incorrectas o usuario no autorizado.';
+    }
+    return msg || 'Credenciales incorrectas o usuario no autorizado.';
+  }
+
   async changePassword(currentPassword, newPassword) {
     if (!currentPassword || !newPassword) {
       return { success: false, error: 'Completa todos los campos de contraseña.' };
@@ -233,6 +266,8 @@ class AuthManager {
           msg = 'La contraseña actual ingresada es incorrecta.';
         } else if (err.code === 'auth/weak-password') {
           msg = 'La nueva contraseña debe tener al menos 6 caracteres.';
+        } else {
+          msg = this.cleanAuthError(err);
         }
         return { success: false, error: msg };
       }
@@ -286,7 +321,7 @@ class AuthManager {
 
         return { success: true, user: userData };
       } catch (e) {
-        return { success: false, error: e.message || 'Credenciales no válidas' };
+        return { success: false, error: this.cleanAuthError(e) };
       }
     }
 
@@ -375,7 +410,7 @@ class AuthManager {
           return { success: false, error: 'Esta cuenta no tiene permisos asignados de Administrador CMS.' };
         }
       } catch (e) {
-        return { success: false, error: e.message || 'Credenciales administrativas no válidas' };
+        return { success: false, error: this.cleanAuthError(e) };
       }
     }
 

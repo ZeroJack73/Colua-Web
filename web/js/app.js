@@ -230,72 +230,7 @@ const App = {
         if (this._historyNavInitialized) return;
         this._historyNavInitialized = true;
 
-        // Escuchar cuando el usuario pulsa 'Atrás' en el teléfono (barra de navegación, botón físico o gestos de deslizar en iPhone/Android)
-        window.addEventListener('popstate', (e) => {
-            // 1. Si el visor Lightbox de imágenes de noticias está abierto, cerrarlo prioritariamente
-            const lightbox = document.getElementById('colua-news-lightbox');
-            if (lightbox) {
-                if (window.noticiasComponent && typeof window.noticiasComponent.closeLightboxFromHistory === 'function') {
-                    window.noticiasComponent.closeLightboxFromHistory();
-                } else {
-                    lightbox.style.opacity = '0';
-                    setTimeout(() => lightbox.remove(), 180);
-                }
-                return;
-            }
-
-            // 2. Si el modal global está abierto, cerrarlo
-            if (this._isModalOpen) {
-                this.closeModal(true);
-                return;
-            }
-
-            // 3. Si el menú lateral móvil (sidebar drawer) está abierto, cerrarlo
-            if (window.sidebarComponent && window.sidebarComponent.isOpen) {
-                window.sidebarComponent.close(true);
-                return;
-            }
-
-            // 4. Si la mesa de ayuda / chatbot está abierto, cerrarlo
-            if (window.chatbotComponent && window.chatbotComponent.isOpen) {
-                window.chatbotComponent.toggleChat(false, true);
-                return;
-            }
-        });
-
-        // Soporte gesto swipe desde el borde izquierdo en iPhone / Móviles para ir atrás
-        let edgeStartX = 0;
-        let edgeStartY = 0;
-        let edgeStartTime = 0;
-        let isEdgeSwipe = false;
-
-        document.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 1 && e.touches[0].clientX <= 30) {
-                edgeStartX = e.touches[0].clientX;
-                edgeStartY = e.touches[0].clientY;
-                edgeStartTime = Date.now();
-                isEdgeSwipe = true;
-            } else {
-                isEdgeSwipe = false;
-            }
-        }, { passive: true });
-
-        document.addEventListener('touchend', (e) => {
-            if (!isEdgeSwipe) return;
-            isEdgeSwipe = false;
-            const endX = e.changedTouches[0].clientX;
-            const endY = e.changedTouches[0].clientY;
-            const diffX = endX - edgeStartX;
-            const diffY = Math.abs(endY - edgeStartY);
-            const duration = Date.now() - edgeStartTime;
-
-            // Swipe horizontal desde el borde izquierdo hacia la derecha
-            if (diffX > 75 && diffY < 60 && duration < 400) {
-                window.history.back();
-            }
-        }, { passive: true });
-
-        // Soporte tecla Escape en computadoras y laptops
+        // Soporte tecla Escape en computadoras y laptops para cerrar modales o menús
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 const lightbox = document.getElementById('colua-news-lightbox');
@@ -353,16 +288,10 @@ const App = {
         this.modalEl.style.backgroundColor = '';
         this.modalEl.style.display = 'flex';
         document.body.style.overflow = 'hidden';
-
-        // Integración con el historial del navegador para móviles (barra de navegación y gestos)
-        if (!this._isModalOpen) {
-            this._isModalOpen = true;
-            this._historyPushedForModal = true;
-            history.pushState({ coluaModal: true, timestamp: Date.now() }, '');
-        }
+        this._isModalOpen = true;
     },
 
-    closeModal(fromHistory = false, isNavigating = false) {
+    closeModal() {
         if (this.modalEl) {
             this.modalEl.style.display = 'none';
             document.body.style.overflow = '';
@@ -373,18 +302,119 @@ const App = {
             }
             this.modalEl.style.backgroundColor = '';
         }
+        this._isModalOpen = false;
+    },
 
-        if (this._isModalOpen) {
-            this._isModalOpen = false;
-            if (!fromHistory && !isNavigating && this._historyPushedForModal) {
-                this._historyPushedForModal = false;
-                if (history.state && history.state.coluaModal) {
-                    history.back();
-                }
-            } else {
-                this._historyPushedForModal = false;
+    // ── Ficha Informativa Completa (Ver Más Detalles de Producto / Tarjeta) ─────
+    async showItemInfoModal(itemIdOrItem) {
+        let item = itemIdOrItem;
+        if (typeof itemIdOrItem === 'string') {
+            if (window.coluaRepository) {
+                const db = window.coluaRepository.getLocalDb();
+                item = (db.content_items || []).find(i => i.id === itemIdOrItem);
             }
         }
+        if (!item) return;
+
+        let blocks = [];
+        try {
+            if (window.coluaRepository && item.id) {
+                blocks = await window.coluaRepository.getContentBlocksByItem(item.id);
+            }
+        } catch(e) {}
+
+        const iconImg = item.imageUrl || item.imagePath || 'assets/distintivo_colua.png';
+        const subtitleParts = item.subtitle ? item.subtitle.split(',').map(s => s.trim()).filter(Boolean) : [];
+        const actionTarget = item.buttonAction || item.targetSectionId || 'tel:77957795';
+        const actionText = item.buttonText || (actionTarget.startsWith('tel:') ? 'Contactar por PBX: 7795-7795' : 'Gestionar Servicio');
+
+        const isTel = actionTarget.startsWith('tel:');
+        const isHttp = actionTarget.startsWith('http');
+        const isHash = actionTarget.startsWith('#');
+
+        const ctaClick = isTel ? `window.location.href='${actionTarget}'` : (isHttp ? `window.open('${actionTarget}','_blank')` : (isHash ? `app.closeModal(); if(window.coluaRouter) window.coluaRouter.navigate('${actionTarget.replace('#','')}'); else window.location.hash='${actionTarget}';` : `window.location.href='tel:77957795'`));
+
+        const modalHtml = `
+            <div style="max-width: 540px; width: 100%; text-align: left;">
+                <!-- Cabecera Institucional del Elemento -->
+                <div style="display: flex; gap: 14px; align-items: flex-start; margin-bottom: 16px; border-bottom: 1px solid var(--colua-gray-200); padding-bottom: 16px;">
+                    <div style="width: 58px; height: 58px; border-radius: 12px; background: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.06); border: 1.5px solid var(--colua-gray-200); display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 6px;">
+                        <img src="${iconImg}" alt="${item.title}" style="max-width: 100%; max-height: 100%; object-fit: contain;" onerror="this.src='assets/distintivo_colua.png'" />
+                    </div>
+                    <div style="flex: 1;">
+                        <span class="badge" style="background: rgba(23, 55, 137, 0.08); color: var(--colua-navy); font-size: 0.72rem; font-weight: 700; margin-bottom: 4px; display: inline-block;">
+                            Información Detallada Oficial
+                        </span>
+                        <h3 style="font-size: 1.3rem; font-weight: 800; color: var(--colua-navy); margin: 0 0 4px 0; line-height: 1.25;">
+                            ${item.title}
+                        </h3>
+                        ${item.shortDescription || item.subtitle ? `
+                            <p style="font-size: 0.86rem; color: var(--colua-gray-600); margin: 0; font-weight: 500;">
+                                ${item.shortDescription || item.subtitle}
+                            </p>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <!-- Descripción Completa -->
+                ${item.description ? `
+                    <div style="margin-bottom: 16px; background: #f8fafc; border-radius: 10px; padding: 14px; border: 1px solid var(--colua-gray-200);">
+                        <span style="font-size: 0.74rem; font-weight: 700; color: var(--colua-gray-500); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px;">
+                            Acerca de este producto o servicio
+                        </span>
+                        <p style="font-size: 0.9rem; color: var(--colua-gray-800); margin: 0; line-height: 1.55;">
+                            ${item.description}
+                        </p>
+                    </div>
+                ` : ''}
+
+                <!-- Atributos y Condiciones -->
+                ${subtitleParts.length > 0 ? `
+                    <div style="margin-bottom: 16px;">
+                        <span style="font-size: 0.74rem; font-weight: 700; color: var(--colua-gray-500); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 8px;">
+                            Características Principales & Beneficios
+                        </span>
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            ${subtitleParts.map(part => `
+                                <div style="display: flex; align-items: center; gap: 8px; font-size: 0.88rem; color: var(--colua-gray-700); background: #ffffff; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--colua-gray-200);">
+                                    <span style="color: var(--colua-green); font-weight: 800; font-size: 1rem;">✓</span>
+                                    <span>${part}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Bloques Atómicos Adjuntos (Requisitos, Notas, Destacados) -->
+                ${blocks && blocks.length > 0 ? `
+                    <div style="margin-bottom: 18px;">
+                        <span style="font-size: 0.74rem; font-weight: 700; color: var(--colua-gray-500); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 8px;">
+                            Requisitos e Información Complementaria
+                        </span>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            ${blocks.map(b => `
+                                <div style="padding: 10px 12px; background: ${b.blockType === 'callout' ? '#fef3c7' : (b.blockType === 'highlight' ? '#eff6ff' : '#f8fafc')}; border: 1px solid ${b.blockType === 'callout' ? '#fde68a' : (b.blockType === 'highlight' ? '#bfdbfe' : '#e2e8f0')}; border-radius: 8px; font-size: 0.86rem; color: var(--colua-gray-800); line-height: 1.45;">
+                                    ${b.blockType === 'bullet' ? `• ` : ''}${b.content}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Botones de Acción -->
+                <div style="display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid var(--colua-gray-200); padding-top: 16px; margin-top: 10px;">
+                    <button type="button" class="btn btn-outline" onclick="app.closeModal()" style="padding: 9px 16px; font-size: 0.88rem;">
+                        Cerrar
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="${ctaClick}" style="padding: 9px 20px; font-size: 0.88rem; font-weight: 700; display: inline-flex; align-items: center; gap: 8px;">
+                        ${isTel ? `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>` : ''}
+                        <span>${actionText}</span>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        this.showModal(modalHtml);
     },
 
     // ── Toast ──────────────────────────────────────
@@ -702,28 +732,31 @@ const App = {
                 if (window.Swal) {
                     Swal.fire({
                         title: "¡Registro Exitoso!",
-                        text: `Bienvenido a COLUA MICOOPE. Tu No. de Asociado oficial asignado es ${res.associateId}`,
+                        text: "Bienvenido a COLUA MICOOPE. Tu cuenta ha sido creada exitosamente.",
                         icon: "success",
                         timer: 1800,
                         showConfirmButton: false,
                         draggable: true
                     });
                 } else {
-                    this.showToast(`¡Registro exitoso! Tu No. de Asociado es ${res.associateId}`, 'success');
+                    this.showToast('¡Registro exitoso! Bienvenido a COLUA MICOOPE', 'success');
                 }
                 this._afterLoginSuccess(res.user);
             } else {
+                const regErr = (res && res.error && !res.error.startsWith('Firebase:') && !res.error.includes('(auth/'))
+                    ? res.error
+                    : "No se pudo completar el registro. Intenta de nuevo.";
                 if (window.Swal) {
                     Swal.fire({
                         icon: "error",
                         title: "Oops...",
-                        text: res.error || "No se pudo completar el registro. Intenta de nuevo.",
+                        text: regErr,
                         draggable: true,
                         confirmButtonColor: "#173789",
                         footer: '<a href="tel:77957795" style="color:#173789;font-weight:600;">¿Problemas con tu registro? PBX: 7795-7795</a>'
                     });
                 } else {
-                    this.showToast(res.error || 'Error al registrar', 'danger');
+                    this.showToast(regErr, 'danger');
                 }
                 if (btn) { btn.disabled = false; btn.textContent = 'Crear Cuenta'; }
             }
@@ -811,15 +844,15 @@ const App = {
 
                 <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:14px 16px;margin-bottom:20px;text-align:left;">
                     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-                        <span style="font-size:1.1rem;">❤️</span>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="#e11d48" stroke="#e11d48" stroke-width="1"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
                         <span style="font-size:0.84rem;color:#334155;font-weight:600;">Reacciona con "Me Gusta" y apoya noticias cooperativas</span>
                     </div>
                     <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-                        <span style="font-size:1.1rem;">✨</span>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
                         <span style="font-size:0.84rem;color:#334155;font-weight:600;">Acceso a beneficios, tasas preferenciales y eventos</span>
                     </div>
                     <div style="display:flex;align-items:center;gap:10px;">
-                        <span style="font-size:1.1rem;">⚡</span>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
                         <span style="font-size:0.84rem;color:#334155;font-weight:600;">Registro rápido en menos de 1 minuto</span>
                     </div>
                 </div>

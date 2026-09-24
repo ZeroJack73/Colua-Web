@@ -129,27 +129,15 @@ class SidebarComponent {
       overlay.classList.add('open');
       drawer.classList.add('open');
     }
-    if (!this._historyPushed) {
-      this._historyPushed = true;
-      history.pushState({ coluaSidebar: true }, '');
-    }
   }
 
-  close(fromHistory = false, isNavigating = false) {
+  close() {
     this.isOpen = false;
     const overlay = document.getElementById('drawer-overlay');
     const drawer = document.getElementById('sidebar-drawer');
     if (overlay && drawer) {
       overlay.classList.remove('open');
       drawer.classList.remove('open');
-    }
-    if (!fromHistory && !isNavigating && this._historyPushed) {
-      this._historyPushed = false;
-      if (history.state && history.state.coluaSidebar) {
-        history.back();
-      }
-    } else {
-      this._historyPushed = false;
     }
   }
 

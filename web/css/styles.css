@@ -3262,11 +3262,32 @@ body {
   min-height: 205px;
   position: relative;
   text-decoration: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
-.clean-item-card:hover {
-  border-color: #93c5fd;
-  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.08), 0 8px 10px -6px rgba(37, 99, 235, 0.04);
-  transform: translateY(-4px);
+@media (hover: hover) {
+  .clean-item-card:hover {
+    border-color: #93c5fd;
+    box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.08), 0 8px 10px -6px rgba(37, 99, 235, 0.04);
+    transform: translateY(-4px);
+  }
+  .clean-item-card:hover .clean-card-icon-box {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    color: #2563eb;
+    border-color: #bfdbfe;
+    transform: scale(1.06);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.12);
+  }
+}
+.clean-item-card:active {
+  transform: scale(0.98);
+}
+.clean-item-card *,
+.desktop-nav-menu .nav-link-btn *,
+.drawer-menu-item *,
+.bottom-nav-item * {
+  pointer-events: none;
 }
 .clean-card-top-row {
   display: flex;
@@ -3290,13 +3311,6 @@ body {
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
   margin: 0 auto;
   transition: all 0.25s ease;
-}
-.clean-item-card:hover .clean-card-icon-box {
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  color: #2563eb;
-  border-color: #bfdbfe;
-  transform: scale(1.06);
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.12);
 }
 .clean-card-icon-img {
   width: 64px;

@@ -13,9 +13,9 @@ class ColuaRepository {
     if (!raw) {
       this.seedInitialData();
     } else {
-      // Auto-limpieza de cualquier residuo heredado de "Comunidad" para asegurar que solo existe "Nosotros"
+      // Auto-limpieza y auto-merge de datos canónicos faltantes
       try {
-        const db = JSON.parse(raw);
+        let db = JSON.parse(raw);
         let changed = false;
         if (db.sections && db.sections.some(s => s.id === 'sec_comunidad' || s.slug === 'comunidad' || s.title === 'Comunidad')) {
           db.sections = db.sections.filter(s => s.id !== 'sec_comunidad' && s.slug !== 'comunidad' && s.title !== 'Comunidad');
@@ -29,7 +29,6 @@ class ColuaRepository {
           db.content_items = db.content_items.filter(i => i.sectionId !== 'sec_comunidad');
           changed = true;
         }
-        // Auto-limpieza de métricas mock heredadas para garantizar 100% datos reales
         if (db.analytics && db.analytics.page_views && db.analytics.page_views.inicio > 500) {
           db.analytics = {
             page_views: { inicio: 1 },
@@ -38,11 +37,148 @@ class ColuaRepository {
           };
           changed = true;
         }
+        db = this._ensureDefaultData(db);
         if (changed) {
           this.saveLocalDb(db);
         }
-      } catch (e) {}
+      } catch (e) {
+        this.seedInitialData(true);
+      }
     }
+  }
+
+  // Garantiza que todos los elementos y pantallas canónicas existan sin borrar elementos creados por el usuario
+  _ensureDefaultData(db) {
+    if (!db) db = {};
+    const defaultData = this._getDefaultData();
+    let changed = false;
+
+    // Mapa canónico limpio de títulos y subtítulos para las tarjetas de Inicio
+    const canonicalHomeMap = {
+      'home_ahorro': { title: 'Ahorros', subtitle: 'Cuentas de ahorro', description: 'Cuentas de ahorro', targetSectionId: 'sec_ahorros', imageUrl: 'assets/ahorros.png' },
+      'home_credito': { title: 'Créditos', subtitle: 'Líneas de crédito', description: 'Líneas de crédito', targetSectionId: 'sec_creditos', imageUrl: 'assets/credito.png' },
+      'home_seguros': { title: 'Seguros', subtitle: 'Protección y vida', description: 'Protección y vida', targetSectionId: 'sec_seguros', imageUrl: 'assets/seguro.png' },
+      'home_remesas': { title: 'Remesas', subtitle: 'Recibe tu dinero', description: 'Recibe tu dinero', targetSectionId: 'sec_remesas', imageUrl: 'assets/remesa.png' },
+      'home_beneficios': { title: 'Tus 6 Beneficios', subtitle: 'Hospitalización, seguro de ahorrantes y beneficio de oro', description: 'Hospitalización, seguro de ahorrantes y beneficio de oro', targetSectionId: 'sec_beneficios', imageUrl: 'assets/beneficios.png' },
+      'home_agencias': { title: 'Agencias & PBX', subtitle: 'Nuestras ubicaciones', description: '25 agencias en Sololá, Quiché, Totonicapán y Suchitepéquez', targetSectionId: 'sec_agencias', imageUrl: 'assets/ubicacion.png' },
+      'home_servicios': { title: 'Servicios Digitales', subtitle: 'Banca en línea', description: 'MICOOPE en Línea, App Móvil y Notificaciones SMS', targetSectionId: 'sec_servicios', imageUrl: 'assets/servicios_digitales.png' },
+      'home_noticias': { title: 'Noticias & Novedades', subtitle: 'Actualidad COLUA', description: 'Comunicados oficiales, jornadas ecológicas y convocatorias', targetSectionId: 'sec_noticias', imageUrl: 'assets/noticias.png' },
+      'home_sostenibilidad': { title: 'Sostenibilidad Cooperativa', subtitle: 'Cursos y centros de innovación', description: 'Becas educativas, talleres productivos y centros de innovación', targetSectionId: 'sec_sostenibilidad', imageUrl: 'assets/sostenibilidad_cooperativa.png' },
+      'home_nosotros': { title: 'Nosotros', subtitle: 'Valores cooperativos, historia y propósito', description: 'Valores cooperativos, historia y propósito', targetSectionId: 'sec_nosotros', imageUrl: 'assets/distintivo_colua.png' }
+    };
+
+    // Garantizar que las 10 tarjetas canónicas de Inicio siempre existan y estén activas
+    Object.keys(canonicalHomeMap).forEach((cardId, index) => {
+      const existing = db.content_items.find(i => i.id === cardId);
+      if (!existing) {
+        const canonicalInfo = canonicalHomeMap[cardId];
+        db.content_items.push({
+          id: cardId,
+          sectionId: 'sec_home',
+          title: canonicalInfo.title,
+          subtitle: canonicalInfo.subtitle,
+          description: canonicalInfo.description,
+          shortDescription: canonicalInfo.subtitle,
+          targetSectionId: canonicalInfo.targetSectionId,
+          buttonAction: canonicalInfo.targetSectionId,
+          imageUrl: canonicalInfo.imageUrl,
+          displayOrder: index + 1,
+          isVisible: true,
+          isEnabled: true,
+          isDraft: false,
+          isPublished: true
+        });
+        changed = true;
+      } else {
+        if (existing.isVisible === false) { existing.isVisible = true; changed = true; }
+        if (existing.isEnabled === false) { existing.isEnabled = true; changed = true; }
+        if (!existing.displayOrder) { existing.displayOrder = index + 1; changed = true; }
+        if (!existing.targetSectionId) { existing.targetSectionId = canonicalHomeMap[cardId].targetSectionId; changed = true; }
+      }
+    });
+
+    // Sanitizar títulos invertidos o corruptos en cualquier tarjeta de Inicio o secciones
+    db.content_items.forEach(item => {
+      if (this._cleanItemIfInverted(item)) {
+        changed = true;
+      }
+    });
+
+    if (!db.sections) db.sections = [];
+    const existingSecIds = new Set(db.sections.map(s => s.id));
+    defaultData.sections.forEach(defSec => {
+      if (!existingSecIds.has(defSec.id)) {
+        db.sections.push(defSec);
+        existingSecIds.add(defSec.id);
+        changed = true;
+      }
+    });
+
+    if (!db.content_blocks) db.content_blocks = [];
+    const existingBlockIds = new Set(db.content_blocks.map(b => b.id));
+    defaultData.content_blocks.forEach(defBlock => {
+      if (!existingBlockIds.has(defBlock.id)) {
+        db.content_blocks.push(defBlock);
+        existingBlockIds.add(defBlock.id);
+        changed = true;
+      }
+    });
+
+    if (!db.agencias || db.agencias.length < 25) {
+      if (!db.agencias) db.agencias = [];
+      const existingAgIds = new Set(db.agencias.map(a => a.id));
+      defaultData.agencias.forEach(defAg => {
+        if (!existingAgIds.has(defAg.id)) {
+          db.agencias.push(defAg);
+          existingAgIds.add(defAg.id);
+          changed = true;
+        }
+      });
+    }
+
+    if (!db.navigation_items || db.navigation_items.length < 8) {
+      if (!db.navigation_items) db.navigation_items = [];
+      const existingNavIds = new Set(db.navigation_items.map(n => n.id));
+      defaultData.navigation_items.forEach(defNav => {
+        if (!existingNavIds.has(defNav.id)) {
+          db.navigation_items.push(defNav);
+          existingNavIds.add(defNav.id);
+          changed = true;
+        }
+      });
+    }
+
+    if (changed) {
+      this.saveLocalDb(db);
+    }
+    return db;
+  }
+
+  // Normaliza y repara cualquier tarjeta solo si contiene texto residual corrupto de versiones antiguas
+  _cleanItemIfInverted(item) {
+    if (!item) return false;
+    let changed = false;
+    const titleStr = (item.title || '').trim();
+    const subStr = (item.subtitle || item.description || item.shortDescription || '').trim();
+
+    if (titleStr.includes('AhorroAhorro') || subStr === '¡Ahorro!' || subStr === '¡ahorro!') {
+      item.title = item.title.replace(/AhorroAhorro/g, 'Ahorros');
+      if (subStr === '¡Ahorro!' || subStr === '¡ahorro!') item.subtitle = 'Cuentas de ahorro';
+      changed = true;
+    } else if (titleStr.includes('CréditoCrédito') || subStr === '¡Crédito!' || subStr === '¡credito!') {
+      item.title = item.title.replace(/CréditoCrédito/g, 'Créditos');
+      if (subStr === '¡Crédito!' || subStr === '¡credito!') item.subtitle = 'Líneas de crédito';
+      changed = true;
+    } else if (titleStr.includes('Seguros de Vida Seguros') || subStr === '¡Seguros!' || subStr === '¡seguros!') {
+      item.title = item.title.replace(/Seguros de Vida Seguros/g, 'Seguros');
+      if (subStr === '¡Seguros!' || subStr === '¡seguros!') item.subtitle = 'Protección y vida';
+      changed = true;
+    } else if (titleStr.includes('Remesas Dirigidas') || subStr === '¡Remesas!' || subStr === '¡remesas!') {
+      item.title = item.title.replace(/Remesas Dirigidas/g, 'Remesas');
+      if (subStr === '¡Remesas!' || subStr === '¡remesas!') item.subtitle = 'Recibe tu dinero';
+      changed = true;
+    }
+    return changed;
   }
 
   getLocalDb() {
@@ -51,6 +187,8 @@ class ColuaRepository {
       let db = raw ? JSON.parse(raw) : null;
       if (!db || !db.agencias || db.agencias.length < 25 || !db.content_items || db.content_items.length < 30) {
         db = this.seedInitialData(true);
+      } else {
+        db = this._ensureDefaultData(db);
       }
       // Garantizar que Comunidad nunca contamine los datos locales
       if (db && db.sections) {
@@ -73,8 +211,7 @@ class ColuaRepository {
     }
   }
 
-  // Siembra inicial idéntica a DataSeeder.java
-  seedInitialData(force = false) {
+  _getDefaultData() {
     const defaultSections = [
       { id: "sec_home", title: "Inicio", slug: "home", description: "Pantalla principal", iconName: "inicio", accentColor: "#173789", displayOrder: 1, isVisible: true, isPublished: true, templateType: "GRID" },
       { id: "sec_ahorros", title: "Ahorros", slug: "ahorros", description: "Cuentas de ahorro", iconName: "ahorros", accentColor: "#EF8819", displayOrder: 2, isVisible: true, isPublished: true, templateType: "AHORROS" },
@@ -151,13 +288,105 @@ class ColuaRepository {
     ];
 
     const defaultItems = [
-      // Home items
-      { id: "home_ahorro", sectionId: "sec_home", title: "Cuentas de Ahorro\nAhorro Infantil y Juvenil", subtitle: "¡Ahorro!", shortDescription: "Seguridad para tu futuro", accentColor: "#59B8A4", displayOrder: 1, iconName: "ahorros", targetSectionId: "sec_ahorros", isVisible: true, isDraft: false },
-      { id: "home_credito", sectionId: "sec_home", title: "Productivo, Consumo, Vivienda, Vehículo", subtitle: "¡Crédito!", shortDescription: "Tasas competitivas", accentColor: "#173789", displayOrder: 2, iconName: "credito", targetSectionId: "sec_creditos", isVisible: true, isDraft: false },
-      { id: "home_seguros", sectionId: "sec_home", title: "Seguros de Vida\nSeguros Médicos", subtitle: "¡Seguros!", shortDescription: "Protección para tu familia", accentColor: "#EF8819", displayOrder: 3, iconName: "seguro", targetSectionId: "sec_seguros", isVisible: true, isDraft: false },
-      { id: "home_remesas", sectionId: "sec_home", title: "Remesas Dirigidas", subtitle: "¡Remesas!", shortDescription: "Recibe fácil tu dinero", accentColor: "#634794", displayOrder: 4, iconName: "remesa", targetSectionId: "sec_remesas", isVisible: true, isDraft: false },
+      // 1. HOME ITEMS (Cabecera, 10 Tarjetas de Servicio, Banners y Simulador)
+      { id: "home_hero_header", sectionId: "sec_home", title: "Hola, bienvenido a COLUA MICOOPE", subtitle: "El lado humano de los ahorros y créditos cooperativos. Selecciona un área para comenzar tu gestión.", description: "Cabecera principal de bienvenida", accentColor: "#173789", displayOrder: 0, isVisible: true, isDraft: false },
+      { id: "home_ahorro", sectionId: "sec_home", title: "Ahorros", subtitle: "Cuentas de ahorro", description: "Cuentas de ahorro", shortDescription: "Cuentas de ahorro", accentColor: "#59B8A4", displayOrder: 1, iconName: "ahorros", targetSectionId: "sec_ahorros", imageUrl: "assets/ahorros.png", isVisible: true, isDraft: false },
+      { id: "home_credito", sectionId: "sec_home", title: "Créditos", subtitle: "Líneas de crédito", description: "Líneas de crédito", shortDescription: "Líneas de crédito", accentColor: "#173789", displayOrder: 2, iconName: "credito", targetSectionId: "sec_creditos", imageUrl: "assets/credito.png", isVisible: true, isDraft: false },
+      { id: "home_seguros", sectionId: "sec_home", title: "Seguros", subtitle: "Protección y vida", description: "Protección y vida", shortDescription: "Protección y vida", accentColor: "#EF8819", displayOrder: 3, iconName: "seguro", targetSectionId: "sec_seguros", imageUrl: "assets/seguro.png", isVisible: true, isDraft: false },
+      { id: "home_remesas", sectionId: "sec_home", title: "Remesas", subtitle: "Recibe tu dinero", description: "Recibe tu dinero", shortDescription: "Recibe tu dinero", accentColor: "#634794", displayOrder: 4, iconName: "remesa", targetSectionId: "sec_remesas", imageUrl: "assets/remesa.png", isVisible: true, isDraft: false },
+      { id: "home_beneficios", sectionId: "sec_home", title: "Tus 6 Beneficios", subtitle: "Hospitalización, seguro de ahorrantes y beneficio de oro", description: "Hospitalización, seguro de ahorrantes y beneficio de oro", shortDescription: "Hospitalización, seguro de ahorrantes y beneficio de oro", accentColor: "#EF8819", displayOrder: 5, iconName: "beneficios", targetSectionId: "sec_beneficios", imageUrl: "assets/beneficios.png", isVisible: true, isDraft: false },
+      { id: "home_agencias", sectionId: "sec_home", title: "Agencias & PBX", subtitle: "Nuestras ubicaciones", description: "25 agencias en Sololá, Quiché, Totonicapán y Suchitepéquez", shortDescription: "Nuestras ubicaciones", accentColor: "#173789", displayOrder: 6, iconName: "ubicacion", targetSectionId: "sec_agencias", imageUrl: "assets/ubicacion.png", isVisible: true, isDraft: false },
+      { id: "home_servicios", sectionId: "sec_home", title: "Servicios Digitales", subtitle: "Banca en línea", description: "MICOOPE en Línea, App Móvil y Notificaciones SMS", shortDescription: "Banca en línea", accentColor: "#59B8A4", displayOrder: 7, iconName: "servicios_digitales", targetSectionId: "sec_servicios", imageUrl: "assets/servicios_digitales.png", isVisible: true, isDraft: false },
+      { id: "home_noticias", sectionId: "sec_home", title: "Noticias & Novedades", subtitle: "Actualidad COLUA", description: "Comunicados oficiales, jornadas ecológicas y convocatorias", shortDescription: "Actualidad COLUA", accentColor: "#E42A67", displayOrder: 8, iconName: "noticias_colua", targetSectionId: "sec_noticias", imageUrl: "assets/noticias.png", isVisible: true, isDraft: false },
+      { id: "home_sostenibilidad", sectionId: "sec_home", title: "Sostenibilidad Cooperativa", subtitle: "Cursos y centros de innovación", description: "Becas educativas, talleres productivos y centros de innovación", shortDescription: "Cursos y centros de innovación", accentColor: "#59B8A4", displayOrder: 9, iconName: "sostenibilidad_cooperativa", targetSectionId: "sec_sostenibilidad", imageUrl: "assets/sostenibilidad_cooperativa.png", isVisible: true, isDraft: false },
+      { id: "home_nosotros", sectionId: "sec_home", title: "Nosotros", subtitle: "Valores cooperativos, historia y propósito", description: "Valores cooperativos, historia y propósito", shortDescription: "Valores cooperativos, historia y propósito", accentColor: "#173789", displayOrder: 10, iconName: "public_service", targetSectionId: "sec_nosotros", imageUrl: "assets/distintivo_colua.png", isVisible: true, isDraft: false },
+      { id: "home_banner_pbx", sectionId: "sec_home", title: "Banner: PBX Central", subtitle: "PBX: (502) 7795-7795", description: "Lunes a viernes de 8:00 a 17:00 | Sábados de 8:00 a 12:00 hrs.", shortDescription: "Atención telefónica institucional", buttonText: "PBX: (502) 7795-7795", buttonAction: "tel:77957795", accentColor: "#2563eb", displayOrder: 11, iconName: "telefono", targetSectionId: "tel:77957795", imageUrl: "assets/pbx.png", isVisible: true, isDraft: false },
+      { id: "home_banner_digital", sectionId: "sec_home", title: "Banner: MICOOPE en Línea", subtitle: "Canal Digital Seguro", description: "Ingresar a MICOOPE en Línea", shortDescription: "Acceso web seguro", buttonText: "Ingresar a MICOOPE en Línea", buttonAction: "https://micoopeenlinea.com.gt", accentColor: "#0a1931", displayOrder: 12, iconName: "candado", targetSectionId: "https://micoopeenlinea.com.gt", imageUrl: "assets/micoope_enlinea.png", isVisible: true, isDraft: false },
+      { id: "home_simulador_card", sectionId: "sec_home", title: "Simulador Financiero en Vivo", subtitle: "Monto ilimitado (hasta 1M+), cuotas niveladas y tasas sincronizadas", description: "Herramienta de cálculo en tiempo real", shortDescription: "Herramienta de cálculo en tiempo real", accentColor: "#173789", displayOrder: 13, iconName: "calculadora", targetSectionId: "#simulador-financiero", imageUrl: "assets/distintivo_colua.png", isVisible: true, isDraft: false },
 
-      // Noticias & Comunicados Oficiales
+      // 2. AHORROS (Cabecera y 6 Productos)
+      { id: "item_ahorro_header", sectionId: "sec_ahorros", title: "Cuentas de Ahorro COLUA", subtitle: "Construye un futuro financiero sólido con nuestras opciones de ahorro adaptadas a cada etapa de tu vida. Cero comisiones de manejo y total respaldo del sistema cooperativo MICOOPE.", description: "Cabecera institucional de ahorros", displayOrder: 0, isVisible: true, isDraft: false },
+      { id: "item_ahorro_aportacion_adulto", sectionId: "sec_ahorros", title: "Cuenta Aportación Adulto", subtitle: "Monto de apertura: desde Q50.00, Tasa de interés: 5% anual afecto a ISR, Intereses: capitalizables anualmente", description: "Otorga el derecho a la persona natural a asociarse a la cooperativa, convirtiéndolo en dueño con voz y voto en la asamblea general.", imageUrl: "assets/ahorro1.png", displayOrder: 1, isVisible: true, isDraft: false },
+      { id: "item_ahorro_aportacion_infanto", sectionId: "sec_ahorros", title: "Cuenta Aportación Infanto Juvenil", subtitle: "Monto de apertura: desde Q50.00, Tasa de interés: 5% anual afecto a ISR, Intereses: capitalizables anualmente", description: "Otorga el derecho al menor de edad a asociarse a la cooperativa e iniciar el hábito del ahorro con beneficios educativos.", imageUrl: "assets/ahorro_infanto_juvenil.png", displayOrder: 2, isVisible: true, isDraft: false },
+      { id: "item_ahorro_infanto_juvenil", sectionId: "sec_ahorros", title: "Cuenta Ahorro Infanto Juvenil", subtitle: "Monto de apertura: desde Q10.00, Tasa de interés: 3% anual afecto a ISR, 5 Beneficios al mantener mínimo Q500.00", description: "Diseñada para motivar y fomentar en los niños y adolescentes la cultura del ahorro y educación financiera.", imageUrl: "assets/ahorro2.png", displayOrder: 3, isVisible: true, isDraft: false },
+      { id: "item_ahorro_disponible", sectionId: "sec_ahorros", title: "Cuenta Ahorro Disponible", subtitle: "Apertura: desde Q50.00 o $100.00, Tasa: 3% anual en Q y 1.50% en $, Intereses: capitalizables mensualmente, Acceso a canales digitales sin costo", description: "Cuenta que el asociado podrá utilizar para darle movimiento diario a sus fondos con total disponibilidad.", imageUrl: "assets/ahorro_disponible.png", displayOrder: 4, isVisible: true, isDraft: false },
+      { id: "item_ahorro_programado", sectionId: "sec_ahorros", title: "Cuenta Ahorro Programado", subtitle: "Apertura: desde Q25.00, Tasa de interés: 7.50% anual afecto a ISR, Plazos de 3, 5, 10, 15 o 20 años, Intereses mensuales", description: "Permite a los asociados aportar cuotas fijas mensuales para metas y proyectos futuros con tasas preferenciales.", imageUrl: "assets/ahorro_programado.png", displayOrder: 5, isVisible: true, isDraft: false },
+      { id: "item_ahorro_plazo_fijo", sectionId: "sec_ahorros", title: "Cuenta Ahorro Plazo Fijo", subtitle: "Apertura: desde Q1,000.00 o $200.00, Plazos de 90, 180 y 365 días, Intereses capitalizables trimestralmente", description: "Obtén el máximo rendimiento y seguridad garantizada sobre tus inversiones a plazo fijo.", imageUrl: "assets/ahorro_plazo_fijo.png", displayOrder: 6, isVisible: true, isDraft: false },
+
+      // 3. CRÉDITOS (Cabecera y 8 Líneas)
+      { id: "item_cred_header", sectionId: "sec_creditos", title: "Líneas de Crédito COLUA", subtitle: "Soluciones financieras a tu medida con tasas justas, cuotas niveladas y asesoría personalizada para alcanzar tus metas personales y empresariales.", description: "Cabecera institucional de créditos", displayOrder: 0, isVisible: true, isDraft: false },
+      { id: "item_cred_productivo", sectionId: "sec_creditos", title: "Crédito Productivo", subtitle: "Monto: desde Q1,000.00 en adelante", description: "Para capital de trabajo, inventario, mercadería y maquinaria.", imageUrl: "assets/credito_productivo.png", displayOrder: 1, isVisible: true, isDraft: false },
+      { id: "item_cred_consumo", sectionId: "sec_creditos", title: "Crédito Consumo", subtitle: "Monto: desde Q1,000.00 en adelante", description: "Gastos personales, consolidación de deudas, menaje de casa o estudios.", imageUrl: "assets/credi_consumo.png", displayOrder: 2, isVisible: true, isDraft: false },
+      { id: "item_cred_vivienda", sectionId: "sec_creditos", title: "Crédito Vivienda", subtitle: "Monto: desde Q5,000.00 en adelante", description: "Construcción, compra de terreno, vivienda nueva o remodelación.", imageUrl: "assets/credito_vivienda.png", displayOrder: 3, isVisible: true, isDraft: false },
+      { id: "item_cred_vehiculo", sectionId: "sec_creditos", title: "Crédi Vehículo", subtitle: "Monto: desde Q5,000.00 en adelante", description: "Adquisición de vehículos o motocicletas para uso comercial o personal.", imageUrl: "assets/credi_vehiculo.png", displayOrder: 4, isVisible: true, isDraft: false },
+      { id: "item_cred_mipymes", sectionId: "sec_creditos", title: "Crédito MIPYMES", subtitle: "Monto: desde Q2,000.00 en adelante", description: "Financiamiento para pequeñas y medianas empresas en crecimiento.", imageUrl: "assets/credito.png", displayOrder: 5, isVisible: true, isDraft: false },
+      { id: "item_cred_agricola", sectionId: "sec_creditos", title: "Crédito Agrícola", subtitle: "Monto: adaptado al ciclo de cultivo", description: "Siembra, renovación de cultivos, fertilizantes y tecnificación agrícola.", imageUrl: "assets/credito1.png", displayOrder: 6, isVisible: true, isDraft: false },
+      { id: "item_cred_automatico", sectionId: "sec_creditos", title: "Crédito Automático", subtitle: "Monto: hasta 90% de tus aportaciones", description: "Crédito inmediato respaldado sobre tus cuentas de ahorro en la cooperativa.", imageUrl: "assets/credito2.png", displayOrder: 7, isVisible: true, isDraft: false },
+      { id: "item_cred_microcreditos", sectionId: "sec_creditos", title: "Microcréditos", subtitle: "Monto: ágil y sin complicaciones", description: "Impulso financiero ágil para pequeños emprendedores y comerciantes.", imageUrl: "assets/credito.png", displayOrder: 8, isVisible: true, isDraft: false },
+
+      // 4. SEGUROS (Cabecera y 7 Pólizas)
+      { id: "item_seg_header", sectionId: "sec_seguros", title: "Seguros Columna", subtitle: "Tranquilidad para ti y tu familia con coberturas de vida, salud y accidentes con el respaldo de Aseguradora Columna y el Sistema MICOOPE.", description: "Cabecera institucional de seguros", displayOrder: 0, isVisible: true, isDraft: false },
+      { id: "item_seg_cv_especial", sectionId: "sec_seguros", title: "Seguro CV Especial", subtitle: "Primas solidarias y accesibles", description: "Cobertura de vida con indemnización y respaldo solidario inmediato.", imageUrl: "assets/seguro_cv_personal.png", displayOrder: 1, isVisible: true, isDraft: false },
+      { id: "item_seg_vida_saludable", sectionId: "sec_seguros", title: "Seguro Vida Saludable", subtitle: "Cobertura médica y preventiva", description: "Protección integral para gastos médicos y asistencia preventiva.", imageUrl: "assets/seguro_vida_saludable.png", displayOrder: 2, isVisible: true, isDraft: false },
+      { id: "item_seg_edad_oro", sectionId: "sec_seguros", title: "Seguro de Accidentes Edad de Oro", subtitle: "Para mayores de 60 años", description: "Diseñado especialmente para asociados de la tercera edad.", imageUrl: "assets/seguro_edad_de_oro.png", displayOrder: 3, isVisible: true, isDraft: false },
+      { id: "item_seg_cancer", sectionId: "sec_seguros", title: "Seguro de Cáncer", subtitle: "Indemnización al primer diagnóstico", description: "Indemnización directa al primer diagnóstico de patología oncológica.", imageUrl: "assets/seguro_de_cancer.png", displayOrder: 4, isVisible: true, isDraft: false },
+      { id: "item_seg_infanto_juvenil", sectionId: "sec_seguros", title: "Seguro Accidentes Infanto Juvenil", subtitle: "Protección escolar 365 días", description: "Protección escolar y de recreación para los hijos de asociados.", imageUrl: "assets/seguro_accidentes_infanto_juvenil.png", displayOrder: 5, isVisible: true, isDraft: false },
+      { id: "item_seg_manejo", sectionId: "sec_seguros", title: "Seguro de Manejo", subtitle: "Asistencia vial nacional", description: "Asistencia vial y respaldo ante incidentes en carretera en todo el país.", imageUrl: "assets/seguro_manejo.png", displayOrder: 6, isVisible: true, isDraft: false },
+      { id: "item_seg_vida_familiar", sectionId: "sec_seguros", title: "Seguro de Vida Individual o Familiar", subtitle: "Tranquilidad a largo plazo", description: "Tranquilidad financiera a largo plazo para el bienestar de tu familia.", imageUrl: "assets/seguro_de_vida_individual_o_familar.png", displayOrder: 7, isVisible: true, isDraft: false },
+
+      // 5. REMESAS (Hero, Banners y 4 Asistencias)
+      { id: "item_rem_hero", sectionId: "sec_remesas", title: "Remesas Familiares", subtitle: "Recibe tu dinero seguro", description: "Recibe tu dinero de forma segura, rápida y sin complicaciones a través de nuestra red de remesadoras aliadas. Ponemos a tu alcance disponibilidad inmediata en ventanilla y depósito directo en tu cuenta cooperativa.", imageUrl: "assets/mas_que_una_remesa.png", displayOrder: 0, isVisible: true, isDraft: false },
+      { id: "item_rem_banner_dirigida", sectionId: "sec_remesas", title: "Beneficio al recibir tu remesa dirigida a tu Cuenta Disponible", subtitle: "En caso de fallecimiento en el extranjero, te ofrecemos el BENEFICIO DE REPATRIACIÓN", description: "Garantizando que tu último viaje sea de regreso a casa, sin costo alguno para tu familia. Tu cuenta activa en COLUA abre las puertas a este respaldo exclusivo y a la acreditación inmediata de tus fondos 24/7 sin hacer filas.", buttonText: "Abrir Cuenta Disponible", buttonAction: "#sec_ahorros", displayOrder: 1, isVisible: true, isDraft: false },
+      { id: "item_rem_familias_header", sectionId: "sec_remesas", title: "Más que una remesa, unimos familias", subtitle: "En COLUA reconocemos el esfuerzo incansable de nuestros connacionales en el extranjero.", description: "Por ello, cada envío gestionado a través de nuestra red incluye asistencias humanitarias directas y sin costo para quien envía.", imageUrl: "assets/remesadoras_afiliadas.png", displayOrder: 2, isVisible: true, isDraft: false },
+      { id: "item_rem_repatriacion", sectionId: "sec_remesas", title: "Asistencia de Repatriación para Remitente", subtitle: "TRÁMITE CONSULAR Y VUELO • 100% Cobertura Sin Costo", description: "Gestión integral y cobertura sin costo. Asesoramiento en trámites legales y coordinación total del retorno aéreo de restos mortales a Guatemala.", imageUrl: "assets/rd1.png", displayOrder: 3, isVisible: true, isDraft: false },
+      { id: "item_rem_funeraria", sectionId: "sec_remesas", title: "Asistencia Funeraria para Remitente", subtitle: "ACOMPAÑAMIENTO FAMILIAR • Red Funeraria Nacional", description: "Apoyo y trámites de coordinación. Preparación, capilla ardiente, servicio religioso y traslado terrestre hacia cualquier municipio del país.", imageUrl: "assets/rd2.png", displayOrder: 4, isVisible: true, isDraft: false },
+      { id: "item_rem_referencias", sectionId: "sec_remesas", title: "Referencias Médicas y Clínicas", subtitle: "RED DE SALUD • Acceso Inmediato y Tarifas Especiales", description: "Directorio e información verificada de médicos especialistas, clínicas, farmacias y laboratorios clínicos con convenios preferenciales para asociados.", imageUrl: "assets/rd3.png", displayOrder: 5, isVisible: true, isDraft: false },
+      { id: "item_rem_orientacion", sectionId: "sec_remesas", title: "Orientación Médica Telefónica 24/7", subtitle: "ATENCIÓN TELEFÓNICA 24/7 • Sin Límite de Llamadas", description: "Apoyo profesional en interpretación de pruebas de laboratorio, dosificación segura de medicamentos y primeros auxilios a distancia las 24 horas.", imageUrl: "assets/rd4.png", displayOrder: 6, isVisible: true, isDraft: false },
+
+      // 6. SERVICIOS DIGITALES (Cabecera, 6 Servicios Principales y 3 Otros Servicios)
+      { id: "item_serv_header", sectionId: "sec_servicios", title: "Servicios Digitales y Financieros COLUA", subtitle: "Gestiona tus cuentas, consulta saldos y realiza operaciones 24/7 sin salir de casa con nuestras herramientas tecnológicas cooperativas y nuestra amplia red de atención.", description: "Cabecera institucional de servicios digitales", displayOrder: 0, isVisible: true, isDraft: false },
+      { id: "item_serv_tarjeta_debito", sectionId: "sec_servicios", title: "Tarjeta de Débito MICOOPE Visa", subtitle: "Compras nacionales e internacionales", description: "Realiza compras en comercios afiliados a VISA en Guatemala y el extranjero, notificaciones por mensajes de texto y cobertura integral contra fraude.", buttonText: "Solicitar Tarjeta (PBX)", buttonAction: "tel:77957795", imageUrl: "assets/tarjeta_debito.png", displayOrder: 1, isVisible: true, isDraft: false },
+      { id: "item_serv_app_enlinea", sectionId: "sec_servicios", title: "MICOOPE en Línea (Web y App)", subtitle: "Banca móvil disponible 24/7", description: "Banca web y móvil 24/7. Realiza consultas de saldos, transferencias directas, pago de préstamos y servicios básicos al instante sin hacer filas.", buttonText: "Ingresar a la Plataforma", buttonAction: "https://micoopeenlinea.com.gt", imageUrl: "assets/micoope_enlinea.png", displayOrder: 2, isVisible: true, isDraft: false },
+      { id: "item_serv_tarjeta_credito", sectionId: "sec_servicios", title: "Tarjeta de Crédito MICOOPE Visa", subtitle: "Hasta 55 días sin intereses", description: "Membresía gratis de por vida, tarjeta VISA internacional, cobertura por fraude o extravío y la tasa de interés más baja del mercado financiero.", buttonText: "Solicitar Crédito (PBX)", buttonAction: "tel:77957795", imageUrl: "assets/tarjeta_debito.png", displayOrder: 3, isVisible: true, isDraft: false },
+      { id: "item_serv_pago_servicios", sectionId: "sec_servicios", title: "Pago de Servicios Básicos", subtitle: "Luz, Agua, Telefonía y Colegios", description: "Paga tus facturas de electricidad, agua potable, telefonía, internet y colegiaturas en cualquiera de nuestras agencias o canales digitales.", buttonText: "Ver Agencias de Pago", buttonAction: "#sec_agencias", imageUrl: "assets/servicios_digitales.png", displayOrder: 4, isVisible: true, isDraft: false },
+      { id: "item_serv_agentes", sectionId: "sec_servicios", title: "Agentes MICOOPE", subtitle: "En tiendas y comercios cercanos", description: "Puntos de atención en comercios locales para depósitos, retiros y pagos sin desplazarte a una agencia central.", buttonText: "Localizar Agentes", buttonAction: "#sec_agencias", imageUrl: "assets/servicios_digitales.png", displayOrder: 5, isVisible: true, isDraft: false },
+      { id: "item_serv_cajeros_5b", sectionId: "sec_servicios", title: "Cajeros Red 5B", subtitle: "Más de 3,500 cajeros en todo el país", description: "Disponibilidad de efectivo las 24 horas del día con tu tarjeta de débito o crédito en cajeros automáticos 5B.", buttonText: "Ver Cajeros", buttonAction: "#sec_agencias", imageUrl: "assets/servicios_digitales.png", displayOrder: 6, isVisible: true, isDraft: false },
+      { id: "item_serv_energia", sectionId: "sec_servicios", title: "Pago de Energía Eléctrica", subtitle: "DEOCSA y DEORSA", description: "Realiza el pago ágil y al día de tus facturas de energía eléctrica directamente en ventanillas de nuestras agencias.", displayOrder: 7, isVisible: true, isDraft: false },
+      { id: "item_serv_telefono", sectionId: "sec_servicios", title: "Pago de Servicio Telefónico", subtitle: "Pre y Pospago: CLARO y TIGO", description: "Recargas electrónicas y pago de mensualidades telefónicas sin demoras ni recargos adicionales.", displayOrder: 8, isVisible: true, isDraft: false },
+      { id: "item_serv_cajeros_red", sectionId: "sec_servicios", title: "Cajeros Red 5B, BI y BAC", subtitle: "Más de 3,500 cajeros interbancarios", description: "Consulta de saldos y retiros en efectivo en cajeros de la red interbancaria nacional.", displayOrder: 9, isVisible: true, isDraft: false },
+
+      // 7. BENEFICIOS (Cabecera y 6 Beneficios)
+      { id: "item_ben_header", sectionId: "sec_beneficios", title: "Tus 6 Beneficios de Asociado", subtitle: "Al abrir tu cuenta de Aportación en COLUA R.L., tú y tu familia cuentan con el respaldo automático de nuestro programa integral de solidaridad.", description: "Cabecera institucional de beneficios", displayOrder: 0, isVisible: true, isDraft: false },
+      { id: "item_ben_renta_diaria", sectionId: "sec_beneficios", title: "Renta Diaria por Hospitalización", subtitle: "✓ Incluido al ser Asociado", description: "Apoyo económico diario en caso de ser internado en hospital público o privado.", imageUrl: "assets/renta_diaria.png", displayOrder: 1, isVisible: true, isDraft: false },
+      { id: "item_ben_apoyo_quirurgico", sectionId: "sec_beneficios", title: "Apoyo Quirúrgico", subtitle: "✓ Incluido al ser Asociado", description: "Apoyo económico para cubrir gastos médicos incurridos por intervenciones quirúrgicas.", imageUrl: "assets/apoyo_quirurgico.png", displayOrder: 2, isVisible: true, isDraft: false },
+      { id: "item_ben_servicio_funerario", sectionId: "sec_beneficios", title: "Servicio Funerario", subtitle: "✓ Incluido al ser Asociado", description: "Sepelio digno y ataúd fúnebre para tranquilidad de la familia del asociado.", imageUrl: "assets/servicio_funerario.png", displayOrder: 3, isVisible: true, isDraft: false },
+      { id: "item_ben_seguro_ahorrantes", sectionId: "sec_beneficios", title: "Seguro de Ahorrantes", subtitle: "✓ Hasta Q150,000.00", description: "Devolución de ahorros más seguro sobre depósitos hasta por Q150,000.00.", imageUrl: "assets/beneficio_de_ahorrantes.png", displayOrder: 4, isVisible: true, isDraft: false },
+      { id: "item_ben_seguro_deudores", sectionId: "sec_beneficios", title: "Seguro de Deudores", subtitle: "✓ Hasta Q200,000.00", description: "Cobertura de saldos insolutos de crédito vigente hasta por Q200,000.00 en siniestro.", imageUrl: "assets/beneficio_de_deudores.png", displayOrder: 5, isVisible: true, isDraft: false },
+      { id: "item_ben_beneficio_oro", sectionId: "sec_beneficios", title: "Beneficio de Oro", subtitle: "✓ Mayores de 70 años", description: "Apoyo económico único para asociados mayores de 70 años con lealtad cooperativa.", imageUrl: "assets/beneficio_de_oro.png", displayOrder: 6, isVisible: true, isDraft: false },
+
+      // 8. SOSTENIBILIDAD (Cabecera, 4 Ejes y Banner Convocatoria)
+      { id: "item_sost_header", sectionId: "sec_sostenibilidad", title: "Sostenibilidad Cooperativa", subtitle: "Impulsamos acciones orientadas al desarrollo social, educativo, cultural y productivo con el propósito de fortalecer el bienestar de nuestros asociados y comunidades.", description: "Cabecera de sostenibilidad", displayOrder: 0, isVisible: true, isDraft: false },
+      { id: "item_sost_educacion", sectionId: "sec_sostenibilidad", title: "Educación y Formación Cooperativa", subtitle: "Eje Estratégico 01", description: "Fortalecemos las capacidades individuales y colectivas mediante la educación financiera y el cooperativismo como motores de superación familiar.", imageUrl: "assets/noticia_taller_finanzas.jpg", displayOrder: 1, isVisible: true, isDraft: false },
+      { id: "item_sost_empleabilidad", sectionId: "sec_sostenibilidad", title: "Empleabilidad y Empresarialidad", subtitle: "Eje Estratégico 02", description: "Impulsamos la generación de ingresos propios y la innovación productiva para dinamizar la economía solidaria de nuestros pueblos.", imageUrl: "assets/nosotros_artesana.jpg", displayOrder: 2, isVisible: true, isDraft: false },
+      { id: "item_sost_desarrollo", sectionId: "sec_sostenibilidad", title: "Desarrollo Comunitario", subtitle: "Eje Estratégico 03", description: "Fortalecemos la identidad cooperativa, la participación democrática y la formación dirigencial en beneficio del bien común.", imageUrl: "assets/noticia_asamblea_general.jpg", displayOrder: 3, isVisible: true, isDraft: false },
+      { id: "item_sost_ambiente", sectionId: "sec_sostenibilidad", title: "Medio Ambiente y Sostenibilidad", subtitle: "Eje Estratégico 04", description: "Protegemos los recursos naturales de Sololá y Quiché mediante jornadas de reforestación y educación ecológica comunitaria.", imageUrl: "assets/noticia_reforestacion.jpg", displayOrder: 4, isVisible: true, isDraft: false },
+      { id: "item_sost_banner_contacto", sectionId: "sec_sostenibilidad", title: "¿Deseas vincular a tu comunidad o escuela?", subtitle: "PARTICIPACIÓN COMUNITARIA", description: "Comunícate a nuestro PBX central o visita tu agencia COLUA más cercana para conocer fechas y convocatorias de nuestros talleres, cursos y programas de becas.", buttonText: "PBX: 7795-7795", buttonAction: "tel:77957795", displayOrder: 5, isVisible: true, isDraft: false },
+
+      // 9. NOSOTROS (Cabecera, 3 Pilares, Presencia, 4 Valores, Galería y Contacto)
+      { id: "item_nos_header", sectionId: "sec_nosotros", title: "Nosotros: El lado humano de los ahorros y créditos", subtitle: "Más de 50 años construyendo desarrollo socioeconómico, confianza y bienestar integral para las comunidades y familias de Quiché, Sololá y el suroccidente de Guatemala.", description: "Cabecera institucional de Nosotros", displayOrder: 0, isVisible: true, isDraft: false },
+      { id: "item_nos_mision_vision", sectionId: "sec_nosotros", title: "Propuesta de Valor", subtitle: "PILAR ESTRATÉGICO 01 • Enfoque Fiduciario", description: "En COLUA reconocemos tu valor como persona para alcanzar tu bienestar integral y el de tu familia, a través de productos y servicios financieros éticos, ágiles y accesibles, basados en el poder de la cooperación.", imageUrl: "assets/distintivo_colua.png", displayOrder: 1, isVisible: true, isDraft: false },
+      { id: "item_nos_vision", sectionId: "sec_nosotros", title: "Visión Institucional", subtitle: "PILAR ESTRATÉGICO 02 • Proyección 2025-2030", description: "Ser un modelo de desarrollo y sostenibilidad integral de las comunidades basado en la cooperación mutua, solvencia técnica y transparencia comunitaria.", imageUrl: "assets/logo_composite.png", displayOrder: 2, isVisible: true, isDraft: false },
+      { id: "item_nos_proposito", sectionId: "sec_nosotros", title: "Propósito Visionario", subtitle: "PILAR ESTRATÉGICO 03 • Impacto Territorial", description: "Ser la cooperativa financiera que mejora sostenidamente la calidad de vida de sus asociados y comunidades de Guatemala, protegiendo su patrimonio intergeneracional.", imageUrl: "assets/valores_colua.png", displayOrder: 3, isVisible: true, isDraft: false },
+      { id: "item_nos_presencia", sectionId: "sec_nosotros", title: "Una institución financiera con rostro solidario y solidez técnica", subtitle: "PRESENCIA Y TRATO HUMANO", description: "A diferencia del sistema bancario tradicional, en COLUA cada asociado es co-propietario de la entidad. Los excedentes generados se reinvierten directamente en mejores tasas de interés para el ahorro, créditos productivos accesibles y programas de asistencia comunitaria sin intermediarios.", imageUrl: "assets/nosotros_edificio_equipo.jpg", displayOrder: 4, isVisible: true, isDraft: false },
+      { id: "item_nos_val_integridad", sectionId: "sec_nosotros", title: "Integridad", subtitle: "PILAR ÉTICO CENTRAL", description: "Actuar con coherencia con nuestros valores, manteniendo transparencia en todo lo que hacemos y fomentando la cooperación en cada acción.", imageUrl: "assets/valores_colua.png", displayOrder: 5, isVisible: true, isDraft: false },
+      { id: "item_nos_val_cooperacion", sectionId: "sec_nosotros", title: "Cooperación", subtitle: "PRINCIPIO COMUNITARIO", description: "Trabajar juntos para alcanzar un objetivo común, basada en la ayuda mutua, la solidaridad y el esfuerzo compartido por el bien colectivo.", imageUrl: "assets/valores_colua.png", displayOrder: 6, isVisible: true, isDraft: false },
+      { id: "item_nos_val_responsabilidad", sectionId: "sec_nosotros", title: "Responsabilidad", subtitle: "DISCIPLINA FIDUCIARIA", description: "Administramos y cuidamos los ahorros de nuestros asociados que nos han confiado con rigurosa prudencia técnica y máxima solvencia.", imageUrl: "assets/valores_colua.png", displayOrder: 7, isVisible: true, isDraft: false },
+      { id: "item_nos_val_enfoque", sectionId: "sec_nosotros", title: "Enfoque al Asociado", subtitle: "VOCACIÓN DE SERVICIO", description: "El centro de atención de nuestros esfuerzos y nuestra lealtad son los asociados, a quienes entregamos siempre soluciones de calidad y trato humano.", imageUrl: "assets/valores_colua.png", displayOrder: 8, isVisible: true, isDraft: false },
+      { id: "item_nos_gal_arraigo", sectionId: "sec_nosotros", title: "Identidad Cultural y Comunitaria en el Altiplano", subtitle: "ARRAIGO TERRITORIAL", description: "Vínculo vivo con nuestras raíces culturales y productoras.", imageUrl: "assets/nosotros_artesana.jpg", displayOrder: 9, isVisible: true, isDraft: false },
+      { id: "item_nos_gal_gobernanza", sectionId: "sec_nosotros", title: "Participación Democrática y Solidez del Sistema MICOOPE", subtitle: "GOBERNANZA COOPERATIVA", description: "Asambleas representativas y administración transparente.", imageUrl: "assets/noticia_asamblea_general.jpg", displayOrder: 10, isVisible: true, isDraft: false },
+      { id: "item_nos_banner_contacto", sectionId: "sec_nosotros", title: "¿Necesitas ayuda adicional o deseas afiliarte?", subtitle: "ATENCIÓN AL ASOCIADO Y PÚBLICO", description: "Comunícate a nuestro PBX central o visítanos en cualquiera de nuestras 18 agencias departamentales para abrir tu cuenta de aportaciones y disfrutar de los beneficios cooperativos.", buttonText: "PBX: 7795-7795", buttonAction: "tel:77957795", displayOrder: 11, isVisible: true, isDraft: false },
+
+      // 10. NOTICIAS Y COMUNICADOS
       {
         id: "news_reforestacion_2026",
         sectionId: "sec_noticias",
@@ -217,208 +446,7 @@ class ColuaRepository {
         targetSectionId: "https://coluarl.com.gt",
         publicationDate: 1789762795510,
         updatedAt: 1789769069835
-      },
-      {
-        id: "1d528fa6-dc98-40f5-b95e-0c164d761ce4",
-        sectionId: "sec_noticias",
-        title: "Taller Finanzas para Emprendedores (Copia)",
-        subtitle: "Ver detalles completos",
-        shortDescription: "Aprende a estructurar tus costos y maximizar tus excedentes en nuestra sede central.",
-        description: "Aprende a estructurar tus costos y maximizar tus excedentes en nuestra sede central con capacitadores expertos de MICOOPE.",
-        imagePath: "assets/noticia_taller_finanzas.jpg",
-        imageUrl: "assets/noticia_taller_finanzas.jpg",
-        tags: "#COLUAVerde #MICOOPE #Asociados",
-        isFeatured: false,
-        isDraft: false,
-        likesCount: 5,
-        sharesCount: 1,
-        issuerName: "Cooperativa COLUA",
-        issuerRole: "Oficial",
-        publicationDate: 1789767894112,
-        updatedAt: 1789769069835
-      },
-      {
-        id: "3f6265b2-1ef1-43b5-810b-80af518fa332",
-        sectionId: "sec_noticias",
-        title: "Prueba 1000",
-        subtitle: "Ver detalles completos",
-        shortDescription: "Prueba de publicación desde un dispositivo virtual en la red cooperativa.",
-        description: "Prueba de publicación desde un dispositivo virtual en la red cooperativa.",
-        imagePath: "assets/valores_colua.png",
-        imageUrl: "assets/valores_colua.png",
-        tags: "#COLUAInformativa #MICOOPE #Asociados",
-        isFeatured: false,
-        isDraft: false,
-        likesCount: 3,
-        sharesCount: 1,
-        issuerName: "Cooperativa COLUA",
-        issuerRole: "Oficial",
-        publicationDate: 1789681251863,
-        updatedAt: 1789769069835
-      },
-      {
-        id: "63bb5698-20df-48b2-bc5e-c1665fd07c18",
-        sectionId: "sec_noticias",
-        title: "Prueba de Publicación",
-        subtitle: "Ver detalles completos",
-        shortDescription: "Prueba de publicaciones cargada con imagen fotográfica desde el portal.",
-        description: "Prueba de publicaciones cargada con imagen fotográfica desde el portal.",
-        imagePath: "assets/noticia_reforestacion.jpg",
-        imageUrl: "assets/noticia_reforestacion.jpg",
-        tags: "#COLUAInformativa #MICOOPE #Asociados",
-        isFeatured: false,
-        isDraft: false,
-        likesCount: 4,
-        sharesCount: 0,
-        issuerName: "Cooperativa COLUA",
-        issuerRole: "Oficial",
-        publicationDate: 1789769059172,
-        updatedAt: 1789769117192
-      },
-      {
-        id: "8e268e32-6ef9-455e-88a5-41aefbce1e80",
-        sectionId: "sec_noticias",
-        title: "Prueba de Noticias",
-        subtitle: "Ver detalles completos",
-        shortDescription: "Esto es una prueba de publicaciones, para el apartado de colua noticias.",
-        description: "Esto es una prueba de publicaciones, para el apartado de colua noticias.",
-        imagePath: "assets/noticia_taller_finanzas.jpg",
-        imageUrl: "assets/noticia_taller_finanzas.jpg",
-        tags: "#COLUAInformativa #MICOOPE #Asociados",
-        isFeatured: false,
-        isDraft: false,
-        likesCount: 2,
-        sharesCount: 0,
-        issuerName: "Cooperativa COLUA",
-        issuerRole: "Oficial",
-        publicationDate: 1789665357044,
-        updatedAt: 1789769069835
-      },
-      {
-        id: "9091479f-01b9-4fe8-beb9-f4890ef4fe5e",
-        sectionId: "sec_noticias",
-        title: "Firma del Ingeniero",
-        subtitle: "Ver más",
-        shortDescription: "Firma del ingeniero para la carta de recibido de prácticas profesionales.",
-        description: "Firma del ingeniero para la carta de recibido de prácticas profesionales en las instalaciones de COLUA R.L.",
-        imagePath: "assets/noticia_asamblea_general.jpg",
-        imageUrl: "assets/noticia_asamblea_general.jpg",
-        tags: "#COLUAInformativa #MICOOPE #Asociados",
-        isFeatured: false,
-        isDraft: false,
-        likesCount: 6,
-        sharesCount: 2,
-        issuerName: "Cooperativa COLUA",
-        issuerRole: "Oficial",
-        publicationDate: 1789680934647,
-        updatedAt: 1789769069835
-      },
-      {
-        id: "c3668573-a8e2-43dc-a11f-aae5e7d080fd",
-        sectionId: "sec_noticias",
-        title: "Pruebas de Ahorros",
-        subtitle: "Ver detalles completos",
-        shortDescription: "Pruebas de publicaciones informativas para planes y promociones de ahorro.",
-        description: "Pruebas de publicaciones informativas para planes y promociones de ahorro en nuestras agencias.",
-        imagePath: "assets/noticia_reforestacion.jpg",
-        imageUrl: "assets/noticia_reforestacion.jpg",
-        tags: "#COLUAInformativa #MICOOPE #Asociados",
-        isFeatured: false,
-        isDraft: false,
-        likesCount: 4,
-        sharesCount: 1,
-        issuerName: "Cooperativa COLUA",
-        issuerRole: "Oficial",
-        publicationDate: 1789666915273,
-        updatedAt: 1789769069835
-      },
-
-      // --- 1. AHORROS ---
-      { id: "item_ahorro_aportacion_adulto", sectionId: "sec_ahorros", title: "Cuenta Aportación Adulto", subtitle: "Monto de apertura: desde Q50.00, Tasa de interés: 5% anual afecto a ISR, Intereses: capitalizables anualmente", description: "Otorga el derecho a la persona natural a asociarse a la cooperativa, convirtiéndolo en dueño con voz y voto en la asamblea general.", imageUrl: "assets/ahorro1.png", displayOrder: 1, isVisible: true, isDraft: false },
-      { id: "item_ahorro_aportacion_infanto", sectionId: "sec_ahorros", title: "Cuenta Aportación Infanto Juvenil", subtitle: "Monto de apertura: desde Q50.00, Tasa de interés: 5% anual afecto a ISR, Intereses: capitalizables anualmente", description: "Otorga el derecho al menor de edad a asociarse a la cooperativa e iniciar el hábito del ahorro con beneficios educativos.", imageUrl: "assets/ahorro_infanto_juvenil.png", displayOrder: 2, isVisible: true, isDraft: false },
-      { id: "item_ahorro_infanto_juvenil", sectionId: "sec_ahorros", title: "Cuenta Ahorro Infanto Juvenil", subtitle: "Monto de apertura: desde Q10.00, Tasa de interés: 3% anual afecto a ISR, 5 Beneficios al mantener mínimo Q500.00", description: "Diseñada para motivar y fomentar en los niños y adolescentes la cultura del ahorro y educación financiera.", imageUrl: "assets/ahorro2.png", displayOrder: 3, isVisible: true, isDraft: false },
-      { id: "item_ahorro_disponible", sectionId: "sec_ahorros", title: "Cuenta Ahorro Disponible", subtitle: "Apertura: desde Q50.00 o $100.00, Tasa: 3% anual en Q y 1.50% en $, Intereses: capitalizables mensualmente, Acceso a canales digitales sin costo", description: "Cuenta que el asociado podrá utilizar para darle movimiento diario a sus fondos con total disponibilidad.", imageUrl: "assets/ahorro_disponible.png", displayOrder: 4, isVisible: true, isDraft: false },
-      { id: "item_ahorro_programado", sectionId: "sec_ahorros", title: "Cuenta Ahorro Programado", subtitle: "Apertura: desde Q25.00, Tasa de interés: 7.50% anual afecto a ISR, Plazos de 3, 5, 10, 15 o 20 años, Intereses mensuales", description: "Permite a los asociados aportar cuotas fijas mensuales para metas y proyectos futuros con tasas preferenciales.", imageUrl: "assets/ahorro_programado.png", displayOrder: 5, isVisible: true, isDraft: false },
-      { id: "item_ahorro_plazo_fijo", sectionId: "sec_ahorros", title: "Cuenta Ahorro Plazo Fijo", subtitle: "Apertura: desde Q1,000.00 o $200.00, Plazos de 90, 180 y 365 días, Intereses capitalizables trimestralmente", description: "Obtén el máximo rendimiento y seguridad garantizada sobre tus inversiones a plazo fijo.", imageUrl: "assets/ahorro_plazo_fijo.png", displayOrder: 6, isVisible: true, isDraft: false },
-
-      // --- 2. CRÉDITOS ---
-      { id: "item_cred_productivo", sectionId: "sec_creditos", title: "Crédito Productivo", subtitle: "Monto: desde Q1,000.00 en adelante", description: "Para capital de trabajo, inventario, mercadería y maquinaria.", imageUrl: "assets/credito_productivo.png", displayOrder: 1, isVisible: true, isDraft: false },
-      { id: "item_cred_consumo", sectionId: "sec_creditos", title: "Crédito Consumo", subtitle: "Monto: desde Q1,000.00 en adelante", description: "Gastos personales, consolidación de deudas, menaje de casa o estudios.", imageUrl: "assets/credi_consumo.png", displayOrder: 2, isVisible: true, isDraft: false },
-      { id: "item_cred_vivienda", sectionId: "sec_creditos", title: "Crédito Vivienda", subtitle: "Monto: desde Q5,000.00 en adelante", description: "Construcción, compra de terreno, vivienda nueva o remodelación.", imageUrl: "assets/credito_vivienda.png", displayOrder: 3, isVisible: true, isDraft: false },
-      { id: "item_cred_vehiculo", sectionId: "sec_creditos", title: "Crédi Vehículo", subtitle: "Monto: desde Q5,000.00 en adelante", description: "Adquisición de vehículos o motocicletas para uso comercial o personal.", imageUrl: "assets/credi_vehiculo.png", displayOrder: 4, isVisible: true, isDraft: false },
-      { id: "item_cred_mipymes", sectionId: "sec_creditos", title: "Crédito MIPYMES", subtitle: "Monto: desde Q2,000.00 en adelante", description: "Financiamiento para pequeñas y medianas empresas en crecimiento.", imageUrl: "assets/credito.png", displayOrder: 5, isVisible: true, isDraft: false },
-      { id: "item_cred_agricola", sectionId: "sec_creditos", title: "Crédito Agrícola", subtitle: "Monto: adaptado al ciclo de cultivo", description: "Siembra, renovación de cultivos, fertilizantes y tecnificación agrícola.", imageUrl: "assets/credito1.png", displayOrder: 6, isVisible: true, isDraft: false },
-      { id: "item_cred_automatico", sectionId: "sec_creditos", title: "Crédito Automático", subtitle: "Monto: hasta 90% de tus aportaciones", description: "Crédito inmediato respaldado sobre tus cuentas de ahorro en la cooperativa.", imageUrl: "assets/credito2.png", displayOrder: 7, isVisible: true, isDraft: false },
-      { id: "item_cred_microcreditos", sectionId: "sec_creditos", title: "Microcréditos", subtitle: "Monto: ágil y sin complicaciones", description: "Impulso financiero ágil para pequeños emprendedores y comerciantes.", imageUrl: "assets/credito.png", displayOrder: 8, isVisible: true, isDraft: false },
-
-      // --- 3. SEGUROS ---
-      { id: "item_seg_cv_especial", sectionId: "sec_seguros", title: "Seguro CV Especial", subtitle: "Primas solidarias y accesibles", description: "Cobertura de vida con indemnización y respaldo solidario inmediato.", imageUrl: "assets/seguro_cv_personal.png", displayOrder: 1, isVisible: true, isDraft: false },
-      { id: "item_seg_vida_saludable", sectionId: "sec_seguros", title: "Seguro Vida Saludable", subtitle: "Cobertura médica y preventiva", description: "Protección integral para gastos médicos y asistencia preventiva.", imageUrl: "assets/seguro_vida_saludable.png", displayOrder: 2, isVisible: true, isDraft: false },
-      { id: "item_seg_edad_oro", sectionId: "sec_seguros", title: "Seguro de Accidentes Edad de Oro", subtitle: "Para mayores de 60 años", description: "Diseñado especialmente para asociados de la tercera edad.", imageUrl: "assets/seguro_edad_de_oro.png", displayOrder: 3, isVisible: true, isDraft: false },
-      { id: "item_seg_cancer", sectionId: "sec_seguros", title: "Seguro de Cáncer", subtitle: "Indemnización al primer diagnóstico", description: "Indemnización directa al primer diagnóstico de patología oncológica.", imageUrl: "assets/seguro_de_cancer.png", displayOrder: 4, isVisible: true, isDraft: false },
-      { id: "item_seg_infanto_juvenil", sectionId: "sec_seguros", title: "Seguro Accidentes Infanto Juvenil", subtitle: "Protección escolar 365 días", description: "Protección escolar y de recreación para los hijos de asociados.", imageUrl: "assets/seguro_accidentes_infanto_juvenil.png", displayOrder: 5, isVisible: true, isDraft: false },
-      { id: "item_seg_manejo", sectionId: "sec_seguros", title: "Seguro de Manejo", subtitle: "Asistencia vial nacional", description: "Asistencia vial y respaldo ante incidentes en carretera en todo el país.", imageUrl: "assets/seguro_manejo.png", displayOrder: 6, isVisible: true, isDraft: false },
-      { id: "item_seg_vida_familiar", sectionId: "sec_seguros", title: "Seguro de Vida Individual o Familiar", subtitle: "Tranquilidad a largo plazo", description: "Tranquilidad financiera a largo plazo para el bienestar de tu familia.", imageUrl: "assets/seguro_de_vida_individual_o_familar.png", displayOrder: 7, isVisible: true, isDraft: false },
-
-      // --- 4. REMESAS ---
-      { id: "item_rem_repatriacion", sectionId: "sec_remesas", title: "Asistencia de Repatriación para Remitente", subtitle: "100% Cobertura Sin Costo", description: "Gestión integral y cobertura sin costo. Asesoramiento en trámites legales y coordinación total del retorno aéreo de restos mortales a Guatemala.", imageUrl: "assets/rd1.png", displayOrder: 1, isVisible: true, isDraft: false },
-      { id: "item_rem_funeraria", sectionId: "sec_remesas", title: "Asistencia Funeraria para Remitente", subtitle: "Red Funeraria Nacional", description: "Apoyo y trámites de coordinación. Preparación, capilla ardiente, servicio religioso y traslado terrestre hacia cualquier municipio del país.", imageUrl: "assets/rd2.png", displayOrder: 2, isVisible: true, isDraft: false },
-      { id: "item_rem_referencias", sectionId: "sec_remesas", title: "Referencias Médicas y Clínicas", subtitle: "Acceso Inmediato y Tarifas Especiales", description: "Directorio e información verificada de médicos especialistas, clínicas, farmacias y laboratorios clínicos con convenios preferenciales para asociados.", imageUrl: "assets/rd3.png", displayOrder: 3, isVisible: true, isDraft: false },
-      { id: "item_rem_orientacion", sectionId: "sec_remesas", title: "Orientación Médica Telefónica 24/7", subtitle: "Sin Límite de Llamadas", description: "Apoyo profesional en interpretación de pruebas de laboratorio, dosificación segura de medicamentos y primeros auxilios a distancia las 24 horas.", imageUrl: "assets/rd4.png", displayOrder: 4, isVisible: true, isDraft: false },
-
-      // --- 5. SERVICIOS DIGITALES ---
-      { id: "item_serv_tarjeta_debito", sectionId: "sec_servicios", title: "Tarjeta de Débito MICOOPE Visa", subtitle: "Compras nacionales e internacionales", description: "Realiza compras en comercios afiliados a VISA en Guatemala y el extranjero, notificaciones por mensajes de texto y cobertura integral contra fraude.", imageUrl: "assets/tarjeta_debito.png", displayOrder: 1, isVisible: true, isDraft: false },
-      { id: "item_serv_app_enlinea", sectionId: "sec_servicios", title: "MICOOPE en Línea (Web y App)", subtitle: "Banca móvil disponible 24/7", description: "Banca web y móvil 24/7. Realiza consultas de saldos, transferencias directas, pago de préstamos y servicios básicos al instante sin hacer filas.", imageUrl: "assets/micoope_enlinea.png", displayOrder: 2, isVisible: true, isDraft: false },
-      { id: "item_serv_tarjeta_credito", sectionId: "sec_servicios", title: "Tarjeta de Crédito MICOOPE Visa", subtitle: "Hasta 55 días sin intereses", description: "Membresía gratis de por vida, tarjeta VISA internacional, cobertura por fraude o extravío y la tasa de interés más baja del mercado financiero.", imageUrl: "assets/tarjeta_debito.png", displayOrder: 3, isVisible: true, isDraft: false },
-      { id: "item_serv_pago_servicios", sectionId: "sec_servicios", title: "Pago de Servicios Básicos", subtitle: "Luz, Agua, Telefonía y Colegios", description: "Paga tus facturas de electricidad, agua potable, telefonía, internet y colegiaturas en cualquiera de nuestras agencias o canales digitales.", imageUrl: "assets/servicios_digitales.png", displayOrder: 4, isVisible: true, isDraft: false },
-      { id: "item_serv_agentes", sectionId: "sec_servicios", title: "Agentes MICOOPE", subtitle: "En tiendas y comercios cercanos", description: "Puntos de atención en comercios locales para depósitos, retiros y pagos sin desplazarte a una agencia central.", imageUrl: "assets/servicios_digitales.png", displayOrder: 5, isVisible: true, isDraft: false },
-      { id: "item_serv_cajeros_5b", sectionId: "sec_servicios", title: "Cajeros Red 5B", subtitle: "Más de 3,500 cajeros en todo el país", description: "Disponibilidad de efectivo las 24 horas del día con tu tarjeta de débito o crédito en cajeros automáticos 5B.", imageUrl: "assets/servicios_digitales.png", displayOrder: 6, isVisible: true, isDraft: false },
-
-      // --- 6. BENEFICIOS ---
-      { id: "item_ben_renta_diaria", sectionId: "sec_beneficios", title: "Renta Diaria por Hospitalización", subtitle: "✓ Incluido al ser Asociado", description: "Apoyo económico diario en caso de ser internado en hospital público o privado.", imageUrl: "assets/renta_diaria.png", displayOrder: 1, isVisible: true, isDraft: false },
-      { id: "item_ben_apoyo_quirurgico", sectionId: "sec_beneficios", title: "Apoyo Quirúrgico", subtitle: "✓ Incluido al ser Asociado", description: "Apoyo económico para cubrir gastos médicos incurridos por intervenciones quirúrgicas.", imageUrl: "assets/apoyo_quirurgico.png", displayOrder: 2, isVisible: true, isDraft: false },
-      { id: "item_ben_servicio_funerario", sectionId: "sec_beneficios", title: "Servicio Funerario", subtitle: "✓ Incluido al ser Asociado", description: "Sepelio digno y ataúd fúnebre para tranquilidad de la familia del asociado.", imageUrl: "assets/servicio_funerario.png", displayOrder: 3, isVisible: true, isDraft: false },
-      { id: "item_ben_seguro_ahorrantes", sectionId: "sec_beneficios", title: "Seguro de Ahorrantes", subtitle: "✓ Hasta Q150,000.00", description: "Devolución de ahorros más seguro sobre depósitos hasta por Q150,000.00.", imageUrl: "assets/beneficio_de_ahorrantes.png", displayOrder: 4, isVisible: true, isDraft: false },
-      { id: "item_ben_seguro_deudores", sectionId: "sec_beneficios", title: "Seguro de Deudores", subtitle: "✓ Hasta Q200,000.00", description: "Cobertura de saldos insolutos de crédito vigente hasta por Q200,000.00 en siniestro.", imageUrl: "assets/beneficio_de_deudores.png", displayOrder: 5, isVisible: true, isDraft: false },
-      { id: "item_ben_beneficio_oro", sectionId: "sec_beneficios", title: "Beneficio de Oro", subtitle: "✓ Mayores de 70 años", description: "Apoyo económico único para asociados mayores de 70 años con lealtad cooperativa.", imageUrl: "assets/beneficio_de_oro.png", displayOrder: 6, isVisible: true, isDraft: false },
-
-      // --- 7. SOSTENIBILIDAD ---
-      { id: "item_sost_educacion", sectionId: "sec_sostenibilidad", title: "Educación y Formación Cooperativa", subtitle: "Eje Estratégico 01", description: "Fortalecemos las capacidades individuales y colectivas mediante la educación financiera y el cooperativismo como motores de superación familiar.", imageUrl: "assets/noticia_taller_finanzas.jpg", displayOrder: 1, isVisible: true, isDraft: false },
-      { id: "item_sost_empleabilidad", sectionId: "sec_sostenibilidad", title: "Empleabilidad y Empresarialidad", subtitle: "Eje Estratégico 02", description: "Impulsamos la generación de ingresos propios y la innovación productiva para dinamizar la economía solidaria de nuestros pueblos.", imageUrl: "assets/nosotros_artesana.jpg", displayOrder: 2, isVisible: true, isDraft: false },
-      { id: "item_sost_desarrollo", sectionId: "sec_sostenibilidad", title: "Desarrollo Comunitario", subtitle: "Eje Estratégico 03", description: "Fortalecemos la identidad cooperativa, la participación democrática y la formación dirigencial en beneficio del bien común.", imageUrl: "assets/noticia_asamblea_general.jpg", displayOrder: 3, isVisible: true, isDraft: false },
-      { id: "item_sost_ambiente", sectionId: "sec_sostenibilidad", title: "Medio Ambiente y Sostenibilidad", subtitle: "Eje Estratégico 04", description: "Protegemos los recursos naturales de Sololá y Quiché mediante jornadas de reforestación y educación ecológica comunitaria.", imageUrl: "assets/noticia_reforestacion.jpg", displayOrder: 4, isVisible: true, isDraft: false },
-
-      // --- 8. NOSOTROS ---
-      { id: "item_nos_mision_vision", sectionId: "sec_nosotros", title: "Misión y Visión COLUA", subtitle: "Nuestra Razón de Ser", description: "Somos una cooperativa sólida que fomenta el desarrollo socioeconómico de sus asociados mediante servicios financieros éticos, transparentes y competitivos.", imageUrl: "assets/distintivo_colua.png", displayOrder: 1, isVisible: true, isDraft: false },
-      { id: "item_nos_historia", sectionId: "sec_nosotros", title: "Nuestra Historia", subtitle: "Más de 50 años de trayectoria", description: "Nacida en el corazón del altiplano guatemalteco, COLUA ha transformado la vida de miles de familias y comunidades a lo largo de décadas.", imageUrl: "assets/logo_composite.png", displayOrder: 2, isVisible: true, isDraft: false },
-      { id: "item_nos_valores", sectionId: "sec_nosotros", title: "Valores Institucionales", subtitle: "Solidaridad, Honestidad y Respeto", description: "Guiamos cada una de nuestras decisiones bajo principios inquebrantables de equidad, transparencia, responsabilidad social y ayuda mutua.", imageUrl: "assets/valores_colua.png", displayOrder: 3, isVisible: true, isDraft: false },
-
-      // --- 9. AGENCIAS (25 UBICACIONES OFICIALES) ---
-      { id: "ag_agencia_corporativa", sectionId: "sec_agencias", title: "Agencia Corporativa", subtitle: "Sololá • PBX: 7795-7795", description: "Carretera Interamericana, Km. 138.5 Aldea San Juan Argueta, Sololá.", imageUrl: "assets/colua_edificio.png", displayOrder: 1, isVisible: true, isDraft: false },
-      { id: "ag_agencia_central", sectionId: "sec_agencias", title: "Agencia Central", subtitle: "Sololá • Tel: 7795-7722", description: "Camino Principal Aldea San Juan Argueta, Sololá.", imageUrl: "assets/colua_edificio.png", displayOrder: 2, isVisible: true, isDraft: false },
-      { id: "ag_plaza_colua_micoope", sectionId: "sec_agencias", title: "Plaza COLUA MICOOPE", subtitle: "Sololá • Tel: 7762-3180", description: "Plaza COLUA 2do. Nivel, 6ta. Avenida 7-47, Zona 2 Sololá.", imageUrl: "assets/colua_edificio.png", displayOrder: 3, isVisible: true, isDraft: false },
-      { id: "ag_el_calvario", sectionId: "sec_agencias", title: "El Calvario", subtitle: "Sololá • Tel: 4931-5495", description: "7ma. Avenida, 6ta. Calle esquina, Zona 2 Barrio El Calvario, Sololá.", imageUrl: "assets/colua_edificio.png", displayOrder: 4, isVisible: true, isDraft: false },
-      { id: "ag_san_bartolo", sectionId: "sec_agencias", title: "San Bartolo", subtitle: "Sololá • Tel: 7795-7723", description: "11 Calle 8-04, Zona 2, Barrio San Bartolo, Sololá.", imageUrl: "assets/colua_edificio.png", displayOrder: 5, isVisible: true, isDraft: false },
-      { id: "ag_concepcion", sectionId: "sec_agencias", title: "Concepción", subtitle: "Sololá • Tel: 7795-7735", description: "Sector Chuicumes I, Zona 0, Calle Principal Concepción, Sololá.", imageUrl: "assets/colua_edificio.png", displayOrder: 6, isVisible: true, isDraft: false },
-      { id: "ag_los_encuentros", sectionId: "sec_agencias", title: "Los Encuentros", subtitle: "Sololá • Tel: 5829-2086", description: "Carretera Interamericana, Caserío Central Aldea Los Encuentros, Sololá.", imageUrl: "assets/colua_edificio.png", displayOrder: 7, isVisible: true, isDraft: false },
-      { id: "ag_panajachel", sectionId: "sec_agencias", title: "Panajachel", subtitle: "Sololá • Tel: 7795-7718", description: "0 Avenida, Calle del Estadio, 0-74, Zona 1 Panajachel.", imageUrl: "assets/colua_edificio.png", displayOrder: 8, isVisible: true, isDraft: false },
-      { id: "ag_san_andres_semetabaj", sectionId: "sec_agencias", title: "San Andrés Semetabaj", subtitle: "Sololá • Tel: 7795-7733", description: "Barrio Tzanjuyu, San Andrés Semetabaj.", imageUrl: "assets/colua_edificio.png", displayOrder: 9, isVisible: true, isDraft: false },
-      { id: "ag_santiago_atitlan", sectionId: "sec_agencias", title: "Santiago Atitlán", subtitle: "Sololá • Tel: 7795-7720", description: "3ra. Calle 0-58, Cantón Tzanjuyu, Zona 1 Santiago Atitlán.", imageUrl: "assets/colua_edificio.png", displayOrder: 10, isVisible: true, isDraft: false },
-      { id: "ag_san_pedro_la_laguna", sectionId: "sec_agencias", title: "San Pedro La Laguna", subtitle: "Sololá • Tel: 7721-8061", description: "Calle al Embarcadero Chuasanahí, 5-60, Zona 2 San Pedro La Laguna.", imageUrl: "assets/colua_edificio.png", displayOrder: 11, isVisible: true, isDraft: false },
-      { id: "ag_san_juan_la_laguna", sectionId: "sec_agencias", title: "San Juan La Laguna", subtitle: "Sololá • Tel: 7795-7728", description: "4ta. Avenida Cantón Chuitinamit, Zona 2 San Juan La Laguna.", imageUrl: "assets/colua_edificio.png", displayOrder: 12, isVisible: true, isDraft: false },
-      { id: "ag_santa_clara_la_laguna", sectionId: "sec_agencias", title: "Santa Clara La Laguna", subtitle: "Sololá • Tel: 4928-2887", description: "1ra. Avenida, Zona 2 Santa Clara La Laguna.", imageUrl: "assets/colua_edificio.png", displayOrder: 13, isVisible: true, isDraft: false },
-      { id: "ag_santa_lucia_utatlan", sectionId: "sec_agencias", title: "Santa Lucía Utatlán", subtitle: "Sololá • Tel: 7722-1519", description: "Avenida Tecún Umán, entre 2da. y 3ra. Calle, Zona 1 Santa Lucía Utatlán.", imageUrl: "assets/colua_edificio.png", displayOrder: 14, isVisible: true, isDraft: false },
-      { id: "ag_el_novillero", sectionId: "sec_agencias", title: "El Novillero", subtitle: "Sololá • Tel: 4928-1377", description: "Calle Principal, Aldea El Novillero, Santa Lucía Utatlán.", imageUrl: "assets/colua_edificio.png", displayOrder: 15, isVisible: true, isDraft: false },
-      { id: "ag_nahuala", sectionId: "sec_agencias", title: "Nahualá", subtitle: "Sololá • Tel: 7795-7713", description: "Calle Principal, 1ra. Avenida 2-05, Zona 1 Nahualá.", imageUrl: "assets/colua_edificio.png", displayOrder: 16, isVisible: true, isDraft: false },
-      { id: "ag_santa_catarina_ixtahuacan", sectionId: "sec_agencias", title: "Santa Catarina Ixtahuacán", subtitle: "Sololá • Tel: 7795-7732", description: "Barrio Chuijuyup, frente al Mercado Municipal, Santa Catarina Ixtahuacán.", imageUrl: "assets/colua_edificio.png", displayOrder: 17, isVisible: true, isDraft: false },
-      { id: "ag_guineales", sectionId: "sec_agencias", title: "Guineales", subtitle: "Sololá • Tel: 7795-7731", description: "Sector Campo, a un costado del Estadio Aldea Guineales, Santa Catarina Ixtahuacán.", imageUrl: "assets/colua_edificio.png", displayOrder: 18, isVisible: true, isDraft: false },
-      { id: "ag_agencia_quiche", sectionId: "sec_agencias", title: "Quiché", subtitle: "Quiché • Tel: 7795-7730", description: "3ra. Avenida 04-35, Zona 1, Santa Cruz del Quiché.", imageUrl: "assets/colua_edificio.png", displayOrder: 19, isVisible: true, isDraft: false },
-      { id: "ag_agencia_chichicastenango", sectionId: "sec_agencias", title: "Chichicastenango", subtitle: "Quiché • Tel: 7795-7719", description: "5ta. Calle, entre 5ta y 6ta. Avenida, Chichicastenango.", imageUrl: "assets/colua_edificio.png", displayOrder: 20, isVisible: true, isDraft: false },
-      { id: "ag_agencia_joyabaj", sectionId: "sec_agencias", title: "Joyabaj", subtitle: "Quiché • Tel: 7795-7715", description: "Calle Principal, Barrio La Libertad, Joyabaj.", imageUrl: "assets/colua_edificio.png", displayOrder: 21, isVisible: true, isDraft: false },
-      { id: "ag_agencia_zacualpa", sectionId: "sec_agencias", title: "Zacualpa", subtitle: "Quiché • Tel: 5829-3158", description: "1ra. Calle, 2da. Avenida, Zona 1, Zacualpa.", imageUrl: "assets/colua_edificio.png", displayOrder: 22, isVisible: true, isDraft: false },
-      { id: "ag_agencia_la_esperanza", sectionId: "sec_agencias", title: "La Esperanza", subtitle: "Totonicapán • Tel: 7795-7714", description: "Camino Principal, Aldea La Esperanza, Totonicapán.", imageUrl: "assets/colua_edificio.png", displayOrder: 23, isVisible: true, isDraft: false },
-      { id: "ag_agencia_la_concordia", sectionId: "sec_agencias", title: "La Concordia", subtitle: "Totonicapán • Tel: 7795-7724", description: "Calle Principal, Aldea La Concordia, Totonicapán.", imageUrl: "assets/colua_edificio.png", displayOrder: 24, isVisible: true, isDraft: false },
-      { id: "ag_agencia_santo_tomas_la_union", sectionId: "sec_agencias", title: "Santo Tomás La Unión", subtitle: "Suchitepéquez • Tel: 7872-8526", description: "3ra. Calle, entre 4ta y 5ta. Avenida, Zona 1, Santo Tomás La Unión.", imageUrl: "assets/colua_edificio.png", displayOrder: 25, isVisible: true, isDraft: false }
+      }
     ];
 
     const defaultBlocks = [
@@ -463,7 +491,7 @@ class ColuaRepository {
       { id: "b_sost_amb_2", itemId: "item_sost_ambiente", sectionId: "sec_sostenibilidad", blockType: "bullet", content: "Proyectos de Reforestación: Siembra masiva de árboles para protección de cuencas hídricas.", displayOrder: 2 },
       { id: "b_sost_amb_3", itemId: "item_sost_ambiente", sectionId: "sec_sostenibilidad", blockType: "bullet", content: "Práctica de Valores y Tradiciones: Convivencia comunitaria y respeto a raíces culturales.", displayOrder: 3 },
 
-      // Bloques de Nosotros (Pilaress y Valores)
+      // Bloques de Nosotros (Pilares y Valores)
       { id: "b_nos_mv_1", itemId: "item_nos_mision_vision", sectionId: "sec_nosotros", blockType: "callout", content: "Propuesta de Valor: Reconocemos tu valor como persona para alcanzar tu bienestar integral a través de productos éticos y accesibles.", displayOrder: 1 },
       { id: "b_nos_mv_2", itemId: "item_nos_mision_vision", sectionId: "sec_nosotros", blockType: "paragraph", content: "Visión Institucional: Ser un modelo de desarrollo y sostenibilidad integral basado en la cooperación mutua y solvencia técnica.", displayOrder: 2 },
       { id: "b_nos_mv_3", itemId: "item_nos_mision_vision", sectionId: "sec_nosotros", blockType: "paragraph", content: "Propósito Visionario: Mejorar sostenidamente la calidad de vida de nuestros asociados y comunidades.", displayOrder: 3 },
@@ -485,7 +513,7 @@ class ColuaRepository {
       last_sync_timestamp: Date.now()
     };
 
-    const initialDb = {
+    return {
       sections: defaultSections,
       navigation_items: defaultNavigation,
       agencias: defaultAgencias,
@@ -494,13 +522,26 @@ class ColuaRepository {
       global_config: defaultGlobalConfig,
       usuarios: []
     };
+  }
 
+  // Siembra inicial idéntica a DataSeeder.java
+  seedInitialData(force = false) {
+    const data = this._getDefaultData();
+    let initialDb = data;
+    if (!force) {
+      const raw = localStorage.getItem(this.localStorageKey);
+      if (raw) {
+        try {
+          initialDb = this._ensureDefaultData(JSON.parse(raw));
+        } catch (e) {}
+      }
+    }
     this.saveLocalDb(initialDb);
     return initialDb;
   }
 
-  // Helper con timeout estricto para no colgar la UI si Firestore tarda o no responde
-  async _withTimeout(promise, ms = 1200) {
+  // Helper con timeout ultrarrápido para no ralentizar la UI si Firestore tarda o no responde
+  async _withTimeout(promise, ms = 150) {
     let timer;
     const timeout = new Promise((_, reject) => {
       timer = setTimeout(() => reject(new Error('Firestore timeout')), ms);
@@ -517,41 +558,6 @@ class ColuaRepository {
     const db = this.getLocalDb();
     const localSections = (db.sections || [])
       .filter(s => s.id !== 'sec_comunidad' && s.slug !== 'comunidad' && (s.title || '').trim().toLowerCase() !== 'comunidad');
-
-    try {
-      if (this.fb && this.fb.db) {
-        const snap = await this._withTimeout(this.fb.collection('sections').get());
-        if (!snap.empty) {
-          // Filtrar activamente cualquier residuo de sec_comunidad
-          const cloudSections = snap.docs
-            .map(d => ({ id: d.id, ...d.data() }))
-            .filter(s => s.id !== 'sec_comunidad' && s.slug !== 'comunidad' && (s.title || '').trim().toLowerCase() !== 'comunidad');
-          
-          // Eliminar documento de Firestore si existía para que no reaparezca jamás
-          snap.docs.forEach(d => {
-            const data = d.data() || {};
-            if (d.id === 'sec_comunidad' || d.id === 'comunidad' || data.slug === 'comunidad' || (data.title || '').trim().toLowerCase() === 'comunidad') {
-              this.fb.collection('sections').doc(d.id).delete().catch(() => {});
-            }
-          });
-
-          // Unir datos de la nube con borradores y ediciones locales
-          const mergedMap = new Map();
-          cloudSections.forEach(cs => mergedMap.set(cs.id, cs));
-          localSections.forEach(ls => {
-            const cs = mergedMap.get(ls.id);
-            if (!cs || ls.isDraft || !ls.isPublished || (ls.updatedAt && (!cs.updatedAt || ls.updatedAt >= cs.updatedAt)) || (ls.lastModified && (!cs.lastModified || ls.lastModified >= cs.lastModified))) {
-              mergedMap.set(ls.id, ls);
-            }
-          });
-
-          const list = Array.from(mergedMap.values());
-          return list.sort((a, b) => (a.orderIndex || a.displayOrder || 0) - (b.orderIndex || b.displayOrder || 0));
-        }
-      }
-    } catch (e) {
-      console.warn('Firestore offline o timeout, cargando secciones locales:', e);
-    }
 
     return localSections.sort((a, b) => (a.orderIndex || a.displayOrder || 0) - (b.orderIndex || b.displayOrder || 0));
   }
@@ -730,48 +736,18 @@ class ColuaRepository {
     const cleanId = (sectionId || '').toLowerCase();
     const isNews = cleanId === 'sec_noticias' || cleanId === 'noticias';
     const isAgencias = cleanId === 'sec_agencias' || cleanId === 'agencias';
-    try {
-      if (this.fb && this.fb.db) {
-        const snap = await this._withTimeout(this.fb.collection('content_items').where('sectionId', '==', cleanId).get());
-        if (!snap.empty) {
-          let list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-          if (!includeDrafts) {
-            list = list.filter(i => i.isEnabled !== false && i.isVisible !== false && i.isDraft !== true);
-          }
-          if (isNews) {
-            return this.sortNewsByDate(list);
-          }
-          return list.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
-        }
-
-        if (isAgencias) {
-          const agSnap = await this._withTimeout(this.fb.collection('agencias').get());
-          if (!agSnap.empty) {
-            let agList = agSnap.docs.map((d, idx) => {
-              const data = d.data();
-              return {
-                id: d.id,
-                sectionId: 'sec_agencias',
-                title: data.nombre || data.title || 'Agencia COLUA',
-                subtitle: `${data.departamento || ''} • Tel: ${data.telefono || ''}`,
-                description: data.direccion || '',
-                imageUrl: data.imageUrl || 'assets/colua_edificio.png',
-                displayOrder: data.displayOrder || (idx + 1),
-                ...data
-              };
-            });
-            if (!includeDrafts) {
-              agList = agList.filter(i => i.isEnabled !== false && i.isVisible !== false && i.isDraft !== true);
-            }
-            return agList;
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('Firestore offline o timeout, cargando items locales:', e);
-    }
+    
     const db = this.getLocalDb();
-    let list = (db.content_items || []).filter(i => (i.sectionId || '').toLowerCase() === cleanId);
+    let localList = (db.content_items || []).filter(i => (i.sectionId || '').toLowerCase() === cleanId);
+    let localCleaned = false;
+    localList.forEach(i => {
+      if (this._cleanItemIfInverted(i)) localCleaned = true;
+    });
+    if (localCleaned) {
+      this.saveLocalDb(db);
+    }
+    
+    let list = [...localList];
     if (list.length === 0 && isAgencias && db.agencias && db.agencias.length > 0) {
       list = db.agencias.map((a, idx) => ({
         id: a.id,
@@ -779,7 +755,7 @@ class ColuaRepository {
         title: a.nombre,
         subtitle: `${a.departamento} • Tel: ${a.telefono}`,
         description: a.direccion,
-        imageUrl: 'assets/colua_edificio.png',
+        imageUrl: a.imageUrl || 'assets/colua_edificio.png',
         displayOrder: idx + 1,
         isEnabled: a.isEnabled !== false,
         isVisible: a.isVisible !== false,
@@ -792,7 +768,7 @@ class ColuaRepository {
     if (isNews) {
       return this.sortNewsByDate(list);
     }
-    return list.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+    return list.sort((a, b) => (a.displayOrder || a.orderIndex || 0) - (b.displayOrder || b.orderIndex || 0));
   }
 
   async getAllContentItemsBySection(sectionId) {

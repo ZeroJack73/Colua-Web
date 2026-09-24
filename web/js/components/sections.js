@@ -18,76 +18,147 @@ class SectionsComponent {
     return this.renderDynamicGeneric(cleanId);
   }
 
+  // Renderiza el botón de acción de la tarjeta soportando Ficha Informativa Emergente (Ver Más), Teléfono, Enlaces y Rutas
+  _renderCardButton(buttonText, buttonAction, itemId, defaultText = 'Ver Más Información', defaultAction = 'tel:77957795') {
+    const text = buttonText || defaultText;
+    const action = (buttonAction || defaultAction || '').trim();
+
+    if (!action || action === 'info' || action === 'modal' || action.startsWith('modal:') || action === '#info') {
+      return `
+        <button type="button" onclick="app.showItemInfoModal('${itemId}')" class="clean-btn-card-action" style="cursor: pointer; border: none; width: 100%; text-align: center; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          <span>${text}</span>
+        </button>
+      `;
+    }
+    if (action.startsWith('http')) {
+      return `
+        <a href="${action}" target="_blank" rel="noopener noreferrer" class="clean-btn-card-action" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+          <span>${text}</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+      `;
+    }
+    if (action.startsWith('tel:')) {
+      return `
+        <a href="${action}" class="clean-btn-card-action" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          <span>${text}</span>
+        </a>
+      `;
+    }
+    if (action.startsWith('#')) {
+      return `
+        <a href="${action}" class="clean-btn-card-action" onclick="if(window.coluaRouter){window.coluaRouter.navigate('${action.replace('#','')}');return false;}">
+          <span>${text}</span>
+        </a>
+      `;
+    }
+    return `<a href="${action}" class="clean-btn-card-action">${text}</a>`;
+  }
+
   // --- 1. CUENTAS DE AHORRO ---
   async renderAhorros(sectionId) {
+    const secId = sectionId || 'sec_ahorros';
+    let headerItem = null;
     let cuentas = [];
+
     try {
-      const dbItems = await window.coluaRepository.getItemsBySection(sectionId || 'sec_ahorros');
+      const dbItems = await window.coluaRepository.getItemsBySection(secId);
       if (dbItems && dbItems.length > 0) {
-        cuentas = dbItems.map(i => ({
-          titulo: i.title,
-          desc: i.description || '',
-          detalles: i.subtitle ? i.subtitle.split(',').map(s => s.trim()).filter(Boolean) : [],
-          img: i.imageUrl || i.imagePath || 'assets/ahorros.png',
-          hasImageTitle: false
-        }));
+        headerItem = dbItems.find(i => i.id === 'item_ahorro_header');
+        const cardItems = dbItems.filter(i => i.id !== 'item_ahorro_header' && i.isVisible !== false && i.isEnabled !== false);
+        if (cardItems.length > 0) {
+          cuentas = cardItems.map(i => {
+            const hasExplicitImgTitle = i.id === 'item_ahorro_aportacion_infanto' || i.id === 'item_ahorro_disponible' || i.id === 'item_ahorro_programado' || i.id === 'item_ahorro_plazo_fijo';
+            return {
+              id: i.id,
+              titulo: i.title,
+              desc: i.description || i.shortDescription || '',
+              detalles: i.subtitle ? i.subtitle.split(',').map(s => s.trim()).filter(Boolean) : [],
+              img: i.imageUrl || i.imagePath || 'assets/ahorros.png',
+              hasImageTitle: i.hasImageTitle !== undefined ? i.hasImageTitle : hasExplicitImgTitle,
+              buttonText: i.buttonText || 'Solicitar Apertura (PBX)',
+              buttonAction: i.buttonAction || i.targetSectionId || 'tel:77957795'
+            };
+          });
+        }
       }
     } catch(e) { console.error(e); }
 
     if (cuentas.length === 0) {
       cuentas = [
         {
+          id: "item_ahorro_aportacion_adulto",
           titulo: "Cuenta Aportación Adulto",
           desc: "Otorga el derecho a la persona natural a asociarse a la cooperativa, convirtiéndolo en dueño con voz y voto en la asamblea general.",
           detalles: ["Monto de apertura: desde Q50.00", "Tasa de interés: 5% anual afecto a ISR", "Intereses: capitalizables anualmente"],
           img: "assets/ahorro1.png",
-          hasImageTitle: false
+          hasImageTitle: false,
+          buttonText: "Solicitar Apertura (PBX)",
+          buttonAction: "tel:77957795"
         },
         {
+          id: "item_ahorro_aportacion_infanto",
           titulo: "Cuenta Aportación Infanto Juvenil",
           desc: "Otorga el derecho al menor de edad a asociarse a la cooperativa e iniciar el hábito del ahorro con beneficios educativos.",
           detalles: ["Monto de apertura: desde Q50.00", "Tasa de interés: 5% anual afecto a ISR", "Intereses: capitalizables anualmente"],
           img: "assets/ahorro_infanto_juvenil.png",
-          hasImageTitle: true
+          hasImageTitle: true,
+          buttonText: "Solicitar Apertura (PBX)",
+          buttonAction: "tel:77957795"
         },
         {
+          id: "item_ahorro_infanto_juvenil",
           titulo: "Cuenta Ahorro Infanto Juvenil",
           desc: "Diseñada para motivar y fomentar en los niños y adolescentes la cultura del ahorro y educación financiera.",
           detalles: ["Monto de apertura: desde Q10.00", "Tasa de interés: 3% anual afecto a ISR", "5 Beneficios al mantener mínimo Q500.00"],
           img: "assets/ahorro2.png",
-          hasImageTitle: false
+          hasImageTitle: false,
+          buttonText: "Solicitar Apertura (PBX)",
+          buttonAction: "tel:77957795"
         },
         {
+          id: "item_ahorro_disponible",
           titulo: "Cuenta Ahorro Disponible",
           desc: "Cuenta que el asociado podrá utilizar para darle movimiento diario a sus fondos con total disponibilidad.",
           detalles: ["Apertura: desde Q50.00 o $100.00", "Tasa: 3% anual en Q y 1.50% en $", "Intereses: capitalizables mensualmente", "Acceso a canales digitales sin costo"],
           img: "assets/ahorro_disponible.png",
-          hasImageTitle: true
+          hasImageTitle: true,
+          buttonText: "Solicitar Apertura (PBX)",
+          buttonAction: "tel:77957795"
         },
         {
+          id: "item_ahorro_programado",
           titulo: "Cuenta Ahorro Programado",
           desc: "Permite a los asociados aportar cuotas fijas mensuales para metas y proyectos futuros con tasas preferenciales.",
           detalles: ["Apertura: desde Q25.00", "Tasa de interés: 7.50% anual afecto a ISR", "Plazos de 3, 5, 10, 15 o 20 años", "Intereses mensuales"],
           img: "assets/ahorro_programado.png",
-          hasImageTitle: true
+          hasImageTitle: true,
+          buttonText: "Solicitar Apertura (PBX)",
+          buttonAction: "tel:77957795"
         },
         {
+          id: "item_ahorro_plazo_fijo",
           titulo: "Cuenta Ahorro Plazo Fijo",
           desc: "Obtén el máximo rendimiento y seguridad garantizada sobre tus inversiones a plazo fijo.",
           detalles: ["Apertura: desde Q1,000.00 o $200.00", "Plazos de 90, 180 y 365 días", "Intereses capitalizables trimestralmente"],
           img: "assets/ahorro_plazo_fijo.png",
-          hasImageTitle: true
+          hasImageTitle: true,
+          buttonText: "Solicitar Apertura (PBX)",
+          buttonAction: "tel:77957795"
         }
       ];
     }
 
+    const headerTitle = headerItem ? headerItem.title : "Cuentas de Ahorro COLUA";
+    const headerDesc = headerItem ? (headerItem.subtitle || headerItem.description) : "Construye un futuro financiero sólido con nuestras opciones de ahorro adaptadas a cada etapa de tu vida. Cero comisiones de manejo y total respaldo del sistema cooperativo MICOOPE.";
+
     return `
       <div class="clean-subpage-container">
         <header class="clean-subpage-header">
-          <h1 class="clean-subpage-title">Cuentas de Ahorro COLUA</h1>
-          <p class="clean-subpage-desc">
-            Construye un futuro financiero sólido con nuestras opciones de ahorro adaptadas a cada etapa de tu vida. Cero comisiones de manejo y total respaldo del sistema cooperativo MICOOPE.
-          </p>
+          <h1 class="clean-subpage-title">${headerTitle}</h1>
+          <p class="clean-subpage-desc">${headerDesc}</p>
         </header>
 
         <div class="clean-product-grid">
@@ -117,9 +188,7 @@ class SectionsComponent {
                 </ul>
                 ` : ''}
               </div>
-              <a href="tel:77957795" class="clean-btn-card-action">
-                Solicitar Apertura (PBX)
-              </a>
+              ${this._renderCardButton(c.buttonText, c.buttonAction, c.id || 'item_ahorro', 'Solicitar Apertura (PBX)', 'tel:77957795')}
             </div>
           `).join('')}
         </div>
@@ -129,41 +198,54 @@ class SectionsComponent {
 
   // --- 2. CRÉDITOS ---
   async renderCreditos(sectionId) {
+    const secId = sectionId || 'sec_creditos';
+    let headerItem = null;
     let lineas = [];
+
     try {
-      const dbItems = await window.coluaRepository.getItemsBySection(sectionId || 'sec_creditos');
+      const dbItems = await window.coluaRepository.getItemsBySection(secId);
       if (dbItems && dbItems.length > 0) {
-        lineas = dbItems.map(i => ({
-          titulo: i.title,
-          sub: i.description || i.shortDescription || '',
-          monto: i.subtitle || 'Monto: desde Q1,000.00 en adelante',
-          img: i.imageUrl || i.imagePath || 'assets/credito.png',
-          hasImageTitle: false,
-          buttonText: i.buttonText || 'Cotizar Crédito (PBX)'
-        }));
+        headerItem = dbItems.find(i => i.id === 'item_cred_header');
+        const cardItems = dbItems.filter(i => i.id !== 'item_cred_header' && i.isVisible !== false && i.isEnabled !== false);
+        if (cardItems.length > 0) {
+          lineas = cardItems.map(i => {
+            const hasExplicitImgTitle = i.id === 'item_cred_productivo' || i.id === 'item_cred_consumo' || i.id === 'item_cred_vivienda' || i.id === 'item_cred_vehiculo';
+            return {
+              id: i.id,
+              titulo: i.title,
+              sub: i.description || i.shortDescription || '',
+              monto: i.subtitle || 'Monto: desde Q1,000.00 en adelante',
+              img: i.imageUrl || i.imagePath || 'assets/credito.png',
+              hasImageTitle: i.hasImageTitle !== undefined ? i.hasImageTitle : hasExplicitImgTitle,
+              buttonText: i.buttonText || 'Cotizar Crédito (PBX)',
+              buttonAction: i.buttonAction || i.targetSectionId || 'tel:77957795'
+            };
+          });
+        }
       }
     } catch(e) { console.error(e); }
 
     if (lineas.length === 0) {
       lineas = [
-        { titulo: "Crédito Productivo", sub: "Para capital de trabajo, inventario, mercadería y maquinaria.", img: "assets/credito_productivo.png", hasImageTitle: true },
-        { titulo: "Crédito Consumo", sub: "Gastos personales, consolidación de deudas, menaje de casa o estudios.", img: "assets/credi_consumo.png", hasImageTitle: true },
-        { titulo: "Crédito Vivienda", sub: "Construcción, compra de terreno, vivienda nueva o remodelación.", img: "assets/credito_vivienda.png", hasImageTitle: true },
-        { titulo: "Crédi Vehículo", sub: "Adquisición de vehículos o motocicletas para uso comercial o personal.", img: "assets/credi_vehiculo.png", hasImageTitle: true },
-        { titulo: "Crédito MIPYMES", sub: "Financiamiento para pequeñas y medianas empresas en crecimiento.", img: "assets/credito.png", hasImageTitle: false },
-        { titulo: "Crédito Agrícola", sub: "Siembra, renovación de cultivos, fertilizantes y tecnificación agrícola.", img: "assets/credito1.png", hasImageTitle: false },
-        { titulo: "Crédito Automático", sub: "Crédito inmediato respaldado sobre tus cuentas de ahorro en la cooperativa.", img: "assets/credito2.png", hasImageTitle: false },
-        { titulo: "Microcréditos", sub: "Impulso financiero ágil para pequeños emprendedores y comerciantes.", img: "assets/credito.png", hasImageTitle: false }
+        { titulo: "Crédito Productivo", sub: "Para capital de trabajo, inventario, mercadería y maquinaria.", img: "assets/credito_productivo.png", hasImageTitle: true, monto: "Monto: desde Q1,000.00 en adelante", buttonText: "Cotizar Crédito (PBX)", buttonAction: "tel:77957795" },
+        { titulo: "Crédito Consumo", sub: "Gastos personales, consolidación de deudas, menaje de casa o estudios.", img: "assets/credi_consumo.png", hasImageTitle: true, monto: "Monto: desde Q1,000.00 en adelante", buttonText: "Cotizar Crédito (PBX)", buttonAction: "tel:77957795" },
+        { titulo: "Crédito Vivienda", sub: "Construcción, compra de terreno, vivienda nueva o remodelación.", img: "assets/credito_vivienda.png", hasImageTitle: true, monto: "Monto: desde Q5,000.00 en adelante", buttonText: "Cotizar Crédito (PBX)", buttonAction: "tel:77957795" },
+        { titulo: "Crédi Vehículo", sub: "Adquisición de vehículos o motocicletas para uso comercial o personal.", img: "assets/credi_vehiculo.png", hasImageTitle: true, monto: "Monto: desde Q5,000.00 en adelante", buttonText: "Cotizar Crédito (PBX)", buttonAction: "tel:77957795" },
+        { titulo: "Crédito MIPYMES", sub: "Financiamiento para pequeñas y medianas empresas en crecimiento.", img: "assets/credito.png", hasImageTitle: false, monto: "Monto: desde Q2,000.00 en adelante", buttonText: "Cotizar Crédito (PBX)", buttonAction: "tel:77957795" },
+        { titulo: "Crédito Agrícola", sub: "Siembra, renovación de cultivos, fertilizantes y tecnificación agrícola.", img: "assets/credito1.png", hasImageTitle: false, monto: "Monto: adaptado al ciclo de cultivo", buttonText: "Cotizar Crédito (PBX)", buttonAction: "tel:77957795" },
+        { titulo: "Crédito Automático", sub: "Crédito inmediato respaldado sobre tus cuentas de ahorro en la cooperativa.", img: "assets/credito2.png", hasImageTitle: false, monto: "Monto: hasta 90% de tus aportaciones", buttonText: "Cotizar Crédito (PBX)", buttonAction: "tel:77957795" },
+        { titulo: "Microcréditos", sub: "Impulso financiero ágil para pequeños emprendedores y comerciantes.", img: "assets/credito.png", hasImageTitle: false, monto: "Monto: ágil y sin complicaciones", buttonText: "Cotizar Crédito (PBX)", buttonAction: "tel:77957795" }
       ];
     }
+
+    const headerTitle = headerItem ? headerItem.title : "Líneas de Crédito COLUA";
+    const headerDesc = headerItem ? (headerItem.subtitle || headerItem.description) : "Soluciones financieras a tu medida con tasas justas, cuotas niveladas y asesoría personalizada para alcanzar tus metas personales y empresariales.";
 
     return `
       <div class="clean-subpage-container">
         <header class="clean-subpage-header">
-          <h1 class="clean-subpage-title">Líneas de Crédito COLUA</h1>
-          <p class="clean-subpage-desc">
-            Soluciones financieras a tu medida con tasas justas, cuotas niveladas y asesoría personalizada para alcanzar tus metas personales y empresariales.
-          </p>
+          <h1 class="clean-subpage-title">${headerTitle}</h1>
+          <p class="clean-subpage-desc">${headerDesc}</p>
         </header>
 
         <div class="clean-product-grid">
@@ -186,9 +268,7 @@ class SectionsComponent {
                   ${l.monto || 'Monto: desde Q1,000.00 en adelante'}
                 </div>
               </div>
-              <a href="tel:77957795" class="clean-btn-card-action">
-                ${l.buttonText || 'Cotizar Crédito (PBX)'}
-              </a>
+              ${this._renderCardButton(l.buttonText, l.buttonAction, l.id || 'item_cred', 'Cotizar Crédito (PBX)', 'tel:77957795')}
             </div>
           `).join('')}
         </div>
@@ -198,40 +278,50 @@ class SectionsComponent {
 
   // --- 3. SEGUROS COLUMNA ---
   async renderSeguros(sectionId) {
+    const secId = sectionId || 'sec_seguros';
+    let headerItem = null;
     let polizas = [];
+
     try {
-      const dbItems = await window.coluaRepository.getItemsBySection(sectionId || 'sec_seguros');
+      const dbItems = await window.coluaRepository.getItemsBySection(secId);
       if (dbItems && dbItems.length > 0) {
-        polizas = dbItems.map(i => ({
-          titulo: i.title,
-          desc: i.description || i.shortDescription || '',
-          img: i.imageUrl || i.imagePath || 'assets/seguro.png',
-          hasImageTitle: false,
-          leyenda: i.subtitle || 'Primas solidarias y accesibles',
-          buttonText: i.buttonText || 'Solicitar Póliza (PBX)'
-        }));
+        headerItem = dbItems.find(i => i.id === 'item_seg_header');
+        const cardItems = dbItems.filter(i => i.id !== 'item_seg_header' && i.isVisible !== false && i.isEnabled !== false);
+        if (cardItems.length > 0) {
+          polizas = cardItems.map(i => ({
+            id: i.id,
+            titulo: i.title,
+            desc: i.description || i.shortDescription || '',
+            img: i.imageUrl || i.imagePath || 'assets/seguro.png',
+            hasImageTitle: true,
+            leyenda: i.subtitle || 'Primas solidarias y accesibles',
+            buttonText: i.buttonText || 'Solicitar Póliza (PBX)',
+            buttonAction: i.buttonAction || i.targetSectionId || 'tel:77957795'
+          }));
+        }
       }
     } catch(e) { console.error(e); }
 
     if (polizas.length === 0) {
       polizas = [
-        { titulo: "Seguro CV Especial", desc: "Cobertura de vida con indemnización y respaldo solidario inmediato.", img: "assets/seguro_cv_personal.png", hasImageTitle: true },
-        { titulo: "Seguro Vida Saludable", desc: "Protección integral para gastos médicos y asistencia preventiva.", img: "assets/seguro_vida_saludable.png", hasImageTitle: true },
-        { titulo: "Seguro de Accidentes Edad de Oro", desc: "Diseñado especialmente para asociados de la tercera edad.", img: "assets/seguro_edad_de_oro.png", hasImageTitle: true },
-        { titulo: "Seguro de Cáncer", desc: "Indemnización directa al primer diagnóstico de patología oncológica.", img: "assets/seguro_de_cancer.png", hasImageTitle: true },
-        { titulo: "Seguro Accidentes Infanto Juvenil", desc: "Protección escolar y de recreación para los hijos de asociados.", img: "assets/seguro_accidentes_infanto_juvenil.png", hasImageTitle: true },
-        { titulo: "Seguro de Manejo", desc: "Asistencia vial y respaldo ante incidentes en carretera en todo el país.", img: "assets/seguro_manejo.png", hasImageTitle: true },
-        { titulo: "Seguro de Vida Individual o Familiar", desc: "Tranquilidad financiera a largo plazo para el bienestar de tu familia.", img: "assets/seguro_de_vida_individual_o_familar.png", hasImageTitle: true }
+        { titulo: "Seguro CV Especial", desc: "Cobertura de vida con indemnización y respaldo solidario inmediato.", img: "assets/seguro_cv_personal.png", hasImageTitle: true, leyenda: "Primas solidarias y accesibles", buttonText: "Solicitar Póliza (PBX)", buttonAction: "tel:77957795" },
+        { titulo: "Seguro Vida Saludable", desc: "Protección integral para gastos médicos y asistencia preventiva.", img: "assets/seguro_vida_saludable.png", hasImageTitle: true, leyenda: "Cobertura médica y preventiva", buttonText: "Solicitar Póliza (PBX)", buttonAction: "tel:77957795" },
+        { titulo: "Seguro de Accidentes Edad de Oro", desc: "Diseñado especialmente para asociados de la tercera edad.", img: "assets/seguro_edad_de_oro.png", hasImageTitle: true, leyenda: "Para mayores de 60 años", buttonText: "Solicitar Póliza (PBX)", buttonAction: "tel:77957795" },
+        { titulo: "Seguro de Cáncer", desc: "Indemnización directa al primer diagnóstico de patología oncológica.", img: "assets/seguro_de_cancer.png", hasImageTitle: true, leyenda: "Indemnización al primer diagnóstico", buttonText: "Solicitar Póliza (PBX)", buttonAction: "tel:77957795" },
+        { titulo: "Seguro Accidentes Infanto Juvenil", desc: "Protección escolar y de recreación para los hijos de asociados.", img: "assets/seguro_accidentes_infanto_juvenil.png", hasImageTitle: true, leyenda: "Protección escolar 365 días", buttonText: "Solicitar Póliza (PBX)", buttonAction: "tel:77957795" },
+        { titulo: "Seguro de Manejo", desc: "Asistencia vial y respaldo ante incidentes en carretera en todo el país.", img: "assets/seguro_manejo.png", hasImageTitle: true, leyenda: "Asistencia vial nacional", buttonText: "Solicitar Póliza (PBX)", buttonAction: "tel:77957795" },
+        { titulo: "Seguro de Vida Individual o Familiar", desc: "Tranquilidad financiera a largo plazo para el bienestar de tu familia.", img: "assets/seguro_de_vida_individual_o_familar.png", hasImageTitle: true, leyenda: "Tranquilidad a largo plazo", buttonText: "Solicitar Póliza (PBX)", buttonAction: "tel:77957795" }
       ];
     }
+
+    const headerTitle = headerItem ? headerItem.title : "Seguros Columna";
+    const headerDesc = headerItem ? (headerItem.subtitle || headerItem.description) : "Tranquilidad para ti y tu familia con coberturas de vida, salud y accidentes con el respaldo de Aseguradora Columna y el Sistema MICOOPE.";
 
     return `
       <div class="clean-subpage-container">
         <header class="clean-subpage-header">
-          <h1 class="clean-subpage-title">Seguros Columna</h1>
-          <p class="clean-subpage-desc">
-            Tranquilidad para ti y tu familia con coberturas de vida, salud y accidentes con el respaldo de Aseguradora Columna y el Sistema MICOOPE.
-          </p>
+          <h1 class="clean-subpage-title">${headerTitle}</h1>
+          <p class="clean-subpage-desc">${headerDesc}</p>
         </header>
 
         <div class="clean-product-grid">
@@ -247,9 +337,7 @@ class SectionsComponent {
                   ${p.leyenda || 'Primas solidarias y accesibles'}
                 </div>
               </div>
-              <a href="tel:77957795" class="clean-btn-card-action">
-                ${p.buttonText || 'Solicitar Póliza (PBX)'}
-              </a>
+              ${this._renderCardButton(p.buttonText, p.buttonAction, p.id || 'item_seg', 'Solicitar Póliza (PBX)', 'tel:77957795')}
             </div>
           `).join('')}
         </div>
@@ -259,17 +347,37 @@ class SectionsComponent {
 
   // --- 4. REMESAS FAMILIARES Y NUEVA REMESA DIRIGIDA ---
   async renderRemesas(sectionId) {
+    const secId = sectionId || 'sec_remesas';
+    let heroItem = null;
+    let bannerDirigida = null;
+    let familiasHeader = null;
     let asistencias = [];
+
     try {
-      const dbItems = await window.coluaRepository.getItemsBySection(sectionId || 'sec_remesas');
+      const dbItems = await window.coluaRepository.getItemsBySection(secId);
       if (dbItems && dbItems.length > 0) {
-        asistencias = dbItems.map(i => ({
-          titulo: i.title,
-          desc: i.description || i.shortDescription || '',
-          cat: i.subtitle || 'ASISTENCIA INTERNACIONAL',
-          img: i.imageUrl || i.imagePath || 'assets/rd1.png',
-          tag: '100% Cobertura'
-        }));
+        heroItem = dbItems.find(i => i.id === 'item_rem_hero');
+        bannerDirigida = dbItems.find(i => i.id === 'item_rem_banner_dirigida');
+        familiasHeader = dbItems.find(i => i.id === 'item_rem_familias_header');
+
+        const cardItems = dbItems.filter(i => 
+          i.id !== 'item_rem_hero' && 
+          i.id !== 'item_rem_banner_dirigida' && 
+          i.id !== 'item_rem_familias_header' && 
+          i.isVisible !== false && 
+          i.isEnabled !== false
+        );
+
+        if (cardItems.length > 0) {
+          asistencias = cardItems.map(i => ({
+            id: i.id,
+            titulo: i.title,
+            desc: i.description || i.shortDescription || '',
+            cat: i.subtitle || 'ASISTENCIA INTERNACIONAL',
+            img: i.imageUrl || i.imagePath || 'assets/rd1.png',
+            tag: i.buttonText || '100% Cobertura'
+          }));
+        }
       }
     } catch(e) { console.error(e); }
 
@@ -282,16 +390,27 @@ class SectionsComponent {
       ];
     }
 
+    const heroTitle = heroItem ? heroItem.title : "Remesas Familiares";
+    const heroDesc = heroItem ? (heroItem.description || heroItem.subtitle) : "Recibe tu dinero de forma segura, rápida y sin complicaciones a través de nuestra red de remesadoras aliadas. Ponemos a tu alcance disponibilidad inmediata en ventanilla y depósito directo en tu cuenta cooperativa.";
+    const heroImg = heroItem ? (heroItem.imageUrl || heroItem.imagePath || "assets/mas_que_una_remesa.png") : "assets/mas_que_una_remesa.png";
+
+    const bannerTitle = bannerDirigida ? bannerDirigida.title : "Beneficio al recibir tu remesa dirigida a tu Cuenta Disponible";
+    const bannerDesc = bannerDirigida ? (bannerDirigida.description || bannerDirigida.subtitle) : "En caso de fallecimiento en el extranjero, te ofrecemos el <strong>BENEFICIO DE REPATRIACIÓN</strong>, garantizando que tu último viaje sea de regreso a casa, <strong>sin costo alguno para tu familia</strong>. Tu cuenta activa en COLUA abre las puertas a este respaldo exclusivo y a la acreditación inmediata de tus fondos 24/7 sin hacer filas.";
+    const bannerBtn = bannerDirigida ? (bannerDirigida.buttonText || "Abrir Cuenta Disponible") : "Abrir Cuenta Disponible";
+    const bannerAction = bannerDirigida ? (bannerDirigida.buttonAction || "#sec_ahorros") : "#sec_ahorros";
+
+    const famTitle = familiasHeader ? familiasHeader.title : "Más que una remesa, unimos familias";
+    const famSub = familiasHeader ? (familiasHeader.description || familiasHeader.subtitle) : "En COLUA reconocemos el esfuerzo incansable de nuestros connacionales en el extranjero. Por ello, cada envío gestionado a través de nuestra red incluye asistencias humanitarias directas y sin costo para quien envía.";
+    const famImg = familiasHeader ? (familiasHeader.imageUrl || familiasHeader.imagePath || "assets/remesadoras_afiliadas.png") : "assets/remesadoras_afiliadas.png";
+
     return `
       <div class="clean-subpage-container">
         <!-- 1. Hero Remesas Familiares -->
         <div class="remesa-hero-card">
           <div class="remesa-hero-grid">
             <div class="remesa-hero-content">
-              <h1 class="remesa-hero-title">Remesas Familiares</h1>
-              <p class="remesa-hero-desc">
-                Recibe tu dinero de forma segura, rápida y sin complicaciones a través de nuestra red de remesadoras aliadas. Ponemos a tu alcance disponibilidad inmediata en ventanilla y depósito directo en tu cuenta cooperativa.
-              </p>
+              <h1 class="remesa-hero-title">${heroTitle}</h1>
+              <p class="remesa-hero-desc">${heroDesc}</p>
               <div class="remesa-hero-actions" style="margin-bottom: 0;">
                 <button class="remesa-btn-navy" onclick="window.coluaRouter ? window.coluaRouter.navigate('sec_agencias') : (window.location.hash='#sec_agencias')">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -306,7 +425,7 @@ class SectionsComponent {
 
             <div class="remesa-hero-media">
               <div class="remesa-hero-media-card">
-                <img src="assets/mas_que_una_remesa.png" alt="Más que una remesa, unimos familias COLUA" class="remesa-hero-img" />
+                <img src="${heroImg}" alt="${heroTitle}" class="remesa-hero-img" onerror="this.src='assets/mas_que_una_remesa.png'" />
                 <div class="remesa-hero-badge-footer">
                   <div class="remesa-hero-badge-shield">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#173789" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -325,12 +444,8 @@ class SectionsComponent {
         <div class="remesa-dirigida-banner">
           <div class="remesa-dirigida-grid">
             <div class="remesa-dirigida-main">
-              <h2 class="remesa-dirigida-title">
-                Beneficio al recibir tu remesa dirigida a tu Cuenta Disponible
-              </h2>
-              <p class="remesa-dirigida-desc">
-                En caso de fallecimiento en el extranjero, te ofrecemos el <strong>BENEFICIO DE REPATRIACIÓN</strong>, garantizando que tu último viaje sea de regreso a casa, <strong>sin costo alguno para tu familia</strong>. Tu cuenta activa en COLUA abre las puertas a este respaldo exclusivo y a la acreditación inmediata de tus fondos 24/7 sin hacer filas.
-              </p>
+              <h2 class="remesa-dirigida-title">${bannerTitle}</h2>
+              <p class="remesa-dirigida-desc">${bannerDesc}</p>
 
               <div class="remesa-dirigida-pills">
                 <div class="remesa-pill-item">
@@ -348,8 +463,8 @@ class SectionsComponent {
               </div>
 
               <div class="remesa-dirigida-actions">
-                <button class="remesa-btn-white" onclick="window.coluaRouter ? window.coluaRouter.navigate('sec_ahorros') : (window.location.hash='#sec_ahorros')">
-                  Abrir Cuenta Disponible
+                <button class="remesa-btn-white" onclick="window.coluaRouter ? window.coluaRouter.navigate('${bannerAction.replace('#', '')}') : (window.location.hash='${bannerAction}')">
+                  ${bannerBtn}
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                 </button>
                 <a href="tel:77957795" class="remesa-btn-translucent">
@@ -380,10 +495,8 @@ class SectionsComponent {
         <div class="remesa-families-section">
           <div class="remesa-families-grid">
             <div class="remesa-families-text">
-              <h2 class="remesa-section-heading">Más que una remesa, unimos familias</h2>
-              <p class="remesa-section-sub">
-                En COLUA reconocemos el esfuerzo incansable de nuestros connacionales en el extranjero. Por ello, cada envío gestionado a través de nuestra red incluye asistencias humanitarias directas y sin costo para quien envía.
-              </p>
+              <h2 class="remesa-section-heading">${famTitle}</h2>
+              <p class="remesa-section-sub">${famSub}</p>
 
               <div class="remesa-free-box">
                 <h4 class="remesa-free-title">
@@ -421,7 +534,7 @@ class SectionsComponent {
 
             <div class="remesa-families-photo">
               <div class="remesa-families-img-card">
-                <img src="assets/remesadoras_afiliadas.png" alt="Asistencia Internacional COLUA" class="remesa-families-img" />
+                <img src="${famImg}" alt="${famTitle}" class="remesa-families-img" onerror="this.src='assets/remesadoras_afiliadas.png'" />
                 <div class="remesa-intl-line-badge">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#173789" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
                   <div>
@@ -480,17 +593,40 @@ class SectionsComponent {
 
   // --- 5. SERVICIOS DIGITALES Y FINANCIEROS ---
   async renderServicios(sectionId) {
+    const secId = sectionId || 'sec_servicios';
+    let headerItem = null;
     let servicios = [];
+    let energiaItem = null;
+    let telItem = null;
+    let cajerosRedItem = null;
+
     try {
-      const dbItems = await window.coluaRepository.getItemsBySection(sectionId || 'sec_servicios');
+      const dbItems = await window.coluaRepository.getItemsBySection(secId);
       if (dbItems && dbItems.length > 0) {
-        servicios = dbItems.map(i => ({
-          titulo: i.title,
-          desc: i.description || i.shortDescription || '',
-          img: i.imageUrl || i.imagePath || 'assets/servicios_digitales.png',
-          linkText: i.buttonText || (i.targetSectionId?.startsWith('http') ? 'Ingresar a la Plataforma' : 'Solicitar Información (PBX)'),
-          linkUrl: i.targetSectionId || i.buttonAction || 'tel:77957795'
-        }));
+        headerItem = dbItems.find(i => i.id === 'item_serv_header');
+        energiaItem = dbItems.find(i => i.id === 'item_serv_energia');
+        telItem = dbItems.find(i => i.id === 'item_serv_telefono');
+        cajerosRedItem = dbItems.find(i => i.id === 'item_serv_cajeros_red');
+
+        const cardItems = dbItems.filter(i => 
+          i.id !== 'item_serv_header' && 
+          i.id !== 'item_serv_energia' && 
+          i.id !== 'item_serv_telefono' && 
+          i.id !== 'item_serv_cajeros_red' && 
+          i.isVisible !== false && 
+          i.isEnabled !== false
+        );
+
+        if (cardItems.length > 0) {
+          servicios = cardItems.map(i => ({
+            id: i.id,
+            titulo: i.title,
+            desc: i.description || i.shortDescription || '',
+            img: i.imageUrl || i.imagePath || 'assets/servicios_digitales.png',
+            linkText: i.buttonText || (i.targetSectionId?.startsWith('http') ? 'Ingresar a la Plataforma' : 'Solicitar Información (PBX)'),
+            linkUrl: i.buttonAction || i.targetSectionId || 'tel:77957795'
+          }));
+        }
       }
     } catch(e) { console.error(e); }
 
@@ -505,13 +641,23 @@ class SectionsComponent {
       ];
     }
 
+    const headerTitle = headerItem ? headerItem.title : "Servicios Digitales y Financieros COLUA";
+    const headerDesc = headerItem ? (headerItem.subtitle || headerItem.description) : "Gestiona tus cuentas, consulta saldos y realiza operaciones 24/7 sin salir de casa con nuestras herramientas tecnológicas cooperativas y nuestra amplia red de atención.";
+
+    const energiaTitle = energiaItem ? energiaItem.title : "Pago de Energía Eléctrica";
+    const energiaDesc = energiaItem ? (energiaItem.description || "DEOCSA y DEORSA. Realiza el pago ágil y al día de tus facturas de energía eléctrica directamente en ventanillas de nuestras agencias.") : "DEOCSA y DEORSA. Realiza el pago ágil y al día de tus facturas de energía eléctrica directamente en ventanillas de nuestras agencias.";
+
+    const telTitle = telItem ? telItem.title : "Pago de Servicio Telefónico";
+    const telDesc = telItem ? (telItem.description || "Pre y Pospago: CLARO y TIGO. Recargas electrónicas y pago de mensualidades telefónicas sin demoras ni recargos adicionales.") : "Pre y Pospago: CLARO y TIGO. Recargas electrónicas y pago de mensualidades telefónicas sin demoras ni recargos adicionales.";
+
+    const cajerosTitle = cajerosRedItem ? cajerosRedItem.title : "Cajeros Red 5B, BI y BAC";
+    const cajerosDesc = cajerosRedItem ? (cajerosRedItem.description || "Consulta de saldos y retiros en efectivo en más de 3,500 cajeros interbancarios de la red con recargo de Q5.00 por transacción.") : "Consulta de saldos y retiros en efectivo en más de 3,500 cajeros interbancarios de la red con recargo de Q5.00 por transacción.";
+
     return `
       <div class="clean-subpage-container">
         <header class="clean-subpage-header">
-          <h1 class="clean-subpage-title">Servicios Digitales y Financieros COLUA</h1>
-          <p class="clean-subpage-desc">
-            Gestiona tus cuentas, consulta saldos y realiza operaciones 24/7 sin salir de casa con nuestras herramientas tecnológicas cooperativas y nuestra amplia red de atención.
-          </p>
+          <h1 class="clean-subpage-title">${headerTitle}</h1>
+          <p class="clean-subpage-desc">${headerDesc}</p>
         </header>
 
         <!-- SERVICIOS DINÁMICOS -->
@@ -525,9 +671,7 @@ class SectionsComponent {
                 <h3 class="clean-product-name">${s.titulo}</h3>
                 <p class="clean-product-desc">${s.desc}</p>
               </div>
-              <a href="${s.linkUrl}" ${s.linkUrl.startsWith('http') ? 'target="_blank" rel="noopener noreferrer"' : ''} class="clean-btn-card-action">
-                ${s.linkText}
-              </a>
+              ${this._renderCardButton(s.linkText, s.linkUrl, s.id || 'item_serv', 'Solicitar Información (PBX)', 'tel:77957795')}
             </div>
           `).join('')}
         </div>
@@ -552,10 +696,8 @@ class SectionsComponent {
                   <path d="M9,21c0,0.55 0.45,1 1,1h4c0.55,0 1,-0.45 1,-1v-1H9V21zM12,2C8.14,2 5,5.14 5,9c0,2.38 1.19,4.47 3,5.74V17c0,0.55 0.45,1 1,1h6c0.55,0 1,-0.45 1,-1v-2.26c1.81,-1.27 3,-3.36 3,-5.74c0,-3.86 -3.14,-7 -7,-7zM14.85,13.1l-0.85,0.6V16h-4v-2.3l-0.85,-0.6C7.8,12.16 7,10.63 7,9c0,-2.76 2.24,-5 5,-5s5,2.24 5,5c0,1.63 -0.8,3.16 -2.15,4.1z" />
                 </svg>
               </div>
-              <h4 class="clean-other-service-title">Pago de Energía Eléctrica</h4>
-              <p class="clean-other-service-desc">
-                DEOCSA y DEORSA. Realiza el pago ágil y al día de tus facturas de energía eléctrica directamente en ventanillas de nuestras agencias.
-              </p>
+              <h4 class="clean-other-service-title">${energiaTitle}</h4>
+              <p class="clean-other-service-desc">${energiaDesc}</p>
             </div>
 
             <!-- 2. Pago de Servicio Telefónico -->
@@ -566,10 +708,8 @@ class SectionsComponent {
                   <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z" />
                 </svg>
               </div>
-              <h4 class="clean-other-service-title">Pago de Servicio Telefónico</h4>
-              <p class="clean-other-service-desc">
-                Pre y Pospago: CLARO y TIGO. Recargas electrónicas y pago de mensualidades telefónicas sin demoras ni recargos adicionales.
-              </p>
+              <h4 class="clean-other-service-title">${telTitle}</h4>
+              <p class="clean-other-service-desc">${telDesc}</p>
             </div>
 
             <!-- 3. Cajeros 5B, BI y BAC -->
@@ -580,10 +720,8 @@ class SectionsComponent {
                   <path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z" />
                 </svg>
               </div>
-              <h4 class="clean-other-service-title">Cajeros Red 5B, BI y BAC</h4>
-              <p class="clean-other-service-desc">
-                Consulta de saldos y retiros en efectivo en más de 3,500 cajeros interbancarios de la red con recargo de Q5.00 por transacción.
-              </p>
+              <h4 class="clean-other-service-title">${cajerosTitle}</h4>
+              <p class="clean-other-service-desc">${cajerosDesc}</p>
             </div>
           </div>
         </section>
@@ -593,37 +731,46 @@ class SectionsComponent {
 
   // --- 6. TUS 6 BENEFICIOS ---
   async renderBeneficios(sectionId) {
+    const secId = sectionId || 'sec_beneficios';
+    let headerItem = null;
     let beneficios = [];
+
     try {
-      const dbItems = await window.coluaRepository.getItemsBySection(sectionId || 'sec_beneficios');
+      const dbItems = await window.coluaRepository.getItemsBySection(secId);
       if (dbItems && dbItems.length > 0) {
-        beneficios = dbItems.map(i => ({
-          titulo: i.title,
-          desc: i.description || i.shortDescription || '',
-          img: i.imageUrl || i.imagePath || 'assets/beneficios.png',
-          tag: i.subtitle || '✓ Incluido al ser Asociado'
-        }));
+        headerItem = dbItems.find(i => i.id === 'item_ben_header');
+        const cardItems = dbItems.filter(i => i.id !== 'item_ben_header' && i.isVisible !== false && i.isEnabled !== false);
+        if (cardItems.length > 0) {
+          beneficios = cardItems.map(i => ({
+            id: i.id,
+            titulo: i.title,
+            desc: i.description || i.shortDescription || '',
+            img: i.imageUrl || i.imagePath || 'assets/beneficios.png',
+            tag: i.subtitle || '✓ Incluido al ser Asociado'
+          }));
+        }
       }
     } catch(e) { console.error(e); }
 
     if (beneficios.length === 0) {
       beneficios = [
-        { titulo: "Renta Diaria por Hospitalización", desc: "Apoyo económico diario en caso de ser internado en hospital público o privado.", img: "assets/renta_diaria.png" },
-        { titulo: "Apoyo Quirúrgico", desc: "Apoyo económico para cubrir gastos médicos incurridos por intervenciones quirúrgicas.", img: "assets/apoyo_quirurgico.png" },
-        { titulo: "Servicio Funerario", desc: "Sepelio digno y ataúd fúnebre para tranquilidad de la familia del asociado.", img: "assets/servicio_funerario.png" },
-        { titulo: "Seguro de Ahorrantes", desc: "Devolución de ahorros más seguro sobre depósitos hasta por Q150,000.00.", img: "assets/beneficio_de_ahorrantes.png" },
-        { titulo: "Seguro de Deudores", desc: "Cobertura de saldos insolutos de crédito vigente hasta por Q200,000.00 en siniestro.", img: "assets/beneficio_de_deudores.png" },
-        { titulo: "Beneficio de Oro", desc: "Apoyo económico único para asociados mayores de 70 años con lealtad cooperativa.", img: "assets/beneficio_de_oro.png" }
+        { titulo: "Renta Diaria por Hospitalización", desc: "Apoyo económico diario en caso de ser internado en hospital público o privado.", img: "assets/renta_diaria.png", tag: "✓ Incluido al ser Asociado" },
+        { titulo: "Apoyo Quirúrgico", desc: "Apoyo económico para cubrir gastos médicos incurridos por intervenciones quirúrgicas.", img: "assets/apoyo_quirurgico.png", tag: "✓ Incluido al ser Asociado" },
+        { titulo: "Servicio Funerario", desc: "Sepelio digno y ataúd fúnebre para tranquilidad de la familia del asociado.", img: "assets/servicio_funerario.png", tag: "✓ Incluido al ser Asociado" },
+        { titulo: "Seguro de Ahorrantes", desc: "Devolución de ahorros más seguro sobre depósitos hasta por Q150,000.00.", img: "assets/beneficio_de_ahorrantes.png", tag: "✓ Hasta Q150,000.00" },
+        { titulo: "Seguro de Deudores", desc: "Cobertura de saldos insolutos de crédito vigente hasta por Q200,000.00 en siniestro.", img: "assets/beneficio_de_deudores.png", tag: "✓ Hasta Q200,000.00" },
+        { titulo: "Beneficio de Oro", desc: "Apoyo económico único para asociados mayores de 70 años con lealtad cooperativa.", img: "assets/beneficio_de_oro.png", tag: "✓ Mayores de 70 años" }
       ];
     }
+
+    const headerTitle = headerItem ? headerItem.title : "Tus 6 Beneficios de Asociado";
+    const headerDesc = headerItem ? (headerItem.subtitle || headerItem.description) : "Al abrir tu cuenta de Aportación en COLUA R.L., tú y tu familia cuentan con el respaldo automático de nuestro programa integral de solidaridad.";
 
     return `
       <div class="clean-subpage-container">
         <header class="clean-subpage-header">
-          <h1 class="clean-subpage-title">Tus 6 Beneficios de Asociado</h1>
-          <p class="clean-subpage-desc">
-            Al abrir tu cuenta de Aportación en COLUA R.L., tú y tu familia cuentan con el respaldo automático de nuestro programa integral de solidaridad.
-          </p>
+          <h1 class="clean-subpage-title">${headerTitle}</h1>
+          <p class="clean-subpage-desc">${headerDesc}</p>
         </header>
 
         <div class="clean-product-grid">
@@ -646,12 +793,20 @@ class SectionsComponent {
     `;
   }
 
-  // --- 7. SOSTENIBILIDAD & FORMACIÓN ---
   // --- 7. SOSTENIBILIDAD COOPERATIVA (4 EJES ESTRATÉGICOS) ---
   async renderSostenibilidad(sectionId) {
+    const secId = sectionId || 'sec_sostenibilidad';
+    let headerItem = null;
+    let bannerItem = null;
     let customItems = [];
+
     try {
-      customItems = await window.coluaRepository.getItemsBySection(sectionId || 'sec_sostenibilidad');
+      const dbItems = await window.coluaRepository.getItemsBySection(secId);
+      if (dbItems && dbItems.length > 0) {
+        headerItem = dbItems.find(i => i.id === 'item_sost_header');
+        bannerItem = dbItems.find(i => i.id === 'item_sost_banner_contacto');
+        customItems = dbItems.filter(i => i.id !== 'item_sost_header' && i.id !== 'item_sost_banner_contacto' && i.isVisible !== false && i.isEnabled !== false);
+      }
     } catch(e) { console.error(e); }
 
     const colors = [
@@ -660,6 +815,15 @@ class SectionsComponent {
       { color: "#E42A67", bg: "#fdf2f8", border: "#fbcfe8" },
       { color: "#EF8819", bg: "#fff7ed", border: "#fed7aa" }
     ];
+
+    const headerTitle = headerItem ? headerItem.title : "Sostenibilidad Cooperativa";
+    const headerLead = headerItem ? (headerItem.subtitle || headerItem.description) : "Impulsamos acciones orientadas al desarrollo social, educativo, cultural y productivo con el propósito de fortalecer el bienestar de nuestros asociados y comunidades. A través de espacios de participación, formación y convivencia, promovemos la cooperación, la solidaridad y el compromiso comunitario.";
+    
+    const bannerEyebrow = bannerItem ? (bannerItem.subtitle || "PARTICIPACIÓN COMUNITARIA") : "PARTICIPACIÓN COMUNITARIA";
+    const bannerTitle = bannerItem ? bannerItem.title : "¿Deseas vincular a tu comunidad o escuela?";
+    const bannerDesc = bannerItem ? (bannerItem.description || "Comunícate a nuestro PBX central o visita tu agencia COLUA más cercana para conocer fechas y convocatorias de nuestros talleres, cursos y programas de becas.") : "Comunícate a nuestro PBX central o visita tu agencia COLUA más cercana para conocer fechas y convocatorias de nuestros talleres, cursos y programas de becas.";
+    const bannerBtn = bannerItem ? (bannerItem.buttonText || "PBX: 7795-7795") : "PBX: 7795-7795";
+    const bannerAction = bannerItem ? (bannerItem.buttonAction || "tel:77957795") : "tel:77957795";
 
     if (customItems && customItems.length > 0) {
       const itemsWithBlocks = await Promise.all(customItems.map(async (item, idx) => {
@@ -672,10 +836,8 @@ class SectionsComponent {
         <div class="sostenibilidad-page-wrapper">
           <!-- Encabezado Institucional -->
           <header class="sostenibilidad-hero">
-            <h1 class="sostenibilidad-hero-title">Sostenibilidad Cooperativa</h1>
-            <p class="sostenibilidad-hero-lead">
-              Impulsamos acciones orientadas al desarrollo social, educativo, cultural y productivo con el propósito de fortalecer el bienestar de nuestros asociados y comunidades. A través de espacios de participación, formación y convivencia, promovemos la cooperación, la solidaridad y el compromiso comunitario.
-            </p>
+            <h1 class="sostenibilidad-hero-title">${headerTitle}</h1>
+            <p class="sostenibilidad-hero-lead">${headerLead}</p>
             <p class="sostenibilidad-hero-sub">
               Nuestras iniciativas se organizan en ejes estratégicos:
             </p>
@@ -724,16 +886,14 @@ class SectionsComponent {
           <section class="nosotros-contact-banner">
             <div class="nosotros-contact-top">
               <div class="nosotros-contact-left">
-                <span class="nosotros-sec-eyebrow" style="color:#173789;">PARTICIPACIÓN COMUNITARIA</span>
-                <h2 class="nosotros-sec-title" style="margin-bottom:0.4rem;">¿Deseas vincular a tu comunidad o escuela?</h2>
-                <p style="font-size:0.9rem;color:#64748b;line-height:1.55;">
-                  Comunícate a nuestro PBX central o visita tu agencia COLUA más cercana para conocer fechas y convocatorias de nuestros talleres, cursos y programas de becas.
-                </p>
+                <span class="nosotros-sec-eyebrow" style="color:#173789;">${bannerEyebrow}</span>
+                <h2 class="nosotros-sec-title" style="margin-bottom:0.4rem;">${bannerTitle}</h2>
+                <p style="font-size:0.9rem;color:#64748b;line-height:1.55;">${bannerDesc}</p>
               </div>
               <div class="nosotros-contact-actions">
-                <a href="tel:77957795" class="nosotros-btn-pbx">
+                <a href="${bannerAction}" class="nosotros-btn-pbx">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                  PBX: 7795-7795
+                  ${bannerBtn}
                 </a>
                 <button class="nosotros-btn-agencias" onclick="window.coluaRouter ? window.coluaRouter.navigate('sec_agencias') : (window.location.hash='#sec_agencias')">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -748,304 +908,97 @@ class SectionsComponent {
 
     return `
       <div class="sostenibilidad-page-wrapper">
-        <!-- Encabezado Institucional -->
         <header class="sostenibilidad-hero">
-          <h1 class="sostenibilidad-hero-title">Sostenibilidad Cooperativa</h1>
-          <p class="sostenibilidad-hero-lead">
-            Impulsamos acciones orientadas al desarrollo social, educativo, cultural y productivo con el propósito de fortalecer el bienestar de nuestros asociados y comunidades. A través de espacios de participación, formación y convivencia, promovemos la cooperación, la solidaridad y el compromiso comunitario.
-          </p>
-          <p class="sostenibilidad-hero-sub">
-            Nuestras iniciativas se organizan en cuatro ejes estratégicos:
-          </p>
+          <h1 class="sostenibilidad-hero-title">${headerTitle}</h1>
+          <p class="sostenibilidad-hero-lead">${headerLead}</p>
         </header>
-
-        <!-- Los 4 Ejes Estratégicos con Imágenes Reales y Programas Oficiales -->
-        <div class="sostenibilidad-ejes-list">
-
-          <!-- EJE 1: Educación y Formación Cooperativa -->
-          <article class="sostenibilidad-eje-card" style="--eje-color: #634794; --eje-soft-bg: #f5f3ff; --eje-soft-border: #ddd6fe;">
-            <div class="sostenibilidad-eje-img-box">
-              <img src="assets/noticia_taller_finanzas.jpg" alt="Educación y Formación Cooperativa COLUA" class="sostenibilidad-eje-img" onerror="this.src='assets/programa_wachalal.png'" />
-            </div>
-            <div class="sostenibilidad-eje-content">
-              <div class="sostenibilidad-eje-header">
-                <span class="sostenibilidad-eje-kicker">Eje Estratégico 01</span>
-                <h2 class="sostenibilidad-eje-title">Educación y Formación Cooperativa</h2>
-                <p class="sostenibilidad-eje-desc">
-                  Fortalecemos las capacidades individuales y colectivas mediante la educación financiera y el cooperativismo como motores de superación familiar.
-                </p>
-              </div>
-
-              <div class="sostenibilidad-programas-grid">
-                <div class="sostenibilidad-programa-item">
-                  <div class="sostenibilidad-prog-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-                  </div>
-                  <div class="sostenibilidad-prog-info">
-                    <h3 class="sostenibilidad-prog-title">Educación y Formación Financiera y de Crédito</h3>
-                    <p class="sostenibilidad-prog-desc">Capacitación continua en finanzas familiares, administración prudencial y uso responsable del crédito.</p>
-                  </div>
-                </div>
-
-                <div class="sostenibilidad-programa-item">
-                  <div class="sostenibilidad-prog-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-                  </div>
-                  <div class="sostenibilidad-prog-info">
-                    <h3 class="sostenibilidad-prog-title">Programa de Becas Jóvenes Cooperativistas</h3>
-                    <p class="sostenibilidad-prog-desc">Estímulo y financiamiento educativo para estudiantes destacados e hijos de asociados.</p>
-                  </div>
-                </div>
-
-                <div class="sostenibilidad-programa-item">
-                  <div class="sostenibilidad-prog-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
-                  </div>
-                  <div class="sostenibilidad-prog-info">
-                    <h3 class="sostenibilidad-prog-title">Programa de Educación Financiera Huellas</h3>
-                    <p class="sostenibilidad-prog-desc">Formación de hábitos de ahorro y disciplina económica para niños y jóvenes de la región.</p>
-                  </div>
-                </div>
-
-                <div class="sostenibilidad-programa-item">
-                  <div class="sostenibilidad-prog-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
-                  </div>
-                  <div class="sostenibilidad-prog-info">
-                    <h3 class="sostenibilidad-prog-title">Programa Wachalal</h3>
-                    <p class="sostenibilidad-prog-desc">Iniciativa solidaria de acompañamiento escolar y valores cooperativos en escuelas locales.</p>
-                  </div>
-                </div>
-
-                <div class="sostenibilidad-programa-item" style="grid-column: 1 / -1;">
-                  <div class="sostenibilidad-prog-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 2a5 5 0 0 1 5 5v2"/><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-                  </div>
-                  <div class="sostenibilidad-prog-info">
-                    <h3 class="sostenibilidad-prog-title">Formación a Niños, Jóvenes y Adultos</h3>
-                    <p class="sostenibilidad-prog-desc">Espacios inclusivos e intergeneracionales que garantizan aprendizaje continuo en todas las etapas de la vida comunitaria.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </article>
-
-          <!-- EJE 2: Empleabilidad y Empresarialidad -->
-          <article class="sostenibilidad-eje-card" style="--eje-color: #0284C7; --eje-soft-bg: #f0f9ff; --eje-soft-border: #bae6fd;">
-            <div class="sostenibilidad-eje-img-box">
-              <img src="assets/nosotros_artesana.jpg" alt="Empleabilidad y Empresarialidad COLUA" class="sostenibilidad-eje-img" onerror="this.src='assets/tallerescomunitarios.png'" />
-            </div>
-            <div class="sostenibilidad-eje-content">
-              <div class="sostenibilidad-eje-header">
-                <span class="sostenibilidad-eje-kicker">Eje Estratégico 02</span>
-                <h2 class="sostenibilidad-eje-title">Empleabilidad y Empresarialidad</h2>
-                <p class="sostenibilidad-eje-desc">
-                  Impulsamos la generación de ingresos propios y la innovación productiva para dinamizar la economía solidaria de nuestros pueblos.
-                </p>
-              </div>
-
-              <div class="sostenibilidad-programas-grid">
-                <div class="sostenibilidad-programa-item">
-                  <div class="sostenibilidad-prog-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                  </div>
-                  <div class="sostenibilidad-prog-info">
-                    <h3 class="sostenibilidad-prog-title">Centros de Innovación en Sololá y Argueta</h3>
-                    <p class="sostenibilidad-prog-desc">Espacios tecnológicos equipados para la inclusión digital, formación técnica y conectividad comunitaria.</p>
-                  </div>
-                </div>
-
-                <div class="sostenibilidad-programa-item">
-                  <div class="sostenibilidad-prog-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-                  </div>
-                  <div class="sostenibilidad-prog-info">
-                    <h3 class="sostenibilidad-prog-title">Cursos de Formación Técnica Práctica y Digital</h3>
-                    <p class="sostenibilidad-prog-desc">Talleres aplicados en oficios técnicos y herramientas digitales demandadas para el autoempleo inmediato.</p>
-                  </div>
-                </div>
-
-                <div class="sostenibilidad-programa-item">
-                  <div class="sostenibilidad-prog-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-                  </div>
-                  <div class="sostenibilidad-prog-info">
-                    <h3 class="sostenibilidad-prog-title">Emprendimiento Sostenible y Feria de Emprendedores</h3>
-                    <p class="sostenibilidad-prog-desc">Asesoría de planes de negocio y vitrinas comerciales para promocionar productos de productores locales.</p>
-                  </div>
-                </div>
-
-                <div class="sostenibilidad-programa-item">
-                  <div class="sostenibilidad-prog-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>
-                  </div>
-                  <div class="sostenibilidad-prog-info">
-                    <h3 class="sostenibilidad-prog-title">Club de Lectura, Cursos de Música y Ajedrez</h3>
-                    <p class="sostenibilidad-prog-desc">Actividades complementarias de desarrollo intelectual, artístico y razonamiento estratégico para la juventud.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </article>
-
-          <!-- EJE 3: Desarrollo Comunitario -->
-          <article class="sostenibilidad-eje-card" style="--eje-color: #E42A67; --eje-soft-bg: #fdf2f8; --eje-soft-border: #fbcfe8;">
-            <div class="sostenibilidad-eje-img-box">
-              <img src="assets/noticia_asamblea_general.jpg" alt="Desarrollo Comunitario y ADN COLUA" class="sostenibilidad-eje-img" onerror="this.src='assets/desarrollo_comunitario.png'" />
-            </div>
-            <div class="sostenibilidad-eje-content">
-              <div class="sostenibilidad-eje-header">
-                <span class="sostenibilidad-eje-kicker">Eje Estratégico 03</span>
-                <h2 class="sostenibilidad-eje-title">Desarrollo Comunitario</h2>
-                <p class="sostenibilidad-eje-desc">
-                  Fortalecemos la identidad cooperativa, la participación democrática y la formación dirigencial en beneficio del bien común.
-                </p>
-              </div>
-
-              <div class="sostenibilidad-programas-grid">
-                <div class="sostenibilidad-programa-item">
-                  <div class="sostenibilidad-prog-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
-                  </div>
-                  <div class="sostenibilidad-prog-info">
-                    <h3 class="sostenibilidad-prog-title">ADN COLUA</h3>
-                    <p class="sostenibilidad-prog-desc">Cultura y sentido de pertenencia solidaria que consolida los valores del cooperativismo en cada asociado.</p>
-                  </div>
-                </div>
-
-                <div class="sostenibilidad-programa-item">
-                  <div class="sostenibilidad-prog-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                  </div>
-                  <div class="sostenibilidad-prog-info">
-                    <h3 class="sostenibilidad-prog-title">Programa de Líderes Cooperativos</h3>
-                    <p class="sostenibilidad-prog-desc">Formación de cuadros dirigenciales éticos para liderar comités locales y gobernanza comunal.</p>
-                  </div>
-                </div>
-
-                <div class="sostenibilidad-programa-item" style="grid-column: 1 / -1;">
-                  <div class="sostenibilidad-prog-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-                  </div>
-                  <div class="sostenibilidad-prog-info">
-                    <h3 class="sostenibilidad-prog-title">Plan de Desarrollo Cooperativo</h3>
-                    <p class="sostenibilidad-prog-desc">Instrumento institucional de planificación estratégica territorial para responder a los desafíos prioritarios de la comunidad.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </article>
-
-          <!-- EJE 4: Proyectos y Alianzas -->
-          <article class="sostenibilidad-eje-card" style="--eje-color: #EF8819; --eje-soft-bg: #fff7ed; --eje-soft-border: #fed7aa;">
-            <div class="sostenibilidad-eje-img-box">
-              <img src="assets/noticia_reforestacion.jpg" alt="Proyectos y Alianzas COLUA" class="sostenibilidad-eje-img" onerror="this.src='assets/programa_huellas.png'" />
-            </div>
-            <div class="sostenibilidad-eje-content">
-              <div class="sostenibilidad-eje-header">
-                <span class="sostenibilidad-eje-kicker">Eje Estratégico 04</span>
-                <h2 class="sostenibilidad-eje-title">Proyectos y Alianzas</h2>
-                <p class="sostenibilidad-eje-desc">
-                  Articulamos esfuerzos solidarios para la salud comunitaria, el cuidado de la madre tierra y la conservación de nuestras raíces culturales.
-                </p>
-              </div>
-
-              <div class="sostenibilidad-programas-grid">
-                <div class="sostenibilidad-programa-item">
-                  <div class="sostenibilidad-prog-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                  </div>
-                  <div class="sostenibilidad-prog-info">
-                    <h3 class="sostenibilidad-prog-title">Jornadas Médicas y Proyectos de Caridad</h3>
-                    <p class="sostenibilidad-prog-desc">Atención de salud preventiva y brigadas solidarias para familias y personas de escasos recursos.</p>
-                  </div>
-                </div>
-
-                <div class="sostenibilidad-programa-item">
-                  <div class="sostenibilidad-prog-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                  </div>
-                  <div class="sostenibilidad-prog-info">
-                    <h3 class="sostenibilidad-prog-title">Proyectos de Reforestación</h3>
-                    <p class="sostenibilidad-prog-desc">Iniciativas ambientales masivas para proteger cuencas hídricas, bosques comunales y suelos fértiles.</p>
-                  </div>
-                </div>
-
-                <div class="sostenibilidad-programa-item" style="grid-column: 1 / -1;">
-                  <div class="sostenibilidad-prog-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/></svg>
-                  </div>
-                  <div class="sostenibilidad-prog-info">
-                    <h3 class="sostenibilidad-prog-title">Práctica de Valores y Tradiciones</h3>
-                    <p class="sostenibilidad-prog-desc">Fomento activo de la convivencia armónica, el respeto intercultural y las tradiciones vivas de nuestras comunidades.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </article>
-
-        </div>
-
-        <!-- Banner de Participación y Convocatoria -->
-        <section class="nosotros-contact-banner">
-          <div class="nosotros-contact-top">
-            <div class="nosotros-contact-left">
-              <span class="nosotros-sec-eyebrow" style="color:#173789;">PARTICIPACIÓN COMUNITARIA</span>
-              <h2 class="nosotros-sec-title" style="margin-bottom:0.4rem;">¿Deseas vincular a tu comunidad o escuela?</h2>
-              <p style="font-size:0.9rem;color:#64748b;line-height:1.55;">
-                Comunícate a nuestro PBX central o visita tu agencia COLUA más cercana para conocer fechas y convocatorias de nuestros talleres, cursos y programas de becas.
-              </p>
-            </div>
-            <div class="nosotros-contact-actions">
-              <a href="tel:77957795" class="nosotros-btn-pbx">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                PBX: 7795-7795
-              </a>
-              <button class="nosotros-btn-agencias" onclick="window.coluaRouter ? window.coluaRouter.navigate('sec_agencias') : (window.location.hash='#sec_agencias')">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                Ver Agencias
-              </button>
-            </div>
-          </div>
-        </section>
       </div>
     `;
   }
 
   // --- 8. NOSOTROS (IDENTIDAD Y GOBERNANZA COOPERATIVA) ---
   async renderNosotros(sectionId) {
-    let customItems = [];
+    const secId = sectionId || 'sec_nosotros';
+    let headerItem = null;
+    let pilar1 = null;
+    let pilar2 = null;
+    let pilar3 = null;
+    let presencia = null;
+    let valIntegridad = null;
+    let valCooperacion = null;
+    let valResponsabilidad = null;
+    let valEnfoque = null;
+    let galArraigo = null;
+    let galGobernanza = null;
+    let contactBanner = null;
+
     try {
-      customItems = await window.coluaRepository.getItemsBySection(sectionId || 'sec_nosotros');
+      const dbItems = await window.coluaRepository.getItemsBySection(secId);
+      if (dbItems && dbItems.length > 0) {
+        headerItem = dbItems.find(i => i.id === 'item_nos_header');
+        pilar1 = dbItems.find(i => i.id === 'item_nos_mision_vision');
+        pilar2 = dbItems.find(i => i.id === 'item_nos_vision');
+        pilar3 = dbItems.find(i => i.id === 'item_nos_proposito');
+        presencia = dbItems.find(i => i.id === 'item_nos_presencia');
+        valIntegridad = dbItems.find(i => i.id === 'item_nos_val_integridad');
+        valCooperacion = dbItems.find(i => i.id === 'item_nos_val_cooperacion');
+        valResponsabilidad = dbItems.find(i => i.id === 'item_nos_val_responsabilidad');
+        valEnfoque = dbItems.find(i => i.id === 'item_nos_val_enfoque');
+        galArraigo = dbItems.find(i => i.id === 'item_nos_gal_arraigo');
+        galGobernanza = dbItems.find(i => i.id === 'item_nos_gal_gobernanza');
+        contactBanner = dbItems.find(i => i.id === 'item_nos_banner_contacto');
+      }
     } catch(e) { console.error(e); }
 
-    if (customItems && customItems.length > 0) {
-      return `
-        <div class="nosotros-page-wrapper">
-          <header class="nosotros-header-block">
-            <span class="nosotros-kicker">IDENTIDAD Y GOBERNANZA COOPERATIVA</span>
-            <h1 class="nosotros-main-title">Nosotros: El lado humano de los ahorros y créditos</h1>
-            <p class="nosotros-main-sub">
-              Más de 50 años construyendo desarrollo socioeconómico, confianza y bienestar integral para las comunidades y familias.
-            </p>
-          </header>
-          <div class="clean-product-grid" style="margin-top: 2rem;">
-            ${customItems.map(item => `
-              <div class="clean-product-card">
-                <div>
-                  <div class="clean-product-icon-wrap">
-                    <img src="${item.imageUrl || 'assets/colua_edificio.png'}" alt="${item.title}" onerror="this.src='assets/distintivo_colua.png'" />
-                  </div>
-                  <h3 class="clean-product-name">${item.title}</h3>
-                  <p class="clean-product-desc">${item.description || item.subtitle || ''}</p>
-                </div>
-                ${item.buttonText ? `<a href="${item.targetSectionId || '#'}" class="clean-btn-card-action">${item.buttonText}</a>` : ''}
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    }
+    const headerTitle = headerItem ? headerItem.title : "Nosotros: El lado humano de los ahorros y créditos";
+    const headerSub = headerItem ? (headerItem.subtitle || headerItem.description) : "Más de 50 años construyendo desarrollo socioeconómico, confianza y bienestar integral para las comunidades y familias de Quiché, Sololá y el suroccidente de Guatemala.";
+
+    const p1Title = pilar1 ? pilar1.title : "Propuesta de Valor";
+    const p1Tag = pilar1 ? (pilar1.subtitle || "PILAR ESTRATÉGICO 01") : "PILAR ESTRATÉGICO 01";
+    const p1Quote = pilar1 ? pilar1.description : "“En COLUA reconocemos tu valor como persona para alcanzar tu bienestar integral y el de tu familia, a través de productos y servicios financieros éticos, ágiles y accesibles, basados en el poder de la cooperación.”";
+
+    const p2Title = pilar2 ? pilar2.title : "Visión Institucional";
+    const p2Tag = pilar2 ? (pilar2.subtitle || "PILAR ESTRATÉGICO 02") : "PILAR ESTRATÉGICO 02";
+    const p2Quote = pilar2 ? pilar2.description : "“Ser un modelo de desarrollo y sostenibilidad integral de las comunidades basado en la cooperación mutua, solvencia técnica y transparencia comunitaria.”";
+
+    const p3Title = pilar3 ? pilar3.title : "Propósito Visionario";
+    const p3Tag = pilar3 ? (pilar3.subtitle || "PILAR ESTRATÉGICO 03") : "PILAR ESTRATÉGICO 03";
+    const p3Quote = pilar3 ? pilar3.description : "“Ser la cooperativa financiera que mejora sostenidamente la calidad de vida de sus asociados y comunidades de Guatemala, protegiendo su patrimonio intergeneracional.”";
+
+    const presTitle = presencia ? presencia.title : "Una institución financiera con rostro solidario y solidez técnica";
+    const presEyebrow = presencia ? (presencia.subtitle || "PRESENCIA Y TRATO HUMANO") : "PRESENCIA Y TRATO HUMANO";
+    const presDesc = presencia ? presencia.description : "A diferencia del sistema bancario tradicional, en COLUA cada asociado es co-propietario de la entidad. Los excedentes generados se reinvierten directamente en mejores tasas de interés para el ahorro, créditos productivos accesibles y programas de asistencia comunitaria sin intermediarios.";
+    const presImg = presencia ? (presencia.imageUrl || "assets/nosotros_edificio_equipo.jpg") : "assets/nosotros_edificio_equipo.jpg";
+
+    const val1Title = valIntegridad ? valIntegridad.title : "Integridad";
+    const val1Tag = valIntegridad ? (valIntegridad.subtitle || "PILAR ÉTICO CENTRAL") : "PILAR ÉTICO CENTRAL";
+    const val1Desc = valIntegridad ? valIntegridad.description : "Actuar con coherencia con nuestros valores, manteniendo transparencia en todo lo que hacemos y fomentando la cooperación en cada acción.";
+
+    const val2Title = valCooperacion ? valCooperacion.title : "Cooperación";
+    const val2Tag = valCooperacion ? (valCooperacion.subtitle || "PRINCIPIO COMUNITARIO") : "PRINCIPIO COMUNITARIO";
+    const val2Desc = valCooperacion ? valCooperacion.description : "Trabajar juntos para alcanzar un objetivo común, basada en la ayuda mutua, la solidaridad y el esfuerzo compartido por el bien colectivo.";
+
+    const val3Title = valResponsabilidad ? valResponsabilidad.title : "Responsabilidad";
+    const val3Tag = valResponsabilidad ? (valResponsabilidad.subtitle || "DISCIPLINA FIDUCIARIA") : "DISCIPLINA FIDUCIARIA";
+    const val3Desc = valResponsabilidad ? valResponsabilidad.description : "Administramos y cuidamos los ahorros de nuestros asociados que nos han confiado con rigurosa prudencia técnica y máxima solvencia.";
+
+    const val4Title = valEnfoque ? valEnfoque.title : "Enfoque al Asociado";
+    const val4Tag = valEnfoque ? (valEnfoque.subtitle || "VOCACIÓN DE SERVICIO") : "VOCACIÓN DE SERVICIO";
+    const val4Desc = valEnfoque ? valEnfoque.description : "El centro de atención de nuestros esfuerzos y nuestra lealtad son los asociados, a quienes entregamos siempre soluciones de calidad y trato humano.";
+
+    const gal1Title = galArraigo ? galArraigo.title : "Identidad Cultural y Comunitaria en el Altiplano";
+    const gal1Tag = galArraigo ? (galArraigo.subtitle || "ARRAIGO TERRITORIAL") : "ARRAIGO TERRITORIAL";
+    const gal1Img = galArraigo ? (galArraigo.imageUrl || "assets/nosotros_artesana.jpg") : "assets/nosotros_artesana.jpg";
+
+    const gal2Title = galGobernanza ? galGobernanza.title : "Participación Democrática y Solidez del Sistema MICOOPE";
+    const gal2Tag = galGobernanza ? (galGobernanza.subtitle || "GOBERNANZA COOPERATIVA") : "GOBERNANZA COOPERATIVA";
+    const gal2Img = galGobernanza ? (galGobernanza.imageUrl || "assets/noticia_asamblea_general.jpg") : "assets/noticia_asamblea_general.jpg";
+
+    const contactTitle = contactBanner ? contactBanner.title : "¿Necesitas ayuda adicional o deseas afiliarte?";
+    const contactEyebrow = contactBanner ? (contactBanner.subtitle || "ATENCIÓN AL ASOCIADO Y PÚBLICO") : "ATENCIÓN AL ASOCIADO Y PÚBLICO";
+    const contactDesc = contactBanner ? (contactBanner.description || "Comunícate a nuestro PBX central o visítanos en cualquiera de nuestras 18 agencias departamentales para abrir tu cuenta de aportaciones y disfrutar de los beneficios cooperativos.") : "Comunícate a nuestro PBX central o visítanos en cualquiera de nuestras 18 agencias departamentales para abrir tu cuenta de aportaciones y disfrutar de los beneficios cooperativos.";
+    const contactBtn = contactBanner ? (contactBanner.buttonText || "PBX: 7795-7795") : "PBX: 7795-7795";
+    const contactAction = contactBanner ? (contactBanner.buttonAction || "tel:77957795") : "tel:77957795";
 
     return `
       <div class="nosotros-page-wrapper">
@@ -1054,10 +1007,8 @@ class SectionsComponent {
           <span class="nosotros-kicker">IDENTIDAD Y GOBERNANZA COOPERATIVA / Memoria Institucional & Propósito</span>
           <div class="nosotros-header-row">
             <div class="nosotros-header-left">
-              <h1 class="nosotros-main-title">Nosotros: El lado humano de los ahorros y créditos</h1>
-              <p class="nosotros-main-sub">
-                Más de 50 años construyendo desarrollo socioeconómico, confianza y bienestar integral para las comunidades y familias de Quiché, Sololá y el suroccidente de Guatemala.
-              </p>
+              <h1 class="nosotros-main-title">${headerTitle}</h1>
+              <p class="nosotros-main-sub">${headerSub}</p>
             </div>
             <div class="nosotros-header-badges">
               <div class="nosotros-badge">
@@ -1089,11 +1040,9 @@ class SectionsComponent {
                 <div class="nosotros-pillar-icon-box">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
                 </div>
-                <span class="nosotros-pillar-tag">PILAR ESTRATÉGICO 01</span>
-                <h3 class="nosotros-pillar-title">Propuesta de Valor</h3>
-                <p class="nosotros-pillar-quote">
-                  “En COLUA reconocemos tu valor como persona para alcanzar tu bienestar integral y el de tu familia, a través de productos y servicios financieros éticos, ágiles y accesibles, basados en el poder de la cooperación.”
-                </p>
+                <span class="nosotros-pillar-tag">${p1Tag}</span>
+                <h3 class="nosotros-pillar-title">${p1Title}</h3>
+                <p class="nosotros-pillar-quote">${p1Quote}</p>
               </div>
               <span class="nosotros-pillar-link">
                 Enfoque Fiduciario
@@ -1107,11 +1056,9 @@ class SectionsComponent {
                 <div class="nosotros-pillar-icon-box">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                 </div>
-                <span class="nosotros-pillar-tag">PILAR ESTRATÉGICO 02</span>
-                <h3 class="nosotros-pillar-title">Visión Institucional</h3>
-                <p class="nosotros-pillar-quote">
-                  “Ser un modelo de desarrollo y sostenibilidad integral de las comunidades basado en la cooperación mutua, solvencia técnica y transparencia comunitaria.”
-                </p>
+                <span class="nosotros-pillar-tag">${p2Tag}</span>
+                <h3 class="nosotros-pillar-title">${p2Title}</h3>
+                <p class="nosotros-pillar-quote">${p2Quote}</p>
               </div>
               <span class="nosotros-pillar-link">
                 Proyección 2025-2030
@@ -1125,11 +1072,9 @@ class SectionsComponent {
                 <div class="nosotros-pillar-icon-box">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
                 </div>
-                <span class="nosotros-pillar-tag">PILAR ESTRATÉGICO 03</span>
-                <h3 class="nosotros-pillar-title">Propósito Visionario</h3>
-                <p class="nosotros-pillar-quote">
-                  “Ser la cooperativa financiera que mejora sostenidamente la calidad de vida de sus asociados y comunidades de Guatemala, protegiendo su patrimonio intergeneracional.”
-                </p>
+                <span class="nosotros-pillar-tag">${p3Tag}</span>
+                <h3 class="nosotros-pillar-title">${p3Title}</h3>
+                <p class="nosotros-pillar-quote">${p3Quote}</p>
               </div>
               <span class="nosotros-pillar-link">
                 Impacto Territorial
@@ -1142,13 +1087,13 @@ class SectionsComponent {
         <!-- 2. PRESENCIA Y TRATO HUMANO (SPLIT CARD CON FOTO) -->
         <section class="nosotros-presence-card">
           <div class="nosotros-presence-img-wrap">
-            <img src="assets/nosotros_edificio_equipo.jpg" alt="Presencia y Trato Humano COLUA MICOOPE" class="nosotros-presence-img" onerror="this.src='assets/colua_edificio.png'" />
+            <img src="${presImg}" alt="${presTitle}" class="nosotros-presence-img" onerror="this.src='assets/colua_edificio.png'" />
           </div>
           <div class="nosotros-presence-content">
-            <span class="nosotros-sec-eyebrow" style="color:#173789;">PRESENCIA Y TRATO HUMANO</span>
-            <h2 class="nosotros-sec-title" style="margin-bottom:0.75rem;">Una institución financiera con rostro solidario y solidez técnica</h2>
+            <span class="nosotros-sec-eyebrow" style="color:#173789;">${presEyebrow}</span>
+            <h2 class="nosotros-sec-title" style="margin-bottom:0.75rem;">${presTitle}</h2>
             <p style="font-size:0.92rem;color:#475569;line-height:1.65;margin-bottom:0.75rem;">
-              A diferencia del sistema bancario tradicional, en COLUA cada asociado es co-propietario de la entidad. Los excedentes generados se reinvierten directamente en mejores tasas de interés para el ahorro, créditos productivos accesibles y programas de asistencia comunitaria sin intermediarios.
+              ${presDesc}
             </p>
             <p style="font-size:0.88rem;color:#64748b;line-height:1.6;">
               Fomentamos un trato cercano, digno y transparente en cada una de nuestras agencias y canales cooperativos, acompañando el esfuerzo de emprendedores, familias y comunidades guatemaltecas.
@@ -1181,12 +1126,10 @@ class SectionsComponent {
                 <div class="nosotros-valor-icon-wrap">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                 </div>
-                <h3 class="nosotros-valor-title">Integridad</h3>
-                <p class="nosotros-valor-desc">
-                  Actuar con coherencia con nuestros valores, manteniendo transparencia en todo lo que hacemos y fomentando la cooperación en cada acción.
-                </p>
+                <h3 class="nosotros-valor-title">${val1Title}</h3>
+                <p class="nosotros-valor-desc">${val1Desc}</p>
               </div>
-              <span class="nosotros-valor-tag">PILAR ÉTICO CENTRAL</span>
+              <span class="nosotros-valor-tag">${val1Tag}</span>
             </div>
 
             <!-- Cooperación -->
@@ -1195,12 +1138,10 @@ class SectionsComponent {
                 <div class="nosotros-valor-icon-wrap">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 </div>
-                <h3 class="nosotros-valor-title">Cooperación</h3>
-                <p class="nosotros-valor-desc">
-                  Trabajar juntos para alcanzar un objetivo común, basada en la ayuda mutua, la solidaridad y el esfuerzo compartido por el bien colectivo.
-                </p>
+                <h3 class="nosotros-valor-title">${val2Title}</h3>
+                <p class="nosotros-valor-desc">${val2Desc}</p>
               </div>
-              <span class="nosotros-valor-tag">PRINCIPIO COMUNITARIO</span>
+              <span class="nosotros-valor-tag">${val2Tag}</span>
             </div>
 
             <!-- Responsabilidad -->
@@ -1209,12 +1150,10 @@ class SectionsComponent {
                 <div class="nosotros-valor-icon-wrap">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                 </div>
-                <h3 class="nosotros-valor-title">Responsabilidad</h3>
-                <p class="nosotros-valor-desc">
-                  Administramos y cuidamos los ahorros de nuestros asociados que nos han confiado con rigurosa prudencia técnica y máxima solvencia.
-                </p>
+                <h3 class="nosotros-valor-title">${val3Title}</h3>
+                <p class="nosotros-valor-desc">${val3Desc}</p>
               </div>
-              <span class="nosotros-valor-tag">DISCIPLINA FIDUCIARIA</span>
+              <span class="nosotros-valor-tag">${val3Tag}</span>
             </div>
 
             <!-- Enfoque al Asociado -->
@@ -1223,12 +1162,10 @@ class SectionsComponent {
                 <div class="nosotros-valor-icon-wrap">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                 </div>
-                <h3 class="nosotros-valor-title">Enfoque al Asociado</h3>
-                <p class="nosotros-valor-desc">
-                  El centro de atención de nuestros esfuerzos y nuestra lealtad son los asociados, a quienes entregamos siempre soluciones de calidad y trato humano.
-                </p>
+                <h3 class="nosotros-valor-title">${val4Title}</h3>
+                <p class="nosotros-valor-desc">${val4Desc}</p>
               </div>
-              <span class="nosotros-valor-tag">VOCACIÓN DE SERVICIO</span>
+              <span class="nosotros-valor-tag">${val4Tag}</span>
             </div>
           </div>
         </section>
@@ -1237,19 +1174,19 @@ class SectionsComponent {
         <section class="nosotros-gallery-grid">
           <!-- Foto 1: Arraigo Territorial -->
           <div class="nosotros-gallery-card">
-            <img src="assets/nosotros_artesana.jpg" alt="Arraigo Territorial COLUA" class="nosotros-gallery-img" onerror="this.src='assets/colua_edificio.png'" />
+            <img src="${gal1Img}" alt="${gal1Title}" class="nosotros-gallery-img" onerror="this.src='assets/colua_edificio.png'" />
             <div class="nosotros-gallery-overlay">
-              <span class="nosotros-gallery-tag">ARRAIGO TERRITORIAL</span>
-              <h4 class="nosotros-gallery-title">Identidad Cultural y Comunitaria en el Altiplano</h4>
+              <span class="nosotros-gallery-tag">${gal1Tag}</span>
+              <h4 class="nosotros-gallery-title">${gal1Title}</h4>
             </div>
           </div>
 
           <!-- Foto 2: Gobernanza Democrática -->
           <div class="nosotros-gallery-card">
-            <img src="assets/noticia_asamblea_general.jpg" alt="Gobernanza Cooperativa COLUA MICOOPE" class="nosotros-gallery-img" onerror="this.src='assets/colua_edificio.png'" />
+            <img src="${gal2Img}" alt="${gal2Title}" class="nosotros-gallery-img" onerror="this.src='assets/colua_edificio.png'" />
             <div class="nosotros-gallery-overlay">
-              <span class="nosotros-gallery-tag">GOBERNANZA COOPERATIVA</span>
-              <h4 class="nosotros-gallery-title">Participación Democrática y Solidez del Sistema MICOOPE</h4>
+              <span class="nosotros-gallery-tag">${gal2Tag}</span>
+              <h4 class="nosotros-gallery-title">${gal2Title}</h4>
             </div>
           </div>
         </section>
@@ -1258,16 +1195,14 @@ class SectionsComponent {
         <section class="nosotros-contact-banner">
           <div class="nosotros-contact-top">
             <div class="nosotros-contact-left">
-              <span class="nosotros-sec-eyebrow" style="color:#173789;">ATENCIÓN AL ASOCIADO Y PÚBLICO</span>
-              <h3 style="font-size:1.35rem;font-weight:800;color:#0f172a;margin-bottom:0.4rem;">¿Necesitas ayuda adicional o deseas afiliarte?</h3>
-              <p style="font-size:0.88rem;color:#475569;line-height:1.55;margin:0;">
-                Comunícate a nuestro PBX central o visítanos en cualquiera de nuestras 18 agencias departamentales para abrir tu cuenta de aportaciones y disfrutar de los beneficios cooperativos.
-              </p>
+              <span class="nosotros-sec-eyebrow" style="color:#173789;">${contactEyebrow}</span>
+              <h3 style="font-size:1.35rem;font-weight:800;color:#0f172a;margin-bottom:0.4rem;">${contactTitle}</h3>
+              <p style="font-size:0.88rem;color:#475569;line-height:1.55;margin:0;">${contactDesc}</p>
             </div>
             <div class="nosotros-contact-actions">
-              <a href="tel:77957795" class="nosotros-btn-pbx">
+              <a href="${contactAction}" class="nosotros-btn-pbx">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                PBX: 7795-7795
+                ${contactBtn}
               </a>
               <button class="nosotros-btn-agencias" onclick="window.coluaRouter ? window.coluaRouter.navigate('sec_agencias') : (window.location.hash='#sec_agencias')">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -1327,6 +1262,7 @@ class SectionsComponent {
           ${i.subtitle ? `<span style="font-size:0.8rem;font-weight:600;color:#2563eb;">${i.subtitle}</span>` : ''}
           <p class="clean-product-desc" style="margin-top:0.5rem;">${i.description || i.shortDescription || ''}</p>
         </div>
+        ${this._renderCardButton(i.buttonText, i.buttonAction, i.id, 'Ver Más Información', 'modal:info')}
       </div>
     `).join('');
 

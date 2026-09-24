@@ -4,6 +4,7 @@ class Router {
     constructor() {
         this.currentRoute = '';
         this.container = null;
+        this._routingId = 0;
     }
 
     init(containerId) {
@@ -14,7 +15,8 @@ class Router {
     }
 
     async handleRouting() {
-        let rawHash = (window.location.hash || '').slice(1).trim();
+        const routingId = ++this._routingId;
+        let rawHash = (window.location.hash || '').replace(/^#\/?/, '').trim();
         let hash = rawHash.split('?')[0].trim().toLowerCase();
         if (!hash || hash === '/' || hash === '') hash = 'inicio';
 
@@ -27,7 +29,7 @@ class Router {
 
         // Cerrar sidebar
         if (window.sidebarComponent && window.sidebarComponent.close) {
-            window.sidebarComponent.close();
+            window.sidebarComponent.close(false, true);
         }
 
         // Actualizar navbar desktop y bottom-nav móvil
@@ -106,6 +108,7 @@ class Router {
             }
         } catch (err) {
             console.error('[Router] Error al renderizar "' + hash + '":', err);
+            if (routingId !== this._routingId) return;
             if (window.Swal) {
                 Swal.fire({
                     icon: "error",
@@ -137,6 +140,11 @@ class Router {
             `;
         }
 
+        // Si llegó una nueva solicitud de navegación mientras esta cargaba, descartar la obsoleta
+        if (routingId !== this._routingId) {
+            return;
+        }
+
         // Insertar HTML en el contenedor si el componente retornó un string
         if (typeof html === 'string' && html.trim().length > 0) {
             this.container.innerHTML = html;
@@ -149,7 +157,7 @@ class Router {
     }
 
     navigate(route) {
-        const r = (route || 'inicio').replace(/^#/, '');
+        const r = (route || 'inicio').replace(/^#\/?/, '').trim();
         const targetHash = '#' + r;
         if (window.location.hash === targetHash) {
             this.handleRouting();

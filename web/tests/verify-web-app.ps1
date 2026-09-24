@@ -171,11 +171,10 @@ Assert-Check ($swJsContent -match 'distintivo_colua_maskable_192\.png') "Icono m
 Assert-Check ($swJsContent -match 'colua-web-digital-v5') "Version de cache actualizada en sw.js (v5.x)"
 Assert-Check (-not ($rootIndexContent -match '<link rel="manifest"')) "Redireccionador raiz sin manifest incongruente de scope"
 Assert-Check ($appJsContent -match '_setupHistoryNavigation') "Metodo _setupHistoryNavigation implementado en app.js"
-Assert-Check ($appJsContent -match "window\.addEventListener\('popstate'") "Manejador popstate para boton atras / gestos implementado en app.js"
-Assert-Check ($appJsContent -match "closeModal\(true\)") "closeModal soporta cierre desde historial popstate sin bucles"
-Assert-Check ($noticiasJsContent -match 'closeLightboxFromHistory') "Lightbox de noticias soporta cierre independiente con boton atras"
-Assert-Check ($sidebarJsContent -match 'coluaSidebar') "Drawer lateral sincronizado con historial del navegador"
-Assert-Check ($chatbotJsContent -match 'coluaChatbot') "Mesa de ayuda sincronizada con historial del navegador"
+Assert-Check ($appJsContent -match "closeModal\(\)") "Metodo closeModal limpio y sin interferencia de historial"
+Assert-Check ($noticiasJsContent -match 'closeLightbox') "Lightbox de noticias con metodo de cierre limpio"
+Assert-Check ($sidebarJsContent -match 'close\(\)') "Drawer lateral con cierre limpio sin interferencia de historial"
+Assert-Check ($chatbotJsContent -match 'toggleChat') "Mesa de ayuda con toggleChat limpio"
 
 # 10. Validar Editor Canvas, Duplicar, Selector de Tipos y Publicacion CMS
 Write-Host "`n10. Validando Editor Canvas, Duplicar, Selector de Tipos y Centro de Publicacion:" -ForegroundColor Yellow

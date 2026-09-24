@@ -28,7 +28,7 @@ class BottomNavComponent {
         ${slots.map(s => {
           if (s.slotIndex === 3 || s.isFixed) {
             return `
-              <div class="bottom-nav-item center-home ${isHome ? 'active' : ''}" data-route="sec_home" data-slot="3" title="Inicio">
+              <div class="bottom-nav-item center-home ${isHome ? 'active' : ''}" data-route="sec_home" data-slot="3" title="Inicio" onclick="window.coluaRouter ? window.coluaRouter.navigate('sec_home') : (window.location.hash='#sec_home')">
                 <div class="icon-circle">
                   <img src="${s.icon || 'assets/distintivo_colua.png'}" alt="Inicio" style="object-fit: contain; padding: 2px;" onerror="this.src='assets/distintivo_colua.png'" />
                 </div>
@@ -42,7 +42,7 @@ class BottomNavComponent {
           const isActive = raw === route.toLowerCase() || raw === cleanRoute || raw === `sec_${cleanRoute}`;
 
           return `
-            <div class="bottom-nav-item ${isActive ? 'active' : ''}" data-route="${route}" data-slot="${s.slotIndex}">
+            <div class="bottom-nav-item ${isActive ? 'active' : ''}" data-route="${route}" data-slot="${s.slotIndex}" onclick="window.coluaRouter ? window.coluaRouter.navigate('${route}') : (window.location.hash='#${route}')">
               <img src="${s.icon || 'assets/distintivo_colua.png'}" alt="${s.label}" onerror="this.src='assets/distintivo_colua.png'" />
               <span>${s.label}</span>
             </div>

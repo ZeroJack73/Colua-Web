@@ -82,18 +82,18 @@ class NavbarComponent {
         <div class="navbar-menu-row">
           <div class="navbar-container">
             <nav class="desktop-nav-menu" aria-label="Navegación Principal">
-              <button class="nav-link-btn ${isHome ? 'active' : ''}" data-nav="sec_home">Inicio</button>
-              <button class="nav-link-btn ${clean === 'sec_ahorros' || clean === 'ahorros' ? 'active' : ''}" data-nav="sec_ahorros">Ahorros</button>
-              <button class="nav-link-btn ${clean === 'sec_creditos' || clean === 'creditos' ? 'active' : ''}" data-nav="sec_creditos">Créditos</button>
-              <button class="nav-link-btn ${clean === 'sec_seguros' || clean === 'seguros' ? 'active' : ''}" data-nav="sec_seguros">Seguros</button>
-              <button class="nav-link-btn ${clean === 'sec_remesas' || clean === 'remesas' ? 'active' : ''}" data-nav="sec_remesas">Remesas</button>
-              <button class="nav-link-btn ${clean === 'sec_servicios' || clean === 'servicios' ? 'active' : ''}" data-nav="sec_servicios">Servicios</button>
-              <button class="nav-link-btn ${clean === 'sec_beneficios' || clean === 'beneficios' ? 'active' : ''}" data-nav="sec_beneficios">Beneficios</button>
-              <button class="nav-link-btn ${clean === 'sec_sostenibilidad' || clean === 'sostenibilidad' ? 'active' : ''}" data-nav="sec_sostenibilidad">Sostenibilidad</button>
-              <button class="nav-link-btn ${clean === 'sec_noticias' || clean === 'noticias' ? 'active' : ''}" data-nav="sec_noticias">Noticias</button>
-              <button class="nav-link-btn ${clean === 'sec_agencias' || clean === 'agencias' ? 'active' : ''}" data-nav="sec_agencias">Agencias</button>
-              <button class="nav-link-btn ${clean === 'sec_nosotros' || clean === 'nosotros' ? 'active' : ''}" data-nav="sec_nosotros">Nosotros</button>
-              <button class="nav-link-btn ${clean === 'admin' ? 'active' : ''}" data-nav="admin">Portal Administrativo</button>
+              <button class="nav-link-btn ${isHome ? 'active' : ''}" data-nav="sec_home" onclick="window.coluaRouter ? window.coluaRouter.navigate('sec_home') : (window.location.hash='#sec_home')">Inicio</button>
+              <button class="nav-link-btn ${clean === 'sec_ahorros' || clean === 'ahorros' ? 'active' : ''}" data-nav="sec_ahorros" onclick="window.coluaRouter ? window.coluaRouter.navigate('sec_ahorros') : (window.location.hash='#sec_ahorros')">Ahorros</button>
+              <button class="nav-link-btn ${clean === 'sec_creditos' || clean === 'creditos' ? 'active' : ''}" data-nav="sec_creditos" onclick="window.coluaRouter ? window.coluaRouter.navigate('sec_creditos') : (window.location.hash='#sec_creditos')">Créditos</button>
+              <button class="nav-link-btn ${clean === 'sec_seguros' || clean === 'seguros' ? 'active' : ''}" data-nav="sec_seguros" onclick="window.coluaRouter ? window.coluaRouter.navigate('sec_seguros') : (window.location.hash='#sec_seguros')">Seguros</button>
+              <button class="nav-link-btn ${clean === 'sec_remesas' || clean === 'remesas' ? 'active' : ''}" data-nav="sec_remesas" onclick="window.coluaRouter ? window.coluaRouter.navigate('sec_remesas') : (window.location.hash='#sec_remesas')">Remesas</button>
+              <button class="nav-link-btn ${clean === 'sec_servicios' || clean === 'servicios' ? 'active' : ''}" data-nav="sec_servicios" onclick="window.coluaRouter ? window.coluaRouter.navigate('sec_servicios') : (window.location.hash='#sec_servicios')">Servicios</button>
+              <button class="nav-link-btn ${clean === 'sec_beneficios' || clean === 'beneficios' ? 'active' : ''}" data-nav="sec_beneficios" onclick="window.coluaRouter ? window.coluaRouter.navigate('sec_beneficios') : (window.location.hash='#sec_beneficios')">Beneficios</button>
+              <button class="nav-link-btn ${clean === 'sec_sostenibilidad' || clean === 'sostenibilidad' ? 'active' : ''}" data-nav="sec_sostenibilidad" onclick="window.coluaRouter ? window.coluaRouter.navigate('sec_sostenibilidad') : (window.location.hash='#sec_sostenibilidad')">Sostenibilidad</button>
+              <button class="nav-link-btn ${clean === 'sec_noticias' || clean === 'noticias' ? 'active' : ''}" data-nav="sec_noticias" onclick="window.coluaRouter ? window.coluaRouter.navigate('sec_noticias') : (window.location.hash='#sec_noticias')">Noticias</button>
+              <button class="nav-link-btn ${clean === 'sec_agencias' || clean === 'agencias' ? 'active' : ''}" data-nav="sec_agencias" onclick="window.coluaRouter ? window.coluaRouter.navigate('sec_agencias') : (window.location.hash='#sec_agencias')">Agencias</button>
+              <button class="nav-link-btn ${clean === 'sec_nosotros' || clean === 'nosotros' ? 'active' : ''}" data-nav="sec_nosotros" onclick="window.coluaRouter ? window.coluaRouter.navigate('sec_nosotros') : (window.location.hash='#sec_nosotros')">Nosotros</button>
+              <button class="nav-link-btn ${clean === 'admin' ? 'active' : ''}" data-nav="admin" onclick="window.coluaRouter ? window.coluaRouter.navigate('admin') : (window.location.hash='#admin')">Portal Administrativo</button>
             </nav>
           </div>
         </div>
